@@ -6,7 +6,7 @@ import React, {
   useState,
 } from "react";
 import { Dragonblight } from "../../../clients/Dragonblight";
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 import {
   Card,
   ChevronDownIcon,

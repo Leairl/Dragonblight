@@ -1,21 +1,21 @@
 import { Card, Container, Flex } from "@radix-ui/themes";
 import Select, { Option } from "rc-select";
-import React, { useCallback } from "react";
+import React, {  useMemo } from "react";
 import { useState } from "react";
 import "./search-box.less";
 import debounce from "lodash/debounce";
 import { ClassColor } from "../../helpers/classColorHelper";
 import { Dragonblight } from "../../clients/Dragonblight";
 import { UsRealms, EuRealms } from "../../clients/ServerNames";
-import { Link, Outlet } from "react-router-dom";
+import { Link, Outlet } from "react-router";
 import { flavorHref, getFlavor } from "../../helpers/game-flavor";
 
 function HomePage() {
   //finding data with setSearchResults, and referencing / storing with searchResults
   const [searchResults, setSearchResults] = useState<React.ReactElement[]>();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const inputRef = React.createRef<HTMLInputElement>();
-  const delayedSearch = useCallback(
+  const delayedSearch = useMemo(
+  () =>
     debounce(async (searchTerm) => {
       await SearchAsync(searchTerm.trim());
     }, 500),
@@ -192,8 +192,8 @@ function HomePage() {
       const searchSplit = search.split("-");
       const characterName = searchSplit[0];
       //checks through the list of eu and us realms, and connects it with a similar named server typed in search.
-      var UsServers = "" as string | undefined
-      var EuServers = "" as string | undefined
+      let UsServers = "" as string | undefined
+      let EuServers = "" as string | undefined
       if (getFlavor() == "classic")
       {
       UsServers =

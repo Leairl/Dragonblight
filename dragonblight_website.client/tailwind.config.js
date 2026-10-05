@@ -68,6 +68,5 @@ export default {
           // Add more custom images as needed
         },
     },
-    plugins: [],
   },
 };

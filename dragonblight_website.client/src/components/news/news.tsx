@@ -6,10 +6,8 @@ import * as Tooltip from "@radix-ui/react-tooltip";
 import "./news.css"
 import { Dragonblight } from "../../clients/Dragonblight";
 
-interface NewsProps {
-}
-const News: React.FC<NewsProps> = () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
+const News: React.FC = () => {
     const [news, setNews] = useState<NewsModel>();
     const [region, setRegion] = useState<string>("us");
     const [streamList, setStreamList] = useState<Dragonblight.Stream[]>([]);
@@ -100,7 +98,7 @@ const News: React.FC<NewsProps> = () => {
                 <Separator className="w-full" />
                 <div className="flex flex-col w-full">
 
-                    {// eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    {
                     news?.rss.channel.item
                     .filter(ni => ni.link.includes("/"+region+"/") && ni.link.includes("/topic/"))
                     .slice(0, 10)

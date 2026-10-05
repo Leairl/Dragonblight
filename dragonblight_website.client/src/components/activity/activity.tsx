@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import * as Avatar from "@radix-ui/react-avatar";
 import * as Dialog from "@radix-ui/react-dialog";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import "@preline/select"; // Import Preline JavaScript
 import {
   Card,
@@ -17,7 +17,7 @@ import {
 import { Dragonblight } from "../../clients/Dragonblight";
 import "./activity.css";
 import { ClassColor } from "../../helpers/classColorHelper";
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 import { Pagination } from "react-headless-pagination";
 import ClassFilter from "../class-filter/class-filter";
 import { InfoCircledIcon } from "@radix-ui/react-icons";

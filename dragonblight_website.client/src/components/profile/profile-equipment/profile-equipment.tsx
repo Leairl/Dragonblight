@@ -1,5 +1,5 @@
 import React, { FC, useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 import "./profile-equipment.css";
 import { Callout, Card, Flex, Heading, Skeleton } from "@radix-ui/themes";
 import * as Tooltip from "@radix-ui/react-tooltip";

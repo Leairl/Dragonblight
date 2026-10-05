@@ -55,8 +55,6 @@ if (!window.WH) {
     }
 
     window.WH.ModelViewer = new function() {
-        const e = this;
-        const t = [1796891, 1819228, 2425846, 2046439];
         const a = {
             screenshotsAllowed: true
         };
@@ -69,7 +67,6 @@ if (!window.WH) {
         }
         i()
     }
-    // eslint-disable-next-line no-undef
 
 const WH = window.WH
 

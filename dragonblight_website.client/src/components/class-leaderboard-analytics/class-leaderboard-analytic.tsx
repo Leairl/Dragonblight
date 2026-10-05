@@ -4,18 +4,17 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { ChevronDownIcon } from '@radix-ui/react-icons';
 import "./class-leaderboard-analytic.css"
 import { Dragonblight } from "../../clients/Dragonblight";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router";
 import { ClassColor } from '../../helpers/classColorHelper';
 import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import { brackets } from "../../helpers/game-flavor";
 
-interface ClassAnalyticsProps {
-}
+
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-const ClassAnalytics: React.FC<ClassAnalyticsProps> = () => {
+const ClassAnalytics: React.FC = () => {
   const { URLregion, URLbracket } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState<boolean>(true);

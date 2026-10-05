@@ -3,16 +3,15 @@ import ProfileEquipment from './profile-equipment/profile-equipment';
 import ProfileRating from './profile-rating/profile-rating';
 import ProfileStats from './profile-stats/profile-stats';
 import { Dragonblight } from '../../clients/Dragonblight';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router';
 import { getFlavor } from '../../helpers/game-flavor';
 import { Flex, Text, SegmentedControl, Switch, Callout } from '@radix-ui/themes';
 import "./profile.css"
 import { useCookies } from 'react-cookie';
 import { InfoCircledIcon } from "@radix-ui/react-icons";
 
-interface ProfileProps {}
 
-const Profile: FC<ProfileProps> = () => {
+const Profile: FC = () => {
     const [characterSummary, setcharacterSummary] = useState<Dragonblight.CharacterProfileSummary>();
     const [specName, setSpecName] = useState<string>();
     const [characterEquipmentSummary, setCharacterEquipmentSummary] = useState<Dragonblight.CharacterEquipmentSummary>();

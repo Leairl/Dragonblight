@@ -51,7 +51,6 @@ async function generateModels(aspect, containerSelector, model, env=`live`) {
     const models = {
         type: 2,
         contentPath: window.CONTENT_PATH,
-        // eslint-disable-next-line no-undef
         container: jQuery(containerSelector),
         aspect: aspect,
         cls: 1,
@@ -60,7 +59,6 @@ async function generateModels(aspect, containerSelector, model, env=`live`) {
     }
     console.log(`Creating viewer with options`, models)
 
-    // eslint-disable-next-line no-undef
     const wowModelViewer =  await new WowModelViewer(models)
     if(fullOptions) {
         wowModelViewer.currentCharacterOptions = fullOptions

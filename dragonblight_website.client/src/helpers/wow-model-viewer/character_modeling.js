@@ -200,7 +200,7 @@ async function getDisplaySlot(item, slot, displayId, env=`live`) {
             displaySlot: slot,
             displayId: displayId
         }
-    } catch (e) {
+    } catch {
         if(!window.WOTLK_TO_RETAIL_DISPLAY_ID_API){
             throw Error(`Item not found and window.WOTLK_TO_RETAIL_DISPLAY_ID_API not set`)
         }

@@ -1,7 +1,7 @@
 import * as NavigationMenu from "@radix-ui/react-navigation-menu";
 import { Button, Card, Theme } from "@radix-ui/themes";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import "./nav-bar.css";
 import FlavorToggle from "./flavor-toggle";
 import { flavorHref } from "../../helpers/game-flavor";

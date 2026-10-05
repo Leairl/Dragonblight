@@ -1,9 +1,6 @@
 import React, { FC } from 'react';
-
-
-interface registerProps {}
-
-const register: FC<registerProps> = () => (
+   
+const register: FC = () => (
    <div>
     register Component
    </div>
