@@ -1,7 +1,7 @@
 /* design for entire website */
-@layer theme, base, radix, components, utilities;
-@import "@radix-ui/themes/styles.css" layer(radix);
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 .radix-themes:where([data-panel-background='translucent']) {
     --color-panel: var(--color-panel-translucent);
