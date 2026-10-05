@@ -81,7 +81,7 @@ partial class WarcraftRedisProxy
         return ladder.Where(p => p.HasValue).Select(player =>
         {
             //deserialized out of json to become an object.
-            return JsonSerializer.Deserialize<PvpLeaderboardAndTime>(player!);
+            return JsonSerializer.Deserialize<PvpLeaderboardAndTime>(player!.ToString());
         }).ToList();
     }
 

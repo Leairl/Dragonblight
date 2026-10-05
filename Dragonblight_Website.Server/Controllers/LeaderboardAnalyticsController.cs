@@ -47,10 +47,10 @@ namespace Dragonblight_Website.Server.Controllers
         public class ClassAnalytics
         {
             [JsonPropertyName("PvpEntries")]
-            public PvpLeaderboardEntry?[] PvpEntries { get; init; }
+            public required PvpLeaderboardEntry?[] PvpEntries { get; init; }
 
             [JsonPropertyName("className")]
-            public string className { get; init; }
+            public required string className { get; init; }
         }
     }
 }

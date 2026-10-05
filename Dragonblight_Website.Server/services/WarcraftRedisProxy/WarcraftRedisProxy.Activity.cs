@@ -29,7 +29,7 @@ partial class WarcraftRedisProxy
         return ladder.Where(p => p.HasValue).Select(player =>
         {
             //deserialized out of json to become an object.
-            return JsonSerializer.Deserialize<PvpLeaderboardEntryandTime>(player!);
+            return JsonSerializer.Deserialize<PvpLeaderboardEntryandTime>(player!.ToString());
         }).ToList();
     }
     public async Task InsertToBracketActivityPage(string bracket, string region, PvpLeaderboardEntry oldPlayer, PvpLeaderboardEntry newPlayer, GameFlavor flavor = GameFlavor.MistsClassic)
@@ -89,7 +89,7 @@ partial class WarcraftRedisProxy
         return ladder.Where(p => p.HasValue).Select(player =>
         {
             //deserialized out of json to become an object.
-            return JsonSerializer.Deserialize<PlayerActivity>(player!);
+            return JsonSerializer.Deserialize<PlayerActivity>(player!.ToString());
         }).Where(p => p != null && p.NewPlayer != null && p.OldPlayer != null).ToList();
     }
     public async Task<IEnumerable<PlayerActivity?>> GetBracketClassFilteredActivityPage(string bracket, string region, string characterClass, GameFlavor flavor = GameFlavor.MistsClassic)
@@ -101,7 +101,7 @@ partial class WarcraftRedisProxy
         return ladder.Where(p => p.HasValue).Select(player =>
         {
             //deserialized out of json to become an object.
-            return JsonSerializer.Deserialize<PlayerActivity>(player!);
+            return JsonSerializer.Deserialize<PlayerActivity>(player!.ToString());
         }).Where(p => p != null && p.NewPlayer != null && p.OldPlayer != null).ToList();
     }
 

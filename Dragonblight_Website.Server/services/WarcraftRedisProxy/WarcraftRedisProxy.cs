@@ -39,7 +39,7 @@ partial class WarcraftRedisProxy(WarcraftClient _warcraftClient, IConnectionMult
         {
             return default(T);
         }
-        var result = JsonSerializer.Deserialize<T>(StringRedis!); //deserialize jsonstring redis to obj of key
+        var result = JsonSerializer.Deserialize<T>(StringRedis!.ToString()); //deserialize jsonstring redis to obj of key
         return result;
     }
 

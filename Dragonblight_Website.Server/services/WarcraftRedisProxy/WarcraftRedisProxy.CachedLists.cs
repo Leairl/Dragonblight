@@ -38,7 +38,7 @@ partial class WarcraftRedisProxy
         return characterList.Where(p => p.HasValue).Select(player =>
         {
             //deserialized out of json to become an object.
-            return JsonSerializer.Deserialize<PvpLeaderboardEntry>(player!);
+            return JsonSerializer.Deserialize<PvpLeaderboardEntry>(player!.ToString());
         }).ToList();
     }
     public async Task ClearAllCachedClassCharacters(string bracket, string region, GameFlavor flavor = GameFlavor.MistsClassic)
@@ -76,7 +76,7 @@ partial class WarcraftRedisProxy
         return characterList.Where(p => p.HasValue).Select(player =>
         {
             //deserialized out of json to become an object.
-            return JsonSerializer.Deserialize<PvpCharacterSummary>(player!);
+            return JsonSerializer.Deserialize<PvpCharacterSummary>(player!.ToString());
         }).ToList();
     }
     public async Task InsertCacheClassCharacter(string bracket, PvpLeaderboardEntry player, CharacterProfileSummary characterClass, string region, GameFlavor flavor = GameFlavor.MistsClassic)
