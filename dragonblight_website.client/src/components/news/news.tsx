@@ -75,7 +75,7 @@ const News: React.FC = () => {
                         })}
                     </div>
                 </div>
-                <div className="flex-grow"></div>
+                <div className="grow"></div>
                 <div className="h-5 w-full">
                     <Badge className='float-right mx-3' color="purple"><a href="https://twitch.tv">Twitch</a></Badge>
                 </div>
@@ -168,7 +168,7 @@ const News: React.FC = () => {
                             </div>)
                     })}
                 </div>
-                <div className="flex-grow"></div>
+                <div className="grow"></div>
                 <div className="h-5 w-full">
                     <Badge className='float-right mx-3'><a href="https://wowhead.com">Wowhead</a></Badge>
                 </div>

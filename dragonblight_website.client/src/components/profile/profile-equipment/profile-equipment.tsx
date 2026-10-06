@@ -1030,7 +1030,7 @@ const ProfileEquipment: FC<profileEquipmentProps> = (props) => {
       <Tooltip.Provider delayDuration={100} key={"achievementIcon" + i}>
         <Tooltip.Root>
           <Tooltip.Portal>
-            <Tooltip.Content className=" block max-w-sm p-2 rounded-lg shadow dark:bg-neutral-700 dark:border-neutral-950">
+            <Tooltip.Content className=" block max-w-sm p-2 rounded-lg shadow-sm dark:bg-neutral-700 dark:border-neutral-950">
               <Card className="z-100">
                 {" "}
                 {Tooltips != null ? Tooltips[1] : ""}

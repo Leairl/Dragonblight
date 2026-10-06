@@ -93,7 +93,7 @@ return r.bracket?.type?.includes(props.bracket) ||
       .trim();
 
   return (
-    <Card className={`${getCardBorder(title) ?? ""} w-[180px] min-w-[180px] p-1 text-center mb-2 mr-2 flex-grow-0`}>
+    <Card className={`${getCardBorder(title) ?? ""} w-[180px] min-w-[180px] p-1 text-center mb-2 mr-2 grow-0`}>
         <span className={getAchievementColor(title)}><b>{title}</b></span>
         {/* every spec has its own Solo Shuffle rewards, so without the spec those cards look identical */}
         {i.specialization?.name && (

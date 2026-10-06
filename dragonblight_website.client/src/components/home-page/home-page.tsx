@@ -24,7 +24,7 @@ function HomePage() {
   return (
     <div>
       <img
-        className="fixed opacity-50 -z-10 object-left-top w-full h-full inset-0 object-cover "
+        className="fixed opacity-50 -z-10 object-top-left w-full h-full inset-0 object-cover "
         src={`/Background/background.png`}
       ></img>
       <Container height="100vh">
@@ -103,7 +103,7 @@ function HomePage() {
                 style={{ maxHeight: "25px", maxWidth: "25px" }}
               ></img>
             </div>
-            <span className="pl-2 flex-grow">
+            <span className="pl-2 grow">
               {characterName}-{server}
             </span>
             <img
@@ -165,7 +165,7 @@ function HomePage() {
                     style={{ maxHeight: "25px", maxWidth: "25px" }}
                   ></img>
                   <span
-                    className="pl-2 flex-grow"
+                    className="pl-2 grow"
                     style={{
                       color: `${ClassColor.get(
                         characterSummary.character_class?.name ?? ""

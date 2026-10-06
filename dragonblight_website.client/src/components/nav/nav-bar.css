@@ -1,3 +1,4 @@
+@reference "../../index.css";
 
 .blue-bottom-border {
     border-bottom: 0px;
@@ -35,7 +36,7 @@
 }
 }
 .btn {
-    @apply font-bold py-2 px-8 rounded;
+    @apply font-bold py-2 px-8 rounded-sm;
   }
   
   .btn-blue {

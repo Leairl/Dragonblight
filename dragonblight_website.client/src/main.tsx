@@ -10,7 +10,6 @@ import ProfilePage from './components/profile/profile.tsx'
 import RegisterPage from './components/register/register.tsx'
 import NavBar from './components/nav/nav-bar.tsx'
 import { Theme } from '@radix-ui/themes'
-import '@radix-ui/themes/styles.css'
 import './index.css'
 import { ensureFlavorInPath, getFlavor, installFlavorHeader } from './helpers/game-flavor.ts'
 import RankingsPage from './components/rankings/rankings.tsx';

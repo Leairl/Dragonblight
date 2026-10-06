@@ -107,7 +107,7 @@ const Profile: FC = () => {
     {/* when setShowModelViewer changes, calls useEffect to use the correct ShowModelViewer on cookies*/}
           <div className={loading ? "div-disabled" : ""}>
             <SegmentedControl.Root
-              className=" w-[250px] flex-grow-0"
+              className=" w-[250px] grow-0"
               value={currTab}
               defaultValue={"gear"}
             >
@@ -145,7 +145,7 @@ const Profile: FC = () => {
               </SegmentedControl.Item>)}
             </SegmentedControl.Root>
           </div>
-          <div className='flex flex-grow h-100'></div>
+          <div className='flex grow h-100'></div>
           <div className='self-center'>
           <Switch className='self-center'
                       onCheckedChange={(checked) => {

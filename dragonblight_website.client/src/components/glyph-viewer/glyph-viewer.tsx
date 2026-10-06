@@ -99,7 +99,7 @@ const GlyphViewer: React.FC<GlyphViewerProps> = (props) => {
     function GetSkeletonGlyph(): React.JSX.Element {
 
       return(
-          <div className='min-w-[200px] flex-grow py-1 flex flex-row items-center'>
+          <div className='min-w-[200px] grow py-1 flex flex-row items-center'>
             <Skeleton width="40px" height="40px">
             </Skeleton>
             <Skeleton className='ml-1'width="1px" height="10px">
