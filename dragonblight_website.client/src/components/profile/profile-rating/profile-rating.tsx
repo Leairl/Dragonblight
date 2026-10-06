@@ -242,7 +242,7 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
   ): ReactElement {
     //connects specific bracket data into card, set to type ReactElement with tsx code inside return
     return (
-      <div className="pb-10 rating-card" key={"GetRating" + index}>
+      <div className="pb-10 pt-4 rating-card" key={"GetRating" + index}>
         <Card
           className={
             getCardBorder(
@@ -252,8 +252,8 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
             ) +
             " " +
             (index == 0 || index == 2
-              ? "mt-5 mb-3 h-26 mobile-padding rating-padding"
-              : "mt-5 mb-3 h-26 rating-padding")
+              ? "mt-5 mb-3 mobile-padding rating-padding"
+              : "mt-5 mb-3 rating-padding")
           }
         >
           <div>

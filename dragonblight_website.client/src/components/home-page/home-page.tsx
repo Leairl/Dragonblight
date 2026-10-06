@@ -42,7 +42,7 @@ function HomePage() {
               mode="combobox"
               notFoundContent={null}
               defaultActiveFirstOption={true}
-              className="text-white font-thin text-base w-full"
+              className="text-white font-thin text-base"
               getInputElement={() => (
                 <input
                   style={{

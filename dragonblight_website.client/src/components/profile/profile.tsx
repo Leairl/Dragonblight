@@ -100,7 +100,7 @@ const Profile: FC = () => {
       </div>
       :
         // uses loading useState in profile.tsx, but is affected by useEffect in child profile components to allow change in display.
- <div className={characterNotFound ? "page-container not-found grid" : "page-container grid"}>
+ <div className={characterNotFound ? "profile-page not-found grid" : "profile-page grid"}>
  <div className="button-row">
  <Text as="label" size="2">
    <Flex className='button-row'gap="2">
@@ -145,7 +145,7 @@ const Profile: FC = () => {
               </SegmentedControl.Item>)}
             </SegmentedControl.Root>
           </div>
-          <div className='flex grow h-100'></div>
+          <div className='flex grow'></div>
           <div className='self-center'>
           <Switch className='self-center'
                       onCheckedChange={(checked) => {
