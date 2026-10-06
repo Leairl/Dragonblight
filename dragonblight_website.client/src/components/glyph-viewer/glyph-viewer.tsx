@@ -4,7 +4,7 @@ import './glyph-viewer.css';
 import { Dragonblight } from "../../clients/Dragonblight";
 import { ClassColor } from '../../helpers/classColorHelper';
 import Glyphs from '../../data/glyph';
-import { Card } from '@radix-ui/themes/src/index.js';
+import { Card } from '@radix-ui/themes';
 import { wowheadUrl } from "../../helpers/game-flavor";
 declare const $WowheadPower: { refreshLinks: () => void };
 
@@ -71,7 +71,7 @@ const GlyphViewer: React.FC<GlyphViewerProps> = (props) => {
       }
 
     function GlyphDisplay() {
-      const glyphSections: JSX.Element[] = [];
+      const glyphSections: React.JSX.Element[] = [];
       const glyphName = ["Major Glyphs", "Minor Glyphs"];
       glyphName.map(g => {
         glyphSections.push(GetSection(g))
@@ -79,7 +79,7 @@ const GlyphViewer: React.FC<GlyphViewerProps> = (props) => {
       return glyphSections
     }
     function GetSection(g: string) {
-      const glyphs: JSX.Element[] = [];
+      const glyphs: React.JSX.Element[] = [];
       [0,1,2].map((i) => {
         let glyphType = 0;
         if (g == 'Minor Glyphs') {
@@ -96,10 +96,10 @@ const GlyphViewer: React.FC<GlyphViewerProps> = (props) => {
       </div>
     )
     }
-    function GetSkeletonGlyph() {
+    function GetSkeletonGlyph(): React.JSX.Element {
 
       return(
-          <div className='min-w-[200px] flex-grow py-1 flex flex-row items-center'>
+          <div className='min-w-[200px] grow py-1 flex flex-row items-center'>
             <Skeleton width="40px" height="40px">
             </Skeleton>
             <Skeleton className='ml-1'width="1px" height="10px">
@@ -107,7 +107,7 @@ const GlyphViewer: React.FC<GlyphViewerProps> = (props) => {
           </div>
       )
     }
-    function GetGlyph(i: number, glyphType: number) {
+    function GetGlyph(i: number, glyphType: number): React.JSX.Element {
 
       return(
           <Card className='min-w-[300px] my-2 p-2 flex flex-row items-center'>

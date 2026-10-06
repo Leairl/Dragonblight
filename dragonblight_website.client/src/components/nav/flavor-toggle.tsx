@@ -1,4 +1,4 @@
-import { useLocation } from "react-router-dom";
+import { useLocation } from "react-router";
 import { getFlavor, setFlavor } from "../../helpers/game-flavor";
 
 // Switches the site between Retail and MoP Classic.

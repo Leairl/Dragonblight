@@ -1,6 +1,6 @@
 import React, { FC, ReactElement, useEffect, useState } from "react";
 import { Dragonblight } from "../../../clients/Dragonblight";
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 import { Card, Heading, Skeleton } from "@radix-ui/themes";
 import "./profile-rating.css";
 import { brackets, getFlavor } from "../../../helpers/game-flavor";

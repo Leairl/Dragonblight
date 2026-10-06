@@ -4,18 +4,17 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { ChevronDownIcon } from '@radix-ui/react-icons';
 import "./class-leaderboard-analytic.css"
 import { Dragonblight } from "../../clients/Dragonblight";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router";
 import { ClassColor } from '../../helpers/classColorHelper';
 import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import { brackets } from "../../helpers/game-flavor";
 
-interface ClassAnalyticsProps {
-}
+
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-const ClassAnalytics: React.FC<ClassAnalyticsProps> = () => {
+const ClassAnalytics: React.FC = () => {
   const { URLregion, URLbracket } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState<boolean>(true);
@@ -121,7 +120,7 @@ const ClassAnalytics: React.FC<ClassAnalyticsProps> = () => {
         <div className="flex-row justify-center flex px-0 py-3 flex-wrap">
           <div className={loading ? "div-disabled" : ""}>
             <SegmentedControl.Root
-              className="w-[250px] flex-grow-0"
+              className="w-[250px] grow-0"
               defaultValue={URLbracket ?? "3v3"}
             >
               <SegmentedControl.Item onClick={() => BracketClick("2v2")} value="2v2">
@@ -143,7 +142,7 @@ const ClassAnalytics: React.FC<ClassAnalyticsProps> = () => {
           <div className="grow"></div>
           <div className={loading ? "div-disabled" : ""}>
             <SegmentedControl.Root
-              className="w-[100px] flex-grow-0"
+              className="w-[100px] grow-0"
               defaultValue={URLregion ?? "us"}
             >
               <SegmentedControl.Item onClick={() => RegionClick("us")} value="us">
@@ -177,7 +176,7 @@ const ClassAnalytics: React.FC<ClassAnalyticsProps> = () => {
             </DropdownMenu.Root>
           </div>
         </div>
-        <Card className="w-[100%] h-[40vh]">
+        <Card className="w-full h-[40vh]">
           <Bar className="w-full h-full" data={data} options={options} />
         </Card>
       </div>

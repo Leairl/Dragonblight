@@ -1,7 +1,6 @@
 import {getCharacterOptions} from "./character_modeling.js"
 
 
-// eslint-disable-next-line no-undef
 class WowModelViewer extends ZamModelViewer {
     isLoaded() {
         return this.method("isLoaded");

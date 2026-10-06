@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import * as Avatar from "@radix-ui/react-avatar";
 import * as Dialog from "@radix-ui/react-dialog";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import "@preline/select"; // Import Preline JavaScript
 import {
   Card,
@@ -17,7 +17,7 @@ import {
 import { Dragonblight } from "../../clients/Dragonblight";
 import "./activity.css";
 import { ClassColor } from "../../helpers/classColorHelper";
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 import { Pagination } from "react-headless-pagination";
 import ClassFilter from "../class-filter/class-filter";
 import { InfoCircledIcon } from "@radix-ui/react-icons";
@@ -81,7 +81,7 @@ function Activity() {
           <div className="left50"></div>
           <div className={loading ? "div-disabled" : ""}>
             <SegmentedControl.Root
-              className=" w-[250px] flex-grow-0"
+              className=" w-[250px] grow-0"
               defaultValue={URLbracket ?? "3v3"}
             >
               <SegmentedControl.Item
@@ -123,7 +123,7 @@ function Activity() {
           <div className="grow"></div>
           <div className={loading ? "div-disabled" : ""}>
             <SegmentedControl.Root
-              className="w-[100px] flex-grow-0"
+              className="w-[100px] grow-0"
               defaultValue={URLregion ?? "us"}
             >
               <SegmentedControl.Item
@@ -158,8 +158,8 @@ function Activity() {
           truncableClassName=""
           
         >
-          <nav className="flex justify-end flex-grow-0">
-          <span className="font-bold flex float-left flex-grow text-sm items-center">
+          <nav className="flex justify-end grow-0">
+          <span className="font-bold flex float-left grow text-sm items-center">
           Showing {page * 50 + 1} - {(page + 1) * 50} Characters
       </span>
             <ul className="flex items-center">
@@ -180,9 +180,9 @@ function Activity() {
                 </svg>
               </Pagination.PrevButton>
               <Pagination.PageButton
-                inactiveClassName="bg-transparent h-[28px] w-[28px] flex justify-center items-center text-center first:rounded-s-md last:rounded-e-md text-gray-800 hover:bg-gray-100 py-3 px-4 text-xs focus:outline-none focus:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:border-neutral-700 dark:text-white dark:hover:bg-white/10 dark:focus:bg-white/10"
-                activeClassName="h-[28px] w-[28px] flex justify-center items-center text-center bg-gray-200 first:rounded-s-md last:rounded-e-md text-gray-800  py-3 px-4 text-xs focus:outline-none focus:bg-gray-300 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-600 dark:border-neutral-700 dark:text-white dark:focus:bg-neutral-500"
-                className="mx-[1px]"
+                inactiveClassName="bg-transparent h-[28px] w-[28px] flex justify-center items-center text-center first:rounded-s-md last:rounded-e-md text-gray-800 hover:bg-gray-100 py-3 px-4 text-xs focus:outline-hidden focus:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:border-neutral-700 dark:text-white dark:hover:bg-white/10 dark:focus:bg-white/10"
+                activeClassName="h-[28px] w-[28px] flex justify-center items-center text-center bg-gray-200 first:rounded-s-md last:rounded-e-md text-gray-800  py-3 px-4 text-xs focus:outline-hidden focus:bg-gray-300 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-600 dark:border-neutral-700 dark:text-white dark:focus:bg-neutral-500"
+                className="mx-px"
               />
 
               <Pagination.NextButton className="bg-[#292c31] mx-1 h-[28px] w-[28px] py-2 px-2.5 inline-flex justify-center items-center gap-x-1.5 text-xs first:rounded-s-lg last:rounded-e-lg border border-gray-200 text-gray-800 hover:bg-gray-100  disabled:opacity-50 disabled:pointer-events-none dark:border-neutral-700 dark:text-white dark:hover:bg-white/10 ">
@@ -458,8 +458,8 @@ function Activity() {
                             </Button>
                           </Dialog.Trigger>
                           <Dialog.Portal>
-                            <Dialog.Overlay className="backdrop-blur data-[state=open]:animate-overlayShow fixed inset-0" />
-                            <Dialog.Content className="min-h-[400px] data-[state=open]:animate-contentShow fixed top-[50%] left-[50%] w-[90vw] h-[70vh] translate-x-[-50%] translate-y-[-50%] rounded-[6px] shadow-[hsl(206_22%_7%_/_35%)_0px_10px_38px_-10px,_hsl(206_22%_7%_/_20%)_0px_10px_20px_-15px] bg-[#292c31] focus:outline-none">
+                            <Dialog.Overlay className="backdrop-blur-sm data-[state=open]:animate-overlayShow fixed inset-0" />
+                            <Dialog.Content className="min-h-[400px] data-[state=open]:animate-contentShow fixed top-[50%] left-[50%] w-[90vw] h-[70vh] translate-x-[-50%] translate-y-[-50%] rounded-[6px] shadow-[hsl(206_22%_7%/35%)_0px_10px_38px_-10px,hsl(206_22%_7%/20%)_0px_10px_20px_-15px] bg-[#292c31] focus:outline-hidden">
                               <div className=" flex justify-end">
                                 <Dialog.Close asChild>
                                   <button className="pt-7 text-2xl hover:opacity-50 focus:shadow-green7 inline-flex h-[35px] items-center justify-center rounded-[4px] px-[15px] font-medium leading-none">
@@ -658,7 +658,7 @@ function Activity() {
           truncableText="&nbsp;-&nbsp;"
           truncableClassName=""
         >
-          <nav className="flex justify-center flex-grow">
+          <nav className="flex justify-center grow">
             <ul className="flex items-center">
               <Pagination.PrevButton className="bg-[#292c31] mx-2 min-h-[38px] min-w-[38px] py-2 px-2.5 inline-flex justify-center items-center gap-x-1.5 text-sm first:rounded-s-lg last:rounded-e-lg border border-gray-200 text-gray-800 hover:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:border-neutral-700 dark:text-white dark:hover:bg-white/10 ">
                 <svg
@@ -678,8 +678,8 @@ function Activity() {
               </Pagination.PrevButton>
 
               <Pagination.PageButton
-                inactiveClassName="bg-[#292c31] min-h-[38px] min-w-[38px] flex justify-center items-center border border-gray-200 text-gray-800 hover:bg-gray-100 py-2 px-3 text-sm first:rounded-s-lg last:rounded-e-lg focus:outline-none focus:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:border-neutral-700 dark:text-white dark:hover:bg-white/10 dark:focus:bg-white/10"
-                activeClassName=" min-h-[38px] min-w-[38px] flex justify-center items-center bg-gray-200 text-gray-800 border border-gray-200 py-2 px-3 text-sm first:rounded-s-lg last:rounded-e-lg focus:outline-none focus:bg-gray-300 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-600 dark:border-neutral-700 dark:text-white dark:focus:bg-neutral-500"
+                inactiveClassName="bg-[#292c31] min-h-[38px] min-w-[38px] flex justify-center items-center border border-gray-200 text-gray-800 hover:bg-gray-100 py-2 px-3 text-sm first:rounded-s-lg last:rounded-e-lg focus:outline-hidden focus:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:border-neutral-700 dark:text-white dark:hover:bg-white/10 dark:focus:bg-white/10"
+                activeClassName=" min-h-[38px] min-w-[38px] flex justify-center items-center bg-gray-200 text-gray-800 border border-gray-200 py-2 px-3 text-sm first:rounded-s-lg last:rounded-e-lg focus:outline-hidden focus:bg-gray-300 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-600 dark:border-neutral-700 dark:text-white dark:focus:bg-neutral-500"
                 className="mx-1"
               />
 

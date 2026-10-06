@@ -1,20 +1,22 @@
 #See https://aka.ms/customizecontainer to learn how to customize your debug container and how Visual Studio uses this Dockerfile to build your images for faster debugging.
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 USER app
 WORKDIR /app
 EXPOSE 8080
 EXPOSE 7054
 
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS with-node
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS with-node
 RUN apt-get update
-RUN apt-get install curl
-RUN curl -sL https://deb.nodesource.com/setup_20.x | bash
+RUN apt-get install -y curl
+RUN curl -sL https://deb.nodesource.com/setup_22.x | bash
 RUN apt-get -y install nodejs
 # lets you debug vs code in vs
 RUN curl -sL https://aka.ms/getvsdbgsh | bash /dev/stdin -v latest -l /vsdbg
 
 FROM with-node AS publish
+
+# Build with release configuration for production
 ARG BUILD_CONFIGURATION=Debug
 WORKDIR /src
 # csproj files first: this layer is cached until a project file changes, so restore

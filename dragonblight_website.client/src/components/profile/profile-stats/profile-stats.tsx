@@ -6,7 +6,7 @@ import React, {
   useState,
 } from "react";
 import { Dragonblight } from "../../../clients/Dragonblight";
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 import {
   Card,
   ChevronDownIcon,
@@ -60,7 +60,7 @@ const ProfileStats: FC<ProfileStatsProps> = (props) => {
       <Accordion.Header className="flex ">
         <Accordion.Trigger
           className={classNames(
-            "shadow-mauve6 hover:bg-mauve2 group flex h-[45px] flex-1 cursor-default items-center justify-between text-[15px] leading-none outline-none",
+            "shadow-mauve6 hover:bg-mauve2 group flex h-[45px] flex-1 cursor-default items-center justify-between text-[15px] leading-none outline-hidden",
             className
           )}
           {...props}
@@ -68,7 +68,7 @@ const ProfileStats: FC<ProfileStatsProps> = (props) => {
         >
           {children}
           <ChevronDownIcon
-            className="text-violet10 ease-[cubic-bezier(0.87,_0,_0.13,_1)] transition-transform duration-300 group-data-[state=open]:rotate-180"
+            className="text-violet10 ease-[cubic-bezier(0.87,0,0.13,1)] transition-transform duration-300 group-data-[state=open]:rotate-180"
             aria-hidden
           />
         </Accordion.Trigger>

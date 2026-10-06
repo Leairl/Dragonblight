@@ -1,5 +1,4 @@
 // first element is key, second element is value (in list)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const RandEnchant = new Map<string, string>([
     ["-15", "of Spirit"],
     ["-16", "of Stamina"],

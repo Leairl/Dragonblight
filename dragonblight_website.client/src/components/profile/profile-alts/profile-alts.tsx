@@ -1,5 +1,5 @@
 import { FC, useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router";
 import { Card, Skeleton } from "@radix-ui/themes";
 import { Dragonblight } from "../../../clients/Dragonblight";
 import { ClassColor } from "../../../helpers/classColorHelper";
@@ -7,9 +7,8 @@ import { realmDisplayName } from "../../../helpers/realmNameHelper";
 import { retailTier } from "../../../helpers/ratingTierHelper";
 import "./profile-alts.css";
 
-interface ProfileAltsProps {}
 
-const ProfileAlts: FC<ProfileAltsProps> = (/*props*/) => {
+const ProfileAlts: FC = (/*props*/) => {
   const [alts, setAlts] = useState<Dragonblight.GetAltsResponse[]>();
   const [loading, setLoading] = useState<boolean>(true);
   const { region, server, characterName } = useParams();

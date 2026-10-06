@@ -1,8 +1,8 @@
 import React, { FC } from 'react';
 
-interface loginProps {}
 
-const Login: FC<loginProps> = () => (
+
+const Login: FC = () => (
  <div>
     login Component
  </div>

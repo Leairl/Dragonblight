@@ -1,7 +1,7 @@
 import * as NavigationMenu from "@radix-ui/react-navigation-menu";
 import { Button, Card, Theme } from "@radix-ui/themes";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import "./nav-bar.css";
 import FlavorToggle from "./flavor-toggle";
 import { flavorHref } from "../../helpers/game-flavor";
@@ -22,7 +22,7 @@ function NavBar() {
         <NavigationMenu.List className="center flex justify-evenly list-none rounded-[6px] ">
           <NavigationMenu.Item>
             <Link to="/">
-              <NavigationMenu.Trigger className="group flex select-none items-center gap-[2px] rounded-[4px]  text-[15px] font-medium leading-none outline-none">
+              <NavigationMenu.Trigger className="group flex select-none items-center gap-[2px] rounded-[4px]  text-[15px] font-medium leading-none outline-hidden">
                 <div className="flex flex-col blue-bottom-border w-20 items-center cls-1">
                   <img 
                   src={`/Nav/armory.svg`} 
@@ -36,7 +36,7 @@ function NavBar() {
           </NavigationMenu.Item>
           <NavigationMenu.Item>
             <Link to="/rankings">
-              <NavigationMenu.Trigger className="group flex select-none items-center gap-[2px] rounded-[4px] text-[15px] font-medium leading-none outline-none">
+              <NavigationMenu.Trigger className="group flex select-none items-center gap-[2px] rounded-[4px] text-[15px] font-medium leading-none outline-hidden">
                 <div className="flex flex-col blue-bottom-border w-20 items-center cls-1">
                   <img
                     src={`/Nav/ranks icon.svg`}
@@ -50,7 +50,7 @@ function NavBar() {
           </NavigationMenu.Item>
           <NavigationMenu.Item>
             <Link to="/activity">
-              <NavigationMenu.Trigger className="group flex select-none items-center gap-[2px] rounded-[4px] text-[15px] font-medium leading-none outline-none">
+              <NavigationMenu.Trigger className="group flex select-none items-center gap-[2px] rounded-[4px] text-[15px] font-medium leading-none outline-hidden">
                 <div className="flex flex-col blue-bottom-border w-20 items-center cls-1">
                   <img
                     src={`/Nav/activity.svg`}
@@ -64,7 +64,7 @@ function NavBar() {
           </NavigationMenu.Item>
           <NavigationMenu.Item>
             <Link to="/class-stats/us/3v3">
-              <NavigationMenu.Trigger className="group flex select-none items-center gap-[2px] rounded-[4px] text-[15px] font-medium leading-none outline-none">
+              <NavigationMenu.Trigger className="group flex select-none items-center gap-[2px] rounded-[4px] text-[15px] font-medium leading-none outline-hidden">
                 <div className="flex flex-col blue-bottom-border w-20 items-center cls-1">
                   <img
                     src={`/Nav/stats.svg`}
@@ -78,7 +78,7 @@ function NavBar() {
           </NavigationMenu.Item>
           <NavigationMenu.Item >
             <Link to="https://discord.gg/ydesbvpcNS" target="_blank" rel="noopener noreferrer">
-              <NavigationMenu.Trigger className="group flex select-none items-center gap-[2px] rounded-[4px] text-[15px] font-medium leading-none outline-none">
+              <NavigationMenu.Trigger className="group flex select-none items-center gap-[2px] rounded-[4px] text-[15px] font-medium leading-none outline-hidden">
                 <div className="flex flex-col blue-bottom-border w-20 items-center cls-1">
                   <img
                     src={`/Nav/discord.svg`}
@@ -95,8 +95,8 @@ function NavBar() {
           <NavigationMenu.Item>
             <div className="px-3 py-2">
             <Link to="/login">
-              <NavigationMenu.Trigger className="group flex grey-login-border select-none items-center gap-[2px] rounded-[4px] text-[15px] font-medium leading-none outline-none">
-                <div className="bg-transparent font-semibold py-2 px-8 border border-gray-500 rounded">
+              <NavigationMenu.Trigger className="group flex grey-login-border select-none items-center gap-[2px] rounded-[4px] text-[15px] font-medium leading-none outline-hidden">
+                <div className="bg-transparent font-semibold py-2 px-8 border border-gray-500 rounded-sm">
                 <span className="mt-1 text-xs font-segoeFont"> Login </span>
                 </div>
               </NavigationMenu.Trigger>
@@ -106,7 +106,7 @@ function NavBar() {
           <NavigationMenu.Item>
             <div className="pr-40 px-3 py-2">
             <Link to="/register">
-              <NavigationMenu.Trigger className=" group flex select-none items-center gap-[2px] rounded-[4px] text-[15px] font-medium leading-none outline-none">
+              <NavigationMenu.Trigger className=" group flex select-none items-center gap-[2px] rounded-[4px] text-[15px] font-medium leading-none outline-hidden">
                 <div className="btn btn-blue">
                   <span className="mt-1 text-xs font-segoeFont"> Register </span>
                 </div>
@@ -138,8 +138,8 @@ function NavBar() {
             </Button>
           </Dialog.Trigger>
           <Dialog.Portal>
-            <Dialog.Overlay className="backdrop-blur data-[state=open]:animate-overlayShow fixed inset-0" />
-            <Dialog.Content className="pb-5 mt-[40px] data-[state=open]:animate-contentShow fixed top-[50%] left-[50%] w-[90vw] h-auto translate-x-[-50%] translate-y-[-50%] rounded-[6px] shadow-[hsl(206_22%_7%_/_35%)_0px_10px_38px_-10px,_hsl(206_22%_7%_/_20%)_0px_10px_20px_-15px] bg-[#292c31] focus:outline-none">
+            <Dialog.Overlay className="backdrop-blur-sm data-[state=open]:animate-overlayShow fixed inset-0" />
+            <Dialog.Content className="pb-5 mt-[40px] data-[state=open]:animate-contentShow fixed top-[50%] left-[50%] w-[90vw] h-auto translate-x-[-50%] translate-y-[-50%] rounded-[6px] shadow-[hsl(206_22%_7%/35%)_0px_10px_38px_-10px,hsl(206_22%_7%/20%)_0px_10px_20px_-15px] bg-[#292c31] focus:outline-hidden">
               <div className=" flex justify-end">
               <Dialog.Close asChild>
                   <button className="pt-7 text-2xl hover:opacity-50 focus:shadow-green7 inline-flex h-[35px] items-center justify-center rounded-[4px] px-[15px] font-medium leading-none">
@@ -168,8 +168,8 @@ function NavBar() {
             <div className="px-3 py-2 w-full">
             <a onClick={() => { window.location.href = flavorHref("/") }}>
             {/* acts as a button */}
-              <NavigationMenu.Trigger className=" h-12  w-full group flex grey-login-border select-none items-center gap-[2px] rounded-[4px] text-[15px] font-medium leading-none outline-none">
-                <div className="h-12 w-full bg-transparent font-semibold py-2 px-8 border border-gray-500 rounded">
+              <NavigationMenu.Trigger className=" h-12  w-full group flex grey-login-border select-none items-center gap-[2px] rounded-[4px] text-[15px] font-medium leading-none outline-hidden">
+                <div className="h-12 w-full bg-transparent font-semibold py-2 px-8 border border-gray-500 rounded-sm">
                 <span className="mt-1 text-xl font-semibold  font-segoeFont text-white"> Home </span>
                 </div>
               </NavigationMenu.Trigger>
@@ -180,8 +180,8 @@ function NavBar() {
             <div className="px-3 py-2 w-full">
             <a onClick={() => { window.location.href = flavorHref("/rankings") }}>
             {/* acts as a button */}
-              <NavigationMenu.Trigger className=" h-12  w-full group flex grey-login-border select-none items-center gap-[2px] rounded-[4px] text-[15px] font-medium leading-none outline-none">
-                <div className="h-12 w-full bg-transparent font-semibold py-2 px-8 border border-gray-500 rounded">
+              <NavigationMenu.Trigger className=" h-12  w-full group flex grey-login-border select-none items-center gap-[2px] rounded-[4px] text-[15px] font-medium leading-none outline-hidden">
+                <div className="h-12 w-full bg-transparent font-semibold py-2 px-8 border border-gray-500 rounded-sm">
                 <span className="mt-1 text-xl font-semibold  font-segoeFont text-white"> Rankings </span>
                 </div>
               </NavigationMenu.Trigger>
@@ -192,8 +192,8 @@ function NavBar() {
             <div className="px-3 py-2 w-full">
             <a onClick={() => { window.location.href = flavorHref("/activity") }}>
             {/* acts as a button */}
-              <NavigationMenu.Trigger className=" h-12  w-full group flex grey-login-border select-none items-center gap-[2px] rounded-[4px] text-[15px] font-medium leading-none outline-none">
-                <div className="h-12 w-full bg-transparent font-semibold py-2 px-8 border border-gray-500 rounded">
+              <NavigationMenu.Trigger className=" h-12  w-full group flex grey-login-border select-none items-center gap-[2px] rounded-[4px] text-[15px] font-medium leading-none outline-hidden">
+                <div className="h-12 w-full bg-transparent font-semibold py-2 px-8 border border-gray-500 rounded-sm">
                 <span className="mt-1 text-xl font-semibold  font-segoeFont text-white"> Activity </span>
                 </div>
               </NavigationMenu.Trigger>
@@ -204,8 +204,8 @@ function NavBar() {
             <div className="px-3 py-2 w-full">
             <a onClick={() => { window.location.href = flavorHref("/class-stats") }}>
             {/* acts as a button */}
-              <NavigationMenu.Trigger className=" h-12  w-full group flex grey-login-border select-none items-center gap-[2px] rounded-[4px] text-[15px] font-medium leading-none outline-none">
-                <div className="h-12 w-full bg-transparent font-semibold py-2 px-8 border border-gray-500 rounded">
+              <NavigationMenu.Trigger className=" h-12  w-full group flex grey-login-border select-none items-center gap-[2px] rounded-[4px] text-[15px] font-medium leading-none outline-hidden">
+                <div className="h-12 w-full bg-transparent font-semibold py-2 px-8 border border-gray-500 rounded-sm">
                 <span className="mt-1 text-xl font-semibold  font-segoeFont text-white"> Class Stats </span>
                 </div>
               </NavigationMenu.Trigger>
@@ -216,8 +216,8 @@ function NavBar() {
             <div className="px-3 py-2 w-full">
             <a onClick={() => { window.location.href = "https://discord.gg/ydesbvpcNS" }}>
             {/* acts as a button */}
-              <NavigationMenu.Trigger className=" h-12  w-full group flex grey-login-border select-none items-center gap-[2px] rounded-[4px] text-[15px] font-medium leading-none outline-none">
-                <div className="h-12 w-full bg-transparent font-semibold py-2 px-8 border border-gray-500 rounded">
+              <NavigationMenu.Trigger className=" h-12  w-full group flex grey-login-border select-none items-center gap-[2px] rounded-[4px] text-[15px] font-medium leading-none outline-hidden">
+                <div className="h-12 w-full bg-transparent font-semibold py-2 px-8 border border-gray-500 rounded-sm">
                 <span className="mt-1 text-xl font-semibold  font-segoeFont text-white"> Discord </span>
                 </div>
               </NavigationMenu.Trigger>
