@@ -139,7 +139,7 @@ const ClassAnalytics: React.FC = () => {
               </SegmentedControl.Item>
             </SegmentedControl.Root>
           </div>
-          <div className="grow"></div>
+          <div className="db-grow"></div>
           <div className={loading ? "div-disabled" : ""}>
             <SegmentedControl.Root
               className="w-[100px] grow-0"
@@ -153,7 +153,7 @@ const ClassAnalytics: React.FC = () => {
               </SegmentedControl.Item>
             </SegmentedControl.Root>
           </div>
-          <div className="grow"></div>
+          <div className="db-grow"></div>
           <div className={loading ? "div-disabled" : ""}>
             <DropdownMenu.Root>
               <DropdownMenu.Trigger asChild>

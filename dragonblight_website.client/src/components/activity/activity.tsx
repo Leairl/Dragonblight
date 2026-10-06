@@ -120,7 +120,7 @@ function Activity() {
               </SegmentedControl.Item>
             </SegmentedControl.Root>
           </div>
-          <div className="grow"></div>
+          <div className="db-grow"></div>
           <div className={loading ? "div-disabled" : ""}>
             <SegmentedControl.Root
               className="w-[100px] grow-0"

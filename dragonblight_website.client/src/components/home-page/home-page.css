@@ -4,7 +4,6 @@ input:focus{
   border-color:transparent;
   outline:none;
 }
-
 .search-input-without-border {
   .rc-select-selection-search-input {
     border: none;

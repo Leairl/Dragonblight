@@ -24,7 +24,7 @@
 .left50 {
   width: 19.5%;
 }
-.grow { 
+.db-grow { 
   flex-grow: 1;
   width: 0px;
   }
