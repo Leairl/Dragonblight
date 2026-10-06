@@ -87,5 +87,5 @@ export function wowheadUrl(path: string, flavor: GameFlavor = getFlavor()): stri
 // The server's GameFlavorExtensions.Brackets() returns the same brackets in the same
 // order, and profile-rating labels its cards by position, so the two must agree.
 export function brackets(flavor: GameFlavor = getFlavor()): string[] {
-  return flavor === "retail" ? ["2v2", "3v3", "rbg", "shuffle"] : ["2v2", "3v3", "5v5", "rbg"];
+  return flavor === "retail" ? ["2v2", "3v3", "rbg", "shuffle", "blitz"] : ["2v2", "3v3", "5v5", "rbg"];
 }

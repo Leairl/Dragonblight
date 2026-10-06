@@ -4,6 +4,32 @@ using TwitchLib.Api.Helix.Models.Entitlements;
 
 partial class CharacterCacheService(IWarcraftRedisProxy redisProxy, ILogger<CharacterCacheService> logger, IConfiguration Config, IConnectionMultiplexer redis)
 {
+    //how many players of each Shuffle and Blitz spec ladder are synced
+    private const int SpecLadderLimit = 1000;
+    //Shuffle and Blitz each have this many spec ladders feeding their combined "All" ladder
+    private const int SpecLadderCount = 40;
+
+    //the progress the rankings page shows for a bracket, from 0 to 1
+    private static string SyncStatusKey(string bracket, string region, GameFlavor flavor)
+        => flavor.KeyPrefix() + bracket + region + "SyncStatus";
+
+    //the combined Shuffle or Blitz ladder is refilled spec by spec, so its progress is the share of
+    //spec ladders finished this cycle, counted up from 0 as each one completes
+    public async Task ResetCombinedSyncStatus(string group, string region)
+    {
+        var db = redis.GetDatabase();
+        await db.KeyDeleteAsync(SyncStatusKey(group, region, GameFlavor.Retail) + "Done");
+        await db.StringSetAsync(SyncStatusKey(group, region, GameFlavor.Retail), "0");
+    }
+
+    private async Task AdvanceCombinedSyncStatus(string group, string region)
+    {
+        var db = redis.GetDatabase();
+        var done = await db.StringIncrementAsync(SyncStatusKey(group, region, GameFlavor.Retail) + "Done");
+        var progress = Math.Min(1m, (decimal)done / SpecLadderCount);
+        await db.StringSetAsync(SyncStatusKey(group, region, GameFlavor.Retail), progress.ToString());
+    }
+
     //uses PvpLeaderboardEntry in generic method in order to locate character slug / name in warcraft client
     public async Task BatchCacheCharSummary(string bracket, string region, PvpLeaderboardEntry[] oldarray, PvpLeaderboardEntry[] newarray, int batchSize = 5, GameFlavor flavor = GameFlavor.MistsClassic)
     {   
@@ -16,9 +42,15 @@ partial class CharacterCacheService(IWarcraftRedisProxy redisProxy, ILogger<Char
         redisProxy.overrideClient = warcraftClient;
         await redisProxy.ClearAllCachedClassCharacters(bracket, region, flavor);
         await redisProxy.ClearPvpCharacterSummary(bracket, region, flavor);
+        //Shuffle and Blitz keep a ladder per spec, 80 of them a region, so only each spec's top players
+        //are looked up and stored. The old ladder is left whole: it is only searched for comparisons.
+        if (keyGroup == "shuffle" || keyGroup == "blitz")
+        {
+            newarray = newarray.OrderBy(p => p.Rank).Take(SpecLadderLimit).ToArray();
+        }
         var batchAmount = newarray.Length/batchSize;
         decimal percent = 0;
-        await redis.GetDatabase().StringSetAsync(flavor.KeyPrefix() + bracket + region + "SyncStatus", percent.ToString());
+        await redis.GetDatabase().StringSetAsync(SyncStatusKey(bracket, region, flavor), percent.ToString());
         for(int i = 0; i<batchAmount; i++)
         {
             var slice = newarray.Skip(i*batchSize).Take(batchSize);
@@ -66,8 +98,14 @@ partial class CharacterCacheService(IWarcraftRedisProxy redisProxy, ILogger<Char
                 }
             }
             percent = (decimal)(i+1)/batchAmount;
-            await redis.GetDatabase().StringSetAsync(flavor.KeyPrefix() + bracket + region + "SyncStatus", percent.ToString());
+            await redis.GetDatabase().StringSetAsync(SyncStatusKey(bracket, region, flavor), percent.ToString());
         };
+        //a ladder under one batch never enters the loop, so finishing is what marks it complete
+        await redis.GetDatabase().StringSetAsync(SyncStatusKey(bracket, region, flavor), "1");
+        if (keyGroup == "shuffle" || keyGroup == "blitz")
+        {
+            await AdvanceCombinedSyncStatus(keyGroup, region);
+        }
         await redisProxy.BracketPlayerExpiration(bracket, region, flavor);
         redisProxy.overrideClient = null;
     }
@@ -145,6 +183,50 @@ partial class CharacterCacheService(IWarcraftRedisProxy redisProxy, ILogger<Char
         // }
         if (flavor == GameFlavor.Retail)
         {
+            await redisProxy.ClearPvpCharacterSummary("blitz", region, GameFlavor.Retail);
+            await ResetCombinedSyncStatus("blitz", region);
+            await CacheBlitzWarriorFuryLadder(region);
+            await CacheBlitzDeathKnightBloodLadder(region);
+            await CacheBlitzDeathKnightFrostLadder(region);
+            await CacheBlitzDeathKnightUnholyLadder(region);
+            await CacheBlitzDemonHunterDevourerLadder(region);
+            await CacheBlitzDemonHunterHavocLadder(region);
+            await CacheBlitzDemonHunterVengeanceLadder(region);
+            await CacheBlitzDruidBalanceLadder(region);
+            await CacheBlitzDruidFeralLadder(region);
+            await CacheBlitzDruidGuardianLadder(region);
+            await CacheBlitzDruidRestorationLadder(region);
+            await CacheBlitzEvokerDevastationLadder(region);
+            await CacheBlitzEvokerPreservationLadder(region);
+            await CacheBlitzEvokerAugmentationLadder(region);
+            await CacheBlitzHunterBeastMasteryLadder(region);
+            await CacheBlitzHunterMarksmanshipLadder(region);
+            await CacheBlitzHunterSurvivalLadder(region);
+            await CacheBlitzMageArcaneLadder(region);
+            await CacheBlitzMageFireLadder(region);
+            await CacheBlitzMageFrostLadder(region);
+            await CacheBlitzMonkBrewmasterLadder(region);
+            await CacheBlitzMonkWindwalkerLadder(region);
+            await CacheBlitzMonkMistweaverLadder(region);
+            await CacheBlitzPaladinHolyLadder(region);
+            await CacheBlitzPaladinProtectionLadder(region);
+            await CacheBlitzPaladinRetributionLadder(region);
+            await CacheBlitzPriestDisciplineLadder(region);
+            await CacheBlitzPriestHolyLadder(region);
+            await CacheBlitzPriestShadowLadder(region);
+            await CacheBlitzRogueAssassinationLadder(region);
+            await CacheBlitzRogueOutlawLadder(region);
+            await CacheBlitzRogueSubtletyLadder(region);
+            await CacheBlitzShamanElementalLadder(region);
+            await CacheBlitzShamanEnhancementLadder(region);
+            await CacheBlitzShamanRestorationLadder(region);
+            await CacheBlitzWarlockAfflictionLadder(region);
+            await CacheBlitzWarlockDemonologyLadder(region);
+            await CacheBlitzWarlockDestructionLadder(region);
+            await CacheBlitzWarriorArmsLadder(region);
+            await CacheBlitzWarriorProtectionLadder(region);
+            await redisProxy.ClearPvpCharacterSummary("shuffle", region, GameFlavor.Retail);
+            await ResetCombinedSyncStatus("shuffle", region);
             await CacheShuffleWarriorFuryLadder(region);
             await CacheShuffleDeathKnightBloodLadder(region);
             await CacheShuffleDeathKnightFrostLadder(region);

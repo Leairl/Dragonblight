@@ -27,7 +27,8 @@ namespace Dragonblight_Website.Server.Controllers
         {
             try
             {
-                var syncStatus = await _redis.GetDatabase().StringGetAsync(bracket + region + "SyncStatus");
+                //the sync writes the status under the flavor's prefix, like every other ladder key
+                var syncStatus = await _redis.GetDatabase().StringGetAsync(HttpContext.GetGameFlavor().KeyPrefix() + bracket + region + "SyncStatus");
                 if (syncStatus.IsNullOrEmpty)
                 {
                     return Ok(0);
@@ -108,7 +109,36 @@ namespace Dragonblight_Website.Server.Controllers
                 return StatusCode(500, "An error occurred while processing your request.");
             }
         }
-
+       [HttpGet("GetShuffleLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetShuffleLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("shuffle", region, GameFlavor.Retail); 
+                ladder = ladder.OrderByDescending(l => l?.PvpEntry.Rating).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Solo Shuffle ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+       [HttpGet("GetBlitzLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz", region, GameFlavor.Retail); 
+                ladder = ladder.OrderByDescending(l => l?.PvpEntry.Rating).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
         [HttpGet("GetShuffleWarriorFuryLadder")]
         public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetShuffleWarriorFuryLadder(int skip, int take, string region)
         {
@@ -749,6 +779,646 @@ namespace Dragonblight_Website.Server.Controllers
             }
         }
 
+        [HttpGet("GetBlitzWarriorFuryLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzWarriorFuryLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-warrior-fury", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Fury Warrior Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzDeathKnightBloodLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzDeathKnightBloodLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-deathknight-blood", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Blood Death Knight Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzDeathKnightFrostLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzDeathKnightFrostLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-deathknight-frost", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Frost Death Knight Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzDeathKnightUnholyLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzDeathKnightUnholyLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-deathknight-unholy", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Unholy Death Knight Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzDemonHunterDevourerLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzDemonHunterDevourerLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-demonhunter-devourer", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Devourer Demon Hunter Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzDemonHunterHavocLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzDemonHunterHavocLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-demonhunter-havoc", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Havoc Demon Hunter Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzDemonHunterVengeanceLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzDemonHunterVengeanceLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-demonhunter-vengeance", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Vengeance Demon Hunter Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzDruidBalanceLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzDruidBalanceLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-druid-balance", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Balance Druid Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzDruidFeralLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzDruidFeralLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-druid-feral", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Feral Druid Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzDruidGuardianLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzDruidGuardianLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-druid-guardian", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Guardian Druid Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzDruidRestorationLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzDruidRestorationLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-druid-restoration", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Restoration Druid Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzEvokerDevastationLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzEvokerDevastationLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-evoker-devastation", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Devastation Evoker Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzEvokerPreservationLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzEvokerPreservationLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-evoker-preservation", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Preservation Evoker Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzEvokerAugmentationLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzEvokerAugmentationLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-evoker-augmentation", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Augmentation Evoker Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzHunterBeastMasteryLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzHunterBeastMasteryLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-hunter-beastmastery", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Beast Mastery Hunter Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzHunterMarksmanshipLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzHunterMarksmanshipLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-hunter-marksmanship", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Marksmanship Hunter Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzHunterSurvivalLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzHunterSurvivalLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-hunter-survival", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Survival Hunter Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzMageArcaneLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzMageArcaneLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-mage-arcane", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Arcane Mage Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzMageFireLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzMageFireLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-mage-fire", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Fire Mage Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzMageFrostLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzMageFrostLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-mage-frost", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Frost Mage Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzMonkBrewmasterLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzMonkBrewmasterLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-monk-brewmaster", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Brewmaster Monk Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzMonkWindwalkerLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzMonkWindwalkerLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-monk-windwalker", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Windwalker Monk Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzMonkMistweaverLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzMonkMistweaverLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-monk-mistweaver", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Mistweaver Monk Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzPaladinHolyLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzPaladinHolyLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-paladin-holy", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Holy Paladin Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzPaladinProtectionLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzPaladinProtectionLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-paladin-protection", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Protection Paladin Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzPaladinRetributionLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzPaladinRetributionLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-paladin-retribution", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Retribution Paladin Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzPriestDisciplineLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzPriestDisciplineLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-priest-discipline", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Discipline Priest Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzPriestHolyLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzPriestHolyLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-priest-holy", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Holy Priest Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzPriestShadowLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzPriestShadowLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-priest-shadow", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Shadow Priest Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzRogueAssassinationLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzRogueAssassinationLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-rogue-assassination", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Assassination Rogue Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzRogueOutlawLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzRogueOutlawLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-rogue-outlaw", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Outlaw Rogue Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzRogueSubtletyLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzRogueSubtletyLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-rogue-subtlety", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Subtlety Rogue Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzShamanElementalLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzShamanElementalLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-shaman-elemental", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Elemental Shaman Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzShamanEnhancementLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzShamanEnhancementLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-shaman-enhancement", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Enhancement Shaman Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzShamanRestorationLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzShamanRestorationLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-shaman-restoration", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Restoration Shaman Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzWarlockAfflictionLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzWarlockAfflictionLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-warlock-affliction", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Affliction Warlock Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzWarlockDemonologyLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzWarlockDemonologyLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-warlock-demonology", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Demonology Warlock Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzWarlockDestructionLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzWarlockDestructionLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-warlock-destruction", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Destruction Warlock Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzWarriorArmsLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzWarriorArmsLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-warrior-arms", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Arms Warrior Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpGet("GetBlitzWarriorProtectionLadder")]
+        public async Task<ActionResult<IEnumerable<PvpCharacterSummary>>> GetBlitzWarriorProtectionLadder(int skip, int take, string region)
+        {
+            try
+            {
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries("blitz-warrior-protection", region, GameFlavor.Retail); 
+                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
+                return Ok(ladder.Skip(skip).Take(take));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the Protection Warrior Blitz ladder.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
         [HttpGet("GetSeasonStart")]
         public async Task<ActionResult<DateTimeOffset?>> GetSeasonStart(string region)
         {
@@ -1064,6 +1734,167 @@ namespace Dragonblight_Website.Server.Controllers
                 if (bracket == "SHUFFLE" && specId == WarriorProtectionSpecId)
                 {
                     return (await _warcraftCachedData.GetShuffleWarriorProtectionLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                //Blitz is per spec too; its rewards name the spec the same way, so the Shuffle spec ids apply
+                if (bracket == "BLITZ" && specId == FurySpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzWarriorFuryLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == DeathKnightBloodSpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzDeathKnightBloodLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == DeathKnightFrostSpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzDeathKnightFrostLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == DeathKnightUnholySpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzDeathKnightUnholyLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == DemonHunterDevourerSpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzDemonHunterDevourerLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == DemonHunterHavocSpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzDemonHunterHavocLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == DemonHunterVengeanceSpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzDemonHunterVengeanceLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == DruidBalanceSpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzDruidBalanceLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == DruidFeralSpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzDruidFeralLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == DruidGuardianSpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzDruidGuardianLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == DruidRestorationSpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzDruidRestorationLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == EvokerDevastationSpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzEvokerDevastationLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == EvokerPreservationSpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzEvokerPreservationLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == EvokerAugmentationSpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzEvokerAugmentationLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == HunterBeastMasterySpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzHunterBeastMasteryLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == HunterMarksmanshipSpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzHunterMarksmanshipLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == HunterSurvivalSpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzHunterSurvivalLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == MageArcaneSpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzMageArcaneLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == MageFireSpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzMageFireLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == MageFrostSpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzMageFrostLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == MonkBrewmasterSpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzMonkBrewmasterLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == MonkWindwalkerSpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzMonkWindwalkerLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == MonkMistweaverSpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzMonkMistweaverLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == PaladinHolySpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzPaladinHolyLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == PaladinProtectionSpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzPaladinProtectionLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == PaladinRetributionSpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzPaladinRetributionLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == PriestDisciplineSpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzPriestDisciplineLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == PriestHolySpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzPriestHolyLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == PriestShadowSpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzPriestShadowLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == RogueAssassinationSpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzRogueAssassinationLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == RogueOutlawSpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzRogueOutlawLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == RogueSubtletySpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzRogueSubtletyLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == ShamanElementalSpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzShamanElementalLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == ShamanEnhancementSpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzShamanEnhancementLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == ShamanRestorationSpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzShamanRestorationLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == WarlockAfflictionSpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzWarlockAfflictionLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == WarlockDemonologySpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzWarlockDemonologyLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == WarlockDestructionSpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzWarlockDestructionLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == WarriorArmsSpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzWarriorArmsLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
+                }
+                if (bracket == "BLITZ" && specId == WarriorProtectionSpecId)
+                {
+                    return (await _warcraftCachedData.GetBlitzWarriorProtectionLeaderboard(region)).Entries.Where(p => p.Rating >= cutoff).Last().Rank;
                 }
                 return 0;
             }

@@ -3,28 +3,28 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { ChevronDownIcon } from '@radix-ui/react-icons';
 import { Button } from '@radix-ui/themes';
 import { ClassColor } from '../../helpers/classColorHelper';
-import { shuffleSpecs, shuffleSpecIcon } from '../../helpers/shuffle-specs';
+import { blitzSpecs, blitzSpecIcon } from '../../helpers/blitz-specs';
 import '../class-filter/class-filter.css';
-import './shuffle-spec-filter.css';
+import './blitz-spec-filter.css';
 
-interface ShuffleSpecFilterProps {
-  //the selected spec's ladder slug, e.g. "shuffle-warrior-fury"
+interface BlitzSpecFilterProps {
+  //the selected spec's ladder slug, e.g. "blitz-warrior-fury"
   selected: string;
   onSelect: (slug: string) => void;
 }
 
-//Picks which Solo Shuffle ladder to show. Looks like the class filter, but only one spec can be
+//Picks which Blitz ladder to show. Looks like the class filter, but only one spec can be
 //chosen, since every spec is its own ladder.
-const ShuffleSpecFilter: React.FC<ShuffleSpecFilterProps> = (props) => {
+const BlitzSpecFilter: React.FC<BlitzSpecFilterProps> = (props) => {
   const [isOpen, setIsOpen] = useState(false);
-  const current = shuffleSpecs.find((s) => s.slug === props.selected);
+  const current = blitzSpecs.find((s) => s.slug === props.selected);
 
   return (
     <DropdownMenu.Root open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenu.Trigger asChild>
         <Button className="CustomButton" variant="soft" color="gray">
           {current && current.specName !== "All" && (
-            <img src={shuffleSpecIcon(current)} alt="" className="ClassIcon" />
+            <img src={blitzSpecIcon(current)} alt="" className="ClassIcon" />
           )}
           <span style={{ color: ClassColor.get(current?.className ?? '') }}>
             {current && current.specName !== "All" ? `${current.specName} ${current.className}` : 'Choose a spec'}
@@ -32,8 +32,8 @@ const ShuffleSpecFilter: React.FC<ShuffleSpecFilterProps> = (props) => {
           <ChevronDownIcon className={`DropdownArrow ${isOpen ? 'open' : ''}`} />
         </Button>
       </DropdownMenu.Trigger>
-      <DropdownMenu.Content className="DropdownMenuContent ShuffleSpecMenu" sideOffset={5}>
-        {shuffleSpecs.map((spec) => (
+      <DropdownMenu.Content className="DropdownMenuContent BlitzSpecMenu" sideOffset={5}>
+        {blitzSpecs.map((spec) => (
           <DropdownMenu.Item
             key={spec.slug}
             className={`DropdownMenuItem ${spec.slug === props.selected ? 'selected' : ''}`}
@@ -41,7 +41,7 @@ const ShuffleSpecFilter: React.FC<ShuffleSpecFilterProps> = (props) => {
             style={{ color: ClassColor.get(spec.className) || 'white' }}
           >
             <div className="ClassItem">
-              <img src={shuffleSpecIcon(spec)} alt="" className="ClassIcon" />
+              <img src={blitzSpecIcon(spec)} alt="" className="ClassIcon" />
               <span>{spec.specName} {spec.className}</span>
             </div>
           </DropdownMenu.Item>
@@ -51,4 +51,4 @@ const ShuffleSpecFilter: React.FC<ShuffleSpecFilterProps> = (props) => {
   );
 };
 
-export default ShuffleSpecFilter;
+export default BlitzSpecFilter;

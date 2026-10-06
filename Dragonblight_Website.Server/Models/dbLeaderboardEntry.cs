@@ -11,5 +11,5 @@ public class PvpCharacterSummary
             public required CharacterProfileSummary charSummary { get; init; }
             
             [JsonPropertyName("spec")]
-            public required string spec { get; init; }
+            public required string spec { get; set; }
         }

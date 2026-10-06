@@ -25,6 +25,8 @@ import Cutoffs from "../cutoffs/cutoffs";
 import { brackets} from "../../helpers/game-flavor";
 import ShuffleSpecFilter from "../shuffle-spec-filter/shuffle-spec-filter";
 import { shuffleSpecs, defaultShuffleSpec, isShuffleBracket, shuffleSpecIcon } from "../../helpers/shuffle-specs";
+import BlitzSpecFilter from "../blitz-spec-filter/blitz-spec-filter";
+import { blitzSpecs, defaultBlitzSpec, isBlitzBracket, blitzSpecIcon } from "../../helpers/blitz-specs";
 
 const Skeletons = [0, 1, 2];
 
@@ -44,27 +46,21 @@ function Rankings() {
   //getting values that are changeable
   useEffect(() => {
     setLoading(true);
-    //a class filter left over from another bracket does not apply to a Shuffle ladder
-    if (selectedClasses.includes("All Classes") || isShuffleBracket(bracket)) {
+    //a class filter left over from another bracket does not apply to a Shuffle or Blitz ladder
+    if (selectedClasses.includes("All Classes") || isShuffleBracket(bracket) || isBlitzBracket(bracket)) {
       LadderData();
     }
     else {
       FilteredLadderData(selectedClasses, bracket);
     }
+    //the sync runs every two hours and a bracket can start at any moment, so the bar is refreshed for
+    //as long as this bracket is on screen rather than only while it was last seen below 100%
+    setSyncStatus(0);
     GetSyncStatus();
-    if (syncStatus < 1) {  
-      let interval: NodeJS.Timeout;
-      const updateInterval = () => {
-        clearInterval(interval);
-        interval = setInterval(() => {
-          GetSyncStatus();
-        }, 5000);
-      };
-
-      updateInterval();
-
-      return () => clearInterval(interval);
-    }
+    const interval = setInterval(() => {
+      GetSyncStatus();
+    }, 5000);
+    return () => clearInterval(interval);
   }, [bracket, region, page, selectedClasses]);
   //when page changes, call useeffect and update the skip amount
   const handlePageChange = (page: number) => {
@@ -91,18 +87,20 @@ function Rankings() {
       <div className="toolbar py-3">
           <div className="toolbar-left">
 
-          {/* a Shuffle ladder is a single spec, so there are no classes to filter */}
+          {/* a Shuffle or Blitz ladder is a single spec, so there are no classes to filter */}
           {isShuffleBracket(bracket) ? (
             <ShuffleSpecFilter selected={bracket} onSelect={BracketClick}></ShuffleSpecFilter>
+          ) : isBlitzBracket(bracket) ? (
+            <BlitzSpecFilter selected={bracket} onSelect={BracketClick}></BlitzSpecFilter>
           ) : (
             <ClassFilter onSelect={(sc) => setSelectedClasses(sc)}></ClassFilter>
           )}
           </div>
           <div className={loading ? "div-disabled" : ""}>
             <SegmentedControl.Root
-              className=" w-[250px] grow-0"
-              //every spec ladder sits under the one Shuffle tab
-              defaultValue={isShuffleBracket(URLbracket) ? "shuffle" : URLbracket ?? "3v3"}
+              className=" w-[300px] grow-0"
+              //every spec ladder sits under the one Shuffle or Blitz tab
+              defaultValue={isShuffleBracket(URLbracket) ? "shuffle" : isBlitzBracket(URLbracket) ? "blitz" : URLbracket ?? "3v3"}
             >
               <SegmentedControl.Item
                 onClick={() => {
@@ -151,15 +149,28 @@ function Rankings() {
                   Shuffle
                 </SegmentedControl.Item>
               )}
+              {brackets().includes("blitz") && (
+                <SegmentedControl.Item
+                  onClick={() => {
+                    //stay on the chosen spec if a Blitz ladder is already showing
+                    if (!isBlitzBracket(bracket)) {
+                      BracketClick(defaultBlitzSpec);
+                    }
+                  }}
+                  value="blitz"
+                >
+                  Blitz
+                </SegmentedControl.Item>
+              )}
             </SegmentedControl.Root>
             </div>
           <div className="toolbar-right">
 
             <Tooltip className="flex items-center" content="Percentage synced with Blizzard">
               <span className="flex items-center">
-              <span>{Number(syncStatus.toFixed(2)) * 100}%</span>
+              <span>{Math.round(syncStatus * 100)}%</span>
               <Progress
-                value={Number(syncStatus.toFixed(2))}
+                value={syncStatus}
                 max={1}
                 className="grow-0 w-[100px] h-[10px] mx-2"
               />
@@ -357,9 +368,26 @@ function Rankings() {
                           <Avatar.Root className="h-[23px] w-[23px] mr-1">
                           <Avatar.Image
                             src={(() => {
+
                               const shuffleSpec = shuffleSpecs.find((s) => s.slug == bracket);
-                              if (shuffleSpec) {
+                              if (shuffleSpec?.specName != "All" && shuffleSpec?.specName != null) {
                                 return shuffleSpecIcon(shuffleSpec);
+                              }
+                              if (shuffleSpec?.specName == "All") {
+                                if (characterEntry.spec == null || characterEntry.spec == "" || characterEntry.charSummary?.character_class?.name == null) {
+                                  return `/unknown.png`;
+                                }
+                                return `/Specs/${characterEntry.spec?.toLowerCase()}_${characterEntry.charSummary?.character_class?.name?.toLowerCase()}.png`;
+                              }
+                              const blitzSpec = blitzSpecs.find((s) => s.slug == bracket);
+                              if (blitzSpec?.specName != "All" && blitzSpec?.specName != null) {
+                                return blitzSpecIcon(blitzSpec);
+                              }
+                              if (blitzSpec?.specName == "All") {
+                                if (characterEntry.spec == null || characterEntry.spec == "" || characterEntry.charSummary?.character_class?.name == null) {
+                                  return `/unknown.png`;
+                                }
+                                return `/Specs/${characterEntry.spec?.toLowerCase()}_${characterEntry.charSummary?.character_class?.name?.toLowerCase()}.png`;
                               }
                               if (characterEntry.charSummary?.active_spec?.name == null || characterEntry.charSummary?.active_spec?.name == "" || characterEntry.charSummary?.name == null) {
                                 return `/unknown.png`;
@@ -641,6 +669,12 @@ function Rankings() {
     if (shuffleSpec) {
       setLadderData(
         await shuffleSpec.fetch(DragonblightClient, page * 50, 50, region)
+      );
+    }
+    const blitzSpec = blitzSpecs.find((s) => s.slug == bracket);
+    if (blitzSpec) {
+      setLadderData(
+        await blitzSpec.fetch(DragonblightClient, page * 50, 50, region)
       );
     }
     if (bracket == "2v2") {
