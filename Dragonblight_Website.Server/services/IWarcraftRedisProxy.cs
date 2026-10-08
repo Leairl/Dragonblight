@@ -102,6 +102,8 @@ public interface IWarcraftRedisProxy
     Task<PvpRewardsIndex> GetPvPRewards(string region, GameFlavor flavor = GameFlavor.MistsClassic);
     Task<CharacterAppearanceSummary> GetCharAppearance(string server, string characterName, string region, GameFlavor flavor = GameFlavor.MistsClassic);
     Task<CharacterEquipmentSummary> GetCharEquipment(string server, string characterName, string region, GameFlavor flavor = GameFlavor.MistsClassic);
+    Task<bool> ClearCharacterCache(string server, string characterName, string region, GameFlavor flavor = GameFlavor.MistsClassic);
+    Task<PlayableClass?> GetPlayableClass(int classId, string region, GameFlavor flavor = GameFlavor.Retail);
     Task<CharacterPvpBracketStatistics> GetPvpBracketRating(string server, string characterName, string pvpBracket, string region, GameFlavor flavor = GameFlavor.MistsClassic);
     Task<CharacterStatisticsSummary> GetCharacterStats(string server, string characterName, string region, GameFlavor flavor = GameFlavor.MistsClassic);
     Task<CharacterAchievementsSummary> GetCharacterAchievements(string server, string characterName, string region, GameFlavor flavor = GameFlavor.MistsClassic);

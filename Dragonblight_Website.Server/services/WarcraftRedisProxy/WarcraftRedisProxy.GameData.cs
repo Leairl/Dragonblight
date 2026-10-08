@@ -16,6 +16,15 @@ partial class WarcraftRedisProxy
             return getItemIcon.Success ? getItemIcon.Value : null;
         }, TimeSpan.FromDays(30));
     }
+    public async Task<PlayableClass?> GetPlayableClass(int classId, string region, GameFlavor flavor = GameFlavor.Retail)
+    {
+        var ns = GetStaticRegion(region, flavor);
+        return await GetBlizzardDataCached<PlayableClass?>("PlayableClass" + classId + ns, async () =>
+        {
+            var playableClass = await warcraftClient.GetPlayableClassAsync(classId, ns, GetRegion(ns), GetLocale(ns));
+            return playableClass.Success ? playableClass.Value : null;
+        }, TimeSpan.FromDays(30));
+    }
     //inventory type names Blizzard returns, mapped to the numbers the model viewer files armor under
     private static readonly Dictionary<string, int> InventoryTypes = new()
     {

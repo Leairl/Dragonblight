@@ -478,6 +478,48 @@ export class ProfileClient {
         }
         return Promise.resolve<CharacterEquipmentSummary>(null as any);
     }
+
+    refreshCharacter(server: string | undefined, characterName: string | undefined, region: string | undefined): Promise<void> {
+        let url_ = this.baseUrl + "/api/Profile/RefreshCharacter?";
+        if (server === null)
+            throw new globalThis.Error("The parameter 'server' cannot be null.");
+        else if (server !== undefined)
+            url_ += "server=" + encodeURIComponent("" + server) + "&";
+        if (characterName === null)
+            throw new globalThis.Error("The parameter 'characterName' cannot be null.");
+        else if (characterName !== undefined)
+            url_ += "characterName=" + encodeURIComponent("" + characterName) + "&";
+        if (region === null)
+            throw new globalThis.Error("The parameter 'region' cannot be null.");
+        else if (region !== undefined)
+            url_ += "region=" + encodeURIComponent("" + region) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processRefreshCharacter(_response);
+        });
+    }
+
+    protected processRefreshCharacter(response: Response): Promise<void> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 204) {
+            return response.text().then((_responseText) => {
+            return;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<void>(null as any);
+    }
 }
 
 export class PvpLeaderboardClient {
@@ -5517,6 +5559,8 @@ export interface CharacterPvpBracketStatistics {
     tier?: PvpTierReferenceWithoutName | undefined;
     season_match_statistics?: PvpMatchStatistics | undefined;
     weekly_match_statistics?: PvpMatchStatistics | undefined;
+    specialization?: PlayableSpecializationReference | undefined;
+    season_round_statistics?: PvpMatchStatistics | undefined;
 }
 
 export interface PvpSeasonReference {

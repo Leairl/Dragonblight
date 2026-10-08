@@ -53,18 +53,14 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
 
   // Blizzard's retail season rewards hold the live rank 1 cutoff: one reward for 3v3,
   // one per faction for RBG, none for 2v2. Undefined while rewards are loading.
-  function getRank1Reward(bracket: string, faction?: string) {
-    return bracketRewards(bracket)?.find(
+  function getRank1Reward(bracket: string, faction?: string, specId?: number) {
+    return bracketRewards(bracket, specId)?.find(
       (r) => !r.faction?.type || r.faction.type === faction
     );
   }
 
-  function getRetailTier(
-    bracket: string,
-    current_rating: number,
-    faction?: string
-  ): RatingTier | undefined {
-    const rank1 = getRank1Reward(bracket, faction);
+  function getRetailTier(bracket: string, current_rating: number, faction?: string, specId?: number): RatingTier | undefined {
+    const rank1 = getRank1Reward(bracket, faction, specId);
     if (rank1 && current_rating >= rank1.rating_cutoff) {
       return {
         // "Venomous Gladiator: Midnight Season 2" -> "Venomous Gladiator"
@@ -101,23 +97,20 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
   function getTitleLine(
     bracket: string,
     current_rating: number,
-    faction?: string
+    faction?: string,
+    specId?: number
   ): string {
     if (getFlavor() === "retail") {
-      const tier = getRetailTier(bracket, current_rating, faction);
+      const tier = getRetailTier(bracket, current_rating, faction, specId);
       return tier ? `${tier.label} ${tier.title}` : "";
     }
     const title = getTitle(bracket, current_rating);
     return title ? `Predicted Title: ${title}` : "";
   }
 
-  function getBracketColor(
-    bracket: string,
-    current_rating: number,
-    faction?: string
-  ): string | undefined {
+  function getBracketColor(bracket: string, current_rating: number, faction?: string, specId?: number): string | undefined {
     if (getFlavor() === "retail") {
-      return getRetailTier(bracket, current_rating, faction)?.text ?? "text-stone-100";
+      return getRetailTier(bracket, current_rating, faction, specId)?.text ?? "text-stone-100";
     }
     const title = getTitle(bracket, current_rating);
     if (title?.endsWith(" Gladiator")) {
@@ -141,8 +134,12 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
   }
 
   // isolates rewards for a specific bracket, or returns [] when rewards are not yet loaded.
-  function bracketRewards(bracket: string) {
+  function bracketRewards(bracket: string, specId?: number) {
     return rewards?.filter((r) => {
+      //a Shuffle rating belongs to one spec, and so does each Shuffle reward
+      if (specId !== undefined && r.specialization?.id !== specId) {
+        return false;
+      }
       return (
         r.bracket?.type?.includes(bracket) ||
         (r.bracket?.type?.includes("BATTLEGROUNDS") && bracket == "rbg")
@@ -175,11 +172,12 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
   function getCardBorder(
     bracket: string,
     current_rating: number,
-    faction?: string
+    faction?: string,
+    specId?: number
   ): string | undefined {
     if (getFlavor() === "retail") {
       // Below Combatant the card keeps its default border.
-      return getRetailTier(bracket, current_rating, faction)?.border ?? "";
+      return getRetailTier(bracket, current_rating, faction, specId)?.border ?? "";
     }
     const title = getTitle(bracket, current_rating);
 
@@ -248,7 +246,8 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
             getCardBorder(
               BracketStatistics?.bracket?.type ?? "",
               BracketStatistics?.rating ?? 0,
-              BracketStatistics?.faction?.type
+              BracketStatistics?.faction?.type,
+              BracketStatistics?.specialization?.id
             ) +
             " " +
             (index == 0 || index == 2
@@ -262,7 +261,8 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
                 getBracketColor(
                   BracketStatistics?.bracket?.type ?? "",
                   BracketStatistics?.rating ?? 0,
-                  BracketStatistics?.faction?.type
+                  BracketStatistics?.faction?.type,
+                  BracketStatistics?.specialization?.id
                 ) +
                 " " +
                 "font-bold text-3xl flex justify-center"
@@ -273,24 +273,39 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
           </div>
           <Heading size="3" className="text-center">
             {" "}
-            {/* results arrive in brackets() order, which differs per flavor */}
-            {brackets()[index]?.replace("rbg", "RBG")}
+            {/* the fixed brackets arrive in brackets() order, which differs per flavor; Shuffle
+                ratings follow them, one per spec played, and are labelled by their spec */}
+            {BracketStatistics?.specialization?.name
+              ? `${BracketStatistics.specialization.name} Shuffle`
+              : brackets()[index]?.replace("rbg", "RBG")}
           </Heading>
         </Card>
         <div className="flex justify-center text-sm">
           <span className="text-green-300">
-            {BracketStatistics?.season_match_statistics?.won}
+            {
+              BracketStatistics?.specialization?.id != null
+                ? BracketStatistics?.season_round_statistics?.won
+                : BracketStatistics?.season_match_statistics?.won
+            }
           </span>{" "}
-          &nbsp;{BracketStatistics?.season_match_statistics?.played != null ? "-" : " "}&nbsp;{" "}
+          &nbsp;{
+            BracketStatistics?.specialization?.id != null
+              ? BracketStatistics?.season_round_statistics?.played != null ? "-" : " "
+              : BracketStatistics?.season_match_statistics?.played != null ? "-" : " "}&nbsp;{" "}
           <span className="text-red-300">
-            {BracketStatistics?.season_match_statistics?.lost}
+            {
+              BracketStatistics?.specialization?.id != null
+                ? BracketStatistics?.season_round_statistics?.lost
+                : BracketStatistics?.season_match_statistics?.lost
+            }
           </span>
         </div>
         <span className="text-xs italic justify-center">
           {getTitleLine(
             BracketStatistics?.bracket?.type ?? "",
             BracketStatistics?.rating ?? 0,
-            BracketStatistics?.faction?.type
+            BracketStatistics?.faction?.type,
+            BracketStatistics?.specialization?.id
           )}
         </span>
       </div>

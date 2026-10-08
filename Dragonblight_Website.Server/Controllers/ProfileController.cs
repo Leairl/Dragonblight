@@ -99,6 +99,28 @@ namespace Dragonblight_Website.Server.Controllers
                 return StatusCode(500, "An error occurred while processing your request.");
             }
         }
+
+        //The profile page's refresh button: drops the character's cached data so the page reloads it
+        //from Blizzard. 429 while the character was refreshed in the last few minutes.
+        [HttpPost("RefreshCharacter")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        public async Task<ActionResult> RefreshCharacter(string server, string characterName, string region)
+        {
+            try
+            {
+                var cleared = await _warcraftCachedData.ClearCharacterCache(server.ToLower(), characterName.ToLower(), region, HttpContext.GetGameFlavor());
+                if (!cleared)
+                {
+                    return StatusCode(429, "This character was refreshed recently. Try again in a few minutes.");
+                }
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while refreshing a character.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
         public class CharacterProfileSummaryAndSpec
         {
             [JsonPropertyName("charSummary")]
