@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Dragonblight } from '../../clients/Dragonblight';
 import { Card } from '@radix-ui/themes';
 import { shuffleSpecs } from '../../helpers/shuffle-specs';
+import { blitzSpecs } from '../../helpers/blitz-specs';
+import { getFlavor } from '../../helpers/game-flavor';
 
 
 interface CutoffProps {
@@ -11,15 +13,14 @@ interface CutoffProps {
 
 const Cutoffs : React.FC<CutoffProps> = (props) => {
   // Handle state management
-  const [rewards, setRewards] = useState<
-  Dragonblight.PvpSeasonRewardWithRank[]
->();
+const [rewards, setRewards] = useState<Dragonblight.PvpSeasonRewardWithRank[]>([]);
+
 const [loading, setLoading] = useState<boolean>(true);
 
 async function CutoffData() {
     setLoading(true);
     const DragonblightClient = new Dragonblight.PvpLeaderboardClient();
-    setRewards(await DragonblightClient.getPvPRewards(props.region))
+    setRewards((await DragonblightClient.getPvPRewards(props.region)) ?? []);
     setLoading(false);
 }
     //names repeat across classes (Frost, Holy, Restoration, Protection), so a Shuffle reward is
@@ -27,23 +28,32 @@ async function CutoffData() {
     function getShuffleSpecId(bracket: string | undefined): number | undefined {
         return shuffleSpecs.find(s => s.slug == bracket)?.specId;
     }
+    function getBlitzSpecId(bracket: string | undefined): number | undefined {
+        return blitzSpecs.find(s => s.slug == bracket)?.specId;
+    }
   useEffect(() => {
     CutoffData()
   }, [props.bracket, props.region]);
+
+  //the rewards for the ladder on screen, makes a copy from filtering of the matching rewards and if it is classic it will sort
+  const matching = rewards.filter(r => {
+    return r.bracket?.type?.includes(props.bracket) ||
+    (r.bracket?.type?.includes('BATTLEGROUNDS') && props.bracket == 'rbg') ||
+    (r.bracket?.type?.includes('SHUFFLE') && r.specialization?.id != undefined && r.specialization.id == getShuffleSpecId(props.bracket)) ||
+    (r.bracket?.type?.includes('BLITZ') && r.specialization?.id != undefined && r.specialization.id == getBlitzSpecId(props.bracket))
+  });
+
+  //classic publishes a cutoff for every title tier
+  let ordered = matching;
+  if (getFlavor() === "classic") {
+    ordered = [...matching].sort((a, b) => b.rating_cutoff - a.rating_cutoff);
+  }
 
   return (
     <div className="flex flex-row min-h-[64px] justify-center">
     <div className={!(loading && rewards != undefined) ? "mobileLeftPadding fadeIn flex flex-row flex-wrap wrap" : "mobileLeftPadding fadeOut flex flex-row flex-wrap wrap"}>
   { 
-  
-rewards?.filter(r => {
-  //if result is positive during sort, swap values to sort in ascending order
-return r.bracket?.type?.includes(props.bracket) || 
-(r.bracket?.type?.includes('BATTLEGROUNDS') && props.bracket == 'rbg') || 
-(r.bracket?.type?.includes('SHUFFLE') && r.specialization?.id != undefined && r.specialization.id == getShuffleSpecId(props.bracket))
-}).sort((c,p) => {
-  return p.rating_cutoff - c.rating_cutoff
-}).map((i) => {
+ordered.map((i) => {
     function getAchievementColor(AchievementName: string | undefined): string | undefined {
         if (AchievementName?.endsWith(' Gladiator')) {
             return "text-yellow-600"
@@ -51,7 +61,13 @@ return r.bracket?.type?.includes(props.bracket) ||
         if (AchievementName?.endsWith(' Legend')) {
             return "text-yellow-600"
         }
-        if (AchievementName?.startsWith('Gladiator') || AchievementName?.startsWith('Hero of the Faction')) {
+        if (AchievementName?.endsWith(' Warlord')) {
+            return "text-yellow-600"
+        }
+        if (AchievementName?.endsWith(' Marshal')) {
+            return "text-yellow-600"
+        }
+        if (AchievementName?.startsWith('Gladiator') || AchievementName?.startsWith('Hero of the')) {
             return "text-purple-500"
         }
         if (AchievementName?.startsWith('Duelist')) {
@@ -71,7 +87,13 @@ return r.bracket?.type?.includes(props.bracket) ||
         if (AchievementName?.endsWith(' Legend')) {
             return "border-yellow-600 border-2"
         }
-        if (AchievementName?.startsWith('Gladiator') || AchievementName?.startsWith('Hero of the Faction')) {
+        if (AchievementName?.endsWith(' Warlord')) {
+            return "border-yellow-600 border-2"
+        }
+        if (AchievementName?.endsWith(' Marshal')) {
+            return "border-yellow-600 border-2"
+        }
+        if (AchievementName?.startsWith('Gladiator') || AchievementName?.startsWith('Hero of the')) {
             return "border-purple-500 border-2"
         }
         if (AchievementName?.startsWith('Duelist')) {

@@ -60,6 +60,18 @@
       "problemMatcher": []
     },
     {
+      //compiles the backend before the debugger launches it, so a launch always runs the current
+      //code rather than whatever the last manual build left in bin
+      "label": "Local: Build Backend",
+      "type": "shell",
+      "command": "dotnet build Dragonblight_Website.Server",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "dependsOn": "Local: Redis",
+      "problemMatcher": "$msCompile"
+    },
+    {
       //the backend on the host rather than in a container, so redis is reached on localhost.
       //no launch profile: the http profile loads the spa proxy, which would start the frontend too
       "label": "Local: Backend",
@@ -68,8 +80,6 @@
       "options": {
         "cwd": "${workspaceFolder}",
         "env": {
-          //the project targets net8.0 and only the .NET 10 runtime is installed here, so the app
-          //is rolled forward onto it; the docker image ships the matching runtime and needs none
           "DOTNET_ROLL_FORWARD": "LatestMajor",
           "ASPNETCORE_ENVIRONMENT": "Development",
           "ASPNETCORE_URLS": "http://localhost:5059",

@@ -29,8 +29,8 @@
       "name": "Local Backend (dotnet run)",
       "type": "coreclr",
       "request": "launch",
-      "preLaunchTask": "Local: Redis",
-      "program": "${workspaceFolder}/Dragonblight_Website.Server/bin/Debug/net8.0/Dragonblight_Website.Server.dll",
+      "preLaunchTask": "Local: Build Backend",
+      "program": "${workspaceFolder}/Dragonblight_Website.Server/bin/Debug/net10.0/Dragonblight_Website.Server.dll",
       "cwd": "${workspaceFolder}/Dragonblight_Website.Server",
       "stopAtEntry": false,
       "serverReadyAction": {
@@ -40,7 +40,6 @@
       },
       //redis is reached on localhost here, not by container name
       "env": {
-        //net8.0 app on the installed .NET 10 runtime
         "DOTNET_ROLL_FORWARD": "LatestMajor",
         "ASPNETCORE_ENVIRONMENT": "Development",
         "ASPNETCORE_URLS": "http://localhost:5059",

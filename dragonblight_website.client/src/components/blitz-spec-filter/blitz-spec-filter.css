@@ -1,0 +1,5 @@
+/* 40 specs do not fit on screen, so the list scrolls inside the menu */
+.BlitzSpecMenu {
+  max-height: 60vh;
+  overflow-y: auto;
+}

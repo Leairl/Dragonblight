@@ -57,8 +57,23 @@ partial class WarcraftRedisProxy
         //add spec and class of character from pvpleaderboardentries to dbleaderboardentries 
         var db = redis.GetDatabase();
         string key = flavor.KeyPrefix() + bracket + "_" + region + "_LADDER_COMBINED";
-        
+        if (bracket.Contains("shuffle") || bracket.Contains("blitz"))
+        {
+            newPvpCharacterSummary.spec = bracket.Split('-')[2] ?? "";
+        }
         var serializedPvPCharSummary = JsonSerializer.Serialize(newPvpCharacterSummary);
+        if (bracket.Contains("shuffle"))
+        {
+            string shuffleKey = flavor.KeyPrefix() + "shuffle" + "_" + region + "_LADDER_COMBINED";
+            await db.ListRemoveAsync(shuffleKey, serializedPvPCharSummary);
+            await db.ListRightPushAsync(shuffleKey, serializedPvPCharSummary);
+        }
+        if (bracket.Contains("blitz"))
+        {
+            string blitzKey = flavor.KeyPrefix() + "blitz" + "_" + region + "_LADDER_COMBINED";
+            await db.ListRemoveAsync(blitzKey, serializedPvPCharSummary);
+            await db.ListRightPushAsync(blitzKey, serializedPvPCharSummary);
+        }
         await db.ListRemoveAsync(key, serializedPvPCharSummary);
         await db.ListRightPushAsync(key, serializedPvPCharSummary);
 

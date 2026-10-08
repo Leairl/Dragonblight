@@ -19,6 +19,7 @@ export interface ShuffleSpec {
 //Every retail Solo Shuffle ladder, grouped by class. Used by the spec dropdown and by the rankings
 //page to pick which endpoint to call.
 export const shuffleSpecs: ShuffleSpec[] = [
+  { slug: "shuffle", className: "", specName: "All", specId: 0, fetch: (c, skip, take, region) => c.getShuffleLadder(skip, take, region) },
   { slug: "shuffle-deathknight-blood", className: "Death Knight", specName: "Blood", specId: 250, fetch: (c, skip, take, region) => c.getShuffleDeathKnightBloodLadder(skip, take, region) },
   { slug: "shuffle-deathknight-frost", className: "Death Knight", specName: "Frost", specId: 251, fetch: (c, skip, take, region) => c.getShuffleDeathKnightFrostLadder(skip, take, region) },
   { slug: "shuffle-deathknight-unholy", className: "Death Knight", specName: "Unholy", specId: 252, fetch: (c, skip, take, region) => c.getShuffleDeathKnightUnholyLadder(skip, take, region) },
@@ -61,13 +62,16 @@ export const shuffleSpecs: ShuffleSpec[] = [
   { slug: "shuffle-warrior-protection", className: "Warrior", specName: "Protection", specId: 73, fetch: (c, skip, take, region) => c.getShuffleWarriorProtectionLadder(skip, take, region) },
 ];
 
-export const defaultShuffleSpec = "shuffle-priest-discipline";
+export const defaultShuffleSpec = "shuffle";
 
 export function isShuffleBracket(bracket: string | undefined): boolean {
-  return bracket?.startsWith("shuffle-") ?? false;
+  return bracket?.startsWith("shuffle") ?? false;
 }
 
 //the spec's icon in /public/Specs, named the way the profile page already names them
 export function shuffleSpecIcon(spec: ShuffleSpec): string {
+  if (spec.specName === "All") {
+    return 'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==';
+  }
   return `/Specs/${spec.specName.toLowerCase()}_${spec.className.toLowerCase()}.png`;
 }

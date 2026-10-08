@@ -276,6 +276,166 @@ partial class WarcraftRedisProxy
         {
             key = "getShuffleWarriorProtectionLeaderboard" + region;
         }
+        if (bracket == "blitz-warrior-fury")
+        {
+            key = "getBlitzWarriorFuryLeaderboard" + region;
+        }
+        if (bracket == "blitz-deathknight-blood")
+        {
+            key = "getBlitzDeathKnightBloodLeaderboard" + region;
+        }
+        if (bracket == "blitz-deathknight-frost")
+        {
+            key = "getBlitzDeathKnightFrostLeaderboard" + region;
+        }
+        if (bracket == "blitz-deathknight-unholy")
+        {
+            key = "getBlitzDeathKnightUnholyLeaderboard" + region;
+        }
+        if (bracket == "blitz-demonhunter-devourer")
+        {
+            key = "getBlitzDemonHunterDevourerLeaderboard" + region;
+        }
+        if (bracket == "blitz-demonhunter-havoc")
+        {
+            key = "getBlitzDemonHunterHavocLeaderboard" + region;
+        }
+        if (bracket == "blitz-demonhunter-vengeance")
+        {
+            key = "getBlitzDemonHunterVengeanceLeaderboard" + region;
+        }
+        if (bracket == "blitz-druid-balance")
+        {
+            key = "getBlitzDruidBalanceLeaderboard" + region;
+        }
+        if (bracket == "blitz-druid-feral")
+        {
+            key = "getBlitzDruidFeralLeaderboard" + region;
+        }
+        if (bracket == "blitz-druid-guardian")
+        {
+            key = "getBlitzDruidGuardianLeaderboard" + region;
+        }
+        if (bracket == "blitz-druid-restoration")
+        {
+            key = "getBlitzDruidRestorationLeaderboard" + region;
+        }
+        if (bracket == "blitz-evoker-devastation")
+        {
+            key = "getBlitzEvokerDevastationLeaderboard" + region;
+        }
+        if (bracket == "blitz-evoker-preservation")
+        {
+            key = "getBlitzEvokerPreservationLeaderboard" + region;
+        }
+        if (bracket == "blitz-evoker-augmentation")
+        {
+            key = "getBlitzEvokerAugmentationLeaderboard" + region;
+        }
+        if (bracket == "blitz-hunter-beastmastery")
+        {
+            key = "getBlitzHunterBeastMasteryLeaderboard" + region;
+        }
+        if (bracket == "blitz-hunter-marksmanship")
+        {
+            key = "getBlitzHunterMarksmanshipLeaderboard" + region;
+        }
+        if (bracket == "blitz-hunter-survival")
+        {
+            key = "getBlitzHunterSurvivalLeaderboard" + region;
+        }
+        if (bracket == "blitz-mage-arcane")
+        {
+            key = "getBlitzMageArcaneLeaderboard" + region;
+        }
+        if (bracket == "blitz-mage-fire")
+        {
+            key = "getBlitzMageFireLeaderboard" + region;
+        }
+        if (bracket == "blitz-mage-frost")
+        {
+            key = "getBlitzMageFrostLeaderboard" + region;
+        }
+        if (bracket == "blitz-monk-brewmaster")
+        {
+            key = "getBlitzMonkBrewmasterLeaderboard" + region;
+        }
+        if (bracket == "blitz-monk-windwalker")
+        {
+            key = "getBlitzMonkWindwalkerLeaderboard" + region;
+        }
+        if (bracket == "blitz-monk-mistweaver")
+        {
+            key = "getBlitzMonkMistweaverLeaderboard" + region;
+        }
+        if (bracket == "blitz-paladin-holy")
+        {
+            key = "getBlitzPaladinHolyLeaderboard" + region;
+        }
+        if (bracket == "blitz-paladin-protection")
+        {
+            key = "getBlitzPaladinProtectionLeaderboard" + region;
+        }
+        if (bracket == "blitz-paladin-retribution")
+        {
+            key = "getBlitzPaladinRetributionLeaderboard" + region;
+        }
+        if (bracket == "blitz-priest-discipline")
+        {
+            key = "getBlitzPriestDisciplineLeaderboard" + region;
+        }
+        if (bracket == "blitz-priest-holy")
+        {
+            key = "getBlitzPriestHolyLeaderboard" + region;
+        }
+        if (bracket == "blitz-priest-shadow")
+        {
+            key = "getBlitzPriestShadowLeaderboard" + region;
+        }
+        if (bracket == "blitz-rogue-assassination")
+        {
+            key = "getBlitzRogueAssassinationLeaderboard" + region;
+        }
+        if (bracket == "blitz-rogue-outlaw")
+        {
+            key = "getBlitzRogueOutlawLeaderboard" + region;
+        }
+        if (bracket == "blitz-rogue-subtlety")
+        {
+            key = "getBlitzRogueSubtletyLeaderboard" + region;
+        }
+        if (bracket == "blitz-shaman-elemental")
+        {
+            key = "getBlitzShamanElementalLeaderboard" + region;
+        }
+        if (bracket == "blitz-shaman-enhancement")
+        {
+            key = "getBlitzShamanEnhancementLeaderboard" + region;
+        }
+        if (bracket == "blitz-shaman-restoration")
+        {
+            key = "getBlitzShamanRestorationLeaderboard" + region;
+        }
+        if (bracket == "blitz-warlock-affliction")
+        {
+            key = "getBlitzWarlockAfflictionLeaderboard" + region;
+        }
+        if (bracket == "blitz-warlock-demonology")
+        {
+            key = "getBlitzWarlockDemonologyLeaderboard" + region;
+        }
+        if (bracket == "blitz-warlock-destruction")
+        {
+            key = "getBlitzWarlockDestructionLeaderboard" + region;
+        }
+        if (bracket == "blitz-warrior-arms")
+        {
+            key = "getBlitzWarriorArmsLeaderboard" + region;
+        }
+        if (bracket == "blitz-warrior-protection")
+        {
+            key = "getBlitzWarriorProtectionLeaderboard" + region;
+        }
         if (bracket == "2v2")
         {
             key = "get2v2Leaderboard" + region;
