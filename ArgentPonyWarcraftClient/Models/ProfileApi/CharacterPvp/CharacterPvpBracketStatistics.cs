@@ -58,4 +58,17 @@ public record CharacterPvpBracketStatistics
     /// </summary>
     [JsonPropertyName("weekly_match_statistics")]
     public PvpMatchStatistics WeeklyMatchStatistics { get; init; }
+    /// <summary>
+    /// Gets the specialization this rating is for. Only Solo Shuffle and Blitz have one, since they keep
+    /// a separate rating per specialization; null for every other bracket.
+    /// </summary>
+    [JsonPropertyName("specialization")]
+    public PlayableSpecializationReference Specialization { get; init; }
+    
+    /// <summary>
+    /// Gets the PvP round statistics for the season.
+    /// </summary>
+    [JsonPropertyName("season_round_statistics")]
+    public PvpMatchStatistics SeasonRoundStatistics { get; init; }
+
 }

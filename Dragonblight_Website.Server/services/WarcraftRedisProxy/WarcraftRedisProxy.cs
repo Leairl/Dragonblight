@@ -26,7 +26,7 @@ partial class WarcraftRedisProxy(WarcraftClient _warcraftClient, IConnectionMult
     //back with the new field empty until its key expires, which is a day for some of them. Raising
     //this number retires every cached entry at once, and it has to be raised whenever a cached model
     //gains a field the site reads.
-    private const string SchemaVersion = "v3:";
+    private const string SchemaVersion = "v4:";
 
     //the key a cache entry actually lives under
     private static string VersionedKey(string key) => SchemaVersion + key;

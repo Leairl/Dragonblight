@@ -5,10 +5,10 @@ import ProfileStats from './profile-stats/profile-stats';
 import { Dragonblight } from '../../clients/Dragonblight';
 import { useNavigate, useParams } from 'react-router';
 import { getFlavor } from '../../helpers/game-flavor';
-import { Flex, Text, SegmentedControl, Switch, Callout } from '@radix-ui/themes';
+import { Flex, Text, SegmentedControl, Switch, Callout, Button } from '@radix-ui/themes';
 import "./profile.css"
 import { useCookies } from 'react-cookie';
-import { InfoCircledIcon } from "@radix-ui/react-icons";
+import { InfoCircledIcon, ReloadIcon } from "@radix-ui/react-icons";
 
 
 const Profile: FC = () => {
@@ -30,6 +30,25 @@ const Profile: FC = () => {
     const showGlyphs = getFlavor() === "classic";
     const [currTab, setCurrTab] = useState<string>();
     const [err, setErr] = useState<string>();
+    const [refreshing, setRefreshing] = useState<boolean>(false);
+    const [refreshMessage, setRefreshMessage] = useState<string>("");
+
+    //drops everything the server has cached for this character, then reloads the page: each part of
+    //the profile loads its own data, so a reload is what fetches all of it again from Blizzard
+    async function RefreshCharacter() {
+      setRefreshing(true);
+      setRefreshMessage("");
+      try {
+        await new Dragonblight.ProfileClient().refreshCharacter(server?.replace(" ", "-"), characterName, region);
+        window.location.reload();
+      } catch (e) {
+        //429: the server allows one refresh per character every few minutes
+        setRefreshMessage((e as Dragonblight.ApiException)?.status === 429
+          ? "Refreshed recently, try again in a few minutes"
+          : "Refresh failed");
+        setRefreshing(false);
+      }
+    }
 
     useEffect(() => {
       setCookie("showModelViewer", showModelViewer.toString(), { path: "/" });
@@ -146,6 +165,11 @@ const Profile: FC = () => {
             </SegmentedControl.Root>
           </div>
           <div className='flex grow'></div>
+          {refreshMessage && <span className="self-center text-sm text-red-300">{refreshMessage}</span>}
+          <Button className="self-center" variant="soft" color="gray" size="1"
+                  disabled={refreshing || loading} onClick={RefreshCharacter}>
+            <ReloadIcon className={refreshing ? "animate-spin" : ""} /> Refresh
+          </Button>
           <div className='self-center'>
           <Switch className='self-center'
                       onCheckedChange={(checked) => {

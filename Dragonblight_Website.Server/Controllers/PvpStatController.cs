@@ -31,6 +31,23 @@ namespace Dragonblight_Website.Server.Controllers
                 {
                     results.Add(await _warcraftCachedData.GetPvpBracketRating(server.ToLower(), characterName.ToLower(), PvPBracket, region, HttpContext.GetGameFlavor()));
                 }
+                //Solo Shuffle keeps a rating per spec, so after the fixed brackets come the character's
+                //class's spec brackets. They go last so the cards above keep their positions, and only
+                //the ones the character has played are kept: an unplayed spec comes back null.
+                if (HttpContext.GetGameFlavor() == GameFlavor.Retail)
+                {
+                    var profile = await _warcraftCachedData.GetCharSummary(server.ToLower(), characterName.ToLower(), region, HttpContext.GetGameFlavor());
+                    var playableClass = profile?.CharacterClass != null ? await _warcraftCachedData.GetPlayableClass(profile.CharacterClass.Id, region, HttpContext.GetGameFlavor()) : null;
+                    foreach (var spec in playableClass?.Specializations ?? [])
+                    {
+                        var specBracket = "shuffle-" + BracketName(playableClass?.Name) + "-" + BracketName(spec.Name);
+                        var specRating = await _warcraftCachedData.GetPvpBracketRating(server.ToLower(), characterName.ToLower(), specBracket, region, HttpContext.GetGameFlavor());
+                        if (specRating?.Bracket != null)
+                        {
+                            results.Add(specRating);
+                        }
+                    }
+                }
                 return Ok(results);
             }
             catch (Exception ex)
@@ -39,5 +56,6 @@ namespace Dragonblight_Website.Server.Controllers
                 return StatusCode(500, "An error occurred while processing your request.");
             }
         }
+        private static string BracketName(string? name) => (name ?? "").Replace(" ", "").ToLowerInvariant();
     }
 }

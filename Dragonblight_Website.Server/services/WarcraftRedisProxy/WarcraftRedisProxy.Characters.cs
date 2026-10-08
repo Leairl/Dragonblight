@@ -1,4 +1,5 @@
 using ArgentPonyWarcraftClient;
+using StackExchange.Redis;
 
 //A character's profile endpoints: summary, appearance, achievements, equipment, stats and bracket
 //ratings. Each comes from Blizzard and is cached, and an empty result is fetched once more in
@@ -215,5 +216,41 @@ partial class WarcraftRedisProxy
             }, TimeSpan.FromDays(1)); //uses getredisproxy generic type of characterprofilesummer to get profile summary + region from redis
         }
         return result;
+    }
+
+    //Forgets everything cached for one character, so the profile's next requests go to Blizzard and
+    //come back current. Returns false while the character is on cooldown: a refresh turns every one of
+    //those requests into a Blizzard call, so a character can only be refreshed every few minutes.
+    public async Task<bool> ClearCharacterCache(string server, string characterName, string region, GameFlavor flavor = GameFlavor.MistsClassic)
+    {
+        var db = redis.GetDatabase();
+        var cooldown = flavor.KeyPrefix() + "RefreshCooldown" + server + characterName + region;
+        if (!await db.StringSetAsync(cooldown, "1", TimeSpan.FromMinutes(5), When.NotExists))
+        {
+            return false;
+        }
+        var profileRegion = GetProfileRegion(region, flavor);
+        var keys = new List<RedisKey>
+        {
+            VersionedKey("GetCharacter" + server + characterName + profileRegion),
+            VersionedKey("GetCharacterAppearance" + server + characterName + profileRegion),
+            VersionedKey("GetCharacterAchievements" + server + characterName + profileRegion),
+            VersionedKey("GetCharacterEquipment" + server + characterName + profileRegion),
+            VersionedKey("GetCharacterStats" + server + characterName + profileRegion),
+            VersionedKey("characterSpecSummary" + characterName + server + profileRegion),
+            VersionedKey(flavor.KeyPrefix() + "characterSpecName" + characterName + server + region),
+        };
+        //one rating key per bracket played, and Shuffle and Blitz add one per spec, so these are found
+        //by pattern rather than listed
+        var ratings = VersionedKey("GetCharacterRating" + server + characterName) + "*" + profileRegion;
+        foreach (var endpoint in redis.GetEndPoints())
+        {
+            await foreach (var key in redis.GetServer(endpoint).KeysAsync(pattern: ratings))
+            {
+                keys.Add(key);
+            }
+        }
+        await db.KeyDeleteAsync(keys.ToArray());
+        return true;
     }
 }
