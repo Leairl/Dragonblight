@@ -23,10 +23,8 @@ import { Pagination } from "react-headless-pagination";
 import ClassFilter from "../class-filter/class-filter";
 import Cutoffs from "../cutoffs/cutoffs";
 import { brackets} from "../../helpers/game-flavor";
-import ShuffleSpecFilter from "../shuffle-spec-filter/shuffle-spec-filter";
-import { shuffleSpecs, defaultShuffleSpec, isShuffleBracket, shuffleSpecIcon } from "../../helpers/shuffle-specs";
-import BlitzSpecFilter from "../blitz-spec-filter/blitz-spec-filter";
-import { blitzSpecs, defaultBlitzSpec, isBlitzBracket, blitzSpecIcon } from "../../helpers/blitz-specs";
+import { SoloSpec, defaultBlitzSpec, isBlitzBracket, setShuffleSpecs, setBlitzSpecs, defaultShuffleSpec, isShuffleBracket, shuffleSpecs, blitzSpecs, SoloSpecIcon} from "../../helpers/solo-bracket-specs";
+import SoloSpecFilter from "../solo-spec-filter/solo-spec-filter";
 
 const Skeletons = [0, 1, 2];
 
@@ -43,6 +41,7 @@ function Rankings() {
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedClasses, setSelectedClasses] = useState<string[]>(["All Classes"]);
   const [syncStatus, setSyncStatus] = useState<number>(0);
+  const [ladders, setLadders] = useState<Dragonblight.LadderBracket[]>([]);
   //getting values that are changeable
   useEffect(() => {
     setLoading(true);
@@ -62,6 +61,26 @@ function Rankings() {
     }, 5000);
     return () => clearInterval(interval);
   }, [bracket, region, page, selectedClasses]);
+    useEffect(() => {
+    const DragonblightClient = new Dragonblight.PvpLeaderboardClient();
+    DragonblightClient.getLadderBrackets(region).then(
+      (result) => {
+        setLadders(result ?? [])
+        const soloLadders = result?.filter((l) => l.slug.startsWith("shuffle") || l.slug.startsWith("blitz"))?? [];
+        const soloSpecsFromLadders = soloLadders.map((l) => {
+          const newSoloSpec : SoloSpec = {
+            slug: l.slug,
+            className: l.className ?? "",
+            specName: l.specName ?? "",
+            specId: l.specId ?? 0,
+          }
+          return newSoloSpec;
+        })
+        // uses ascii to sort the classes alphabetically, so that the order is consistent with the class filter
+        setShuffleSpecs(soloSpecsFromLadders.filter((s) => s.slug.startsWith("shuffle")).sort((a, b) => a.className.localeCompare(b.className)));
+        setBlitzSpecs(soloSpecsFromLadders.filter((s) => s.slug.startsWith("blitz")).sort((a, b) => a.className.localeCompare(b.className)));
+      });
+  }, [region]);
   //when page changes, call useeffect and update the skip amount
   const handlePageChange = (page: number) => {
     setPage(page);
@@ -88,10 +107,8 @@ function Rankings() {
           <div className="toolbar-left">
 
           {/* a Shuffle or Blitz ladder is a single spec, so there are no classes to filter */}
-          {isShuffleBracket(bracket) ? (
-            <ShuffleSpecFilter selected={bracket} onSelect={BracketClick}></ShuffleSpecFilter>
-          ) : isBlitzBracket(bracket) ? (
-            <BlitzSpecFilter selected={bracket} onSelect={BracketClick}></BlitzSpecFilter>
+          {isShuffleBracket(bracket) || isBlitzBracket(bracket) ? (
+            <SoloSpecFilter selected={bracket} onSelect={BracketClick} isBlitz={isBlitzBracket(bracket)} isShuffle={isShuffleBracket(bracket)} />
           ) : (
             <ClassFilter onSelect={(sc) => setSelectedClasses(sc)}></ClassFilter>
           )}
@@ -369,21 +386,11 @@ function Rankings() {
                           <Avatar.Image
                             src={(() => {
 
-                              const shuffleSpec = shuffleSpecs.find((s) => s.slug == bracket);
-                              if (shuffleSpec?.specName != "All" && shuffleSpec?.specName != null) {
-                                return shuffleSpecIcon(shuffleSpec);
+                              const soloSpec = shuffleSpecs.find((s) => s.slug == bracket) ?? blitzSpecs.find((s) => s.slug == bracket);
+                              if (soloSpec?.specName != "" && soloSpec?.specName != null) {
+                                return SoloSpecIcon(soloSpec);
                               }
-                              if (shuffleSpec?.specName == "All") {
-                                if (characterEntry.spec == null || characterEntry.spec == "" || characterEntry.charSummary?.character_class?.name == null) {
-                                  return `/unknown.png`;
-                                }
-                                return `/Specs/${characterEntry.spec?.toLowerCase()}_${characterEntry.charSummary?.character_class?.name?.toLowerCase()}.png`;
-                              }
-                              const blitzSpec = blitzSpecs.find((s) => s.slug == bracket);
-                              if (blitzSpec?.specName != "All" && blitzSpec?.specName != null) {
-                                return blitzSpecIcon(blitzSpec);
-                              }
-                              if (blitzSpec?.specName == "All") {
+                              if (soloSpec?.specName == "") {
                                 if (characterEntry.spec == null || characterEntry.spec == "" || characterEntry.charSummary?.character_class?.name == null) {
                                   return `/unknown.png`;
                                 }
@@ -660,38 +667,8 @@ function Rankings() {
   async function LadderData() {
     const DragonblightClient = new Dragonblight.PvpLeaderboardClient();
     setLadderData([]);
-    if (bracket == "3v3") {
-      setLadderData(
-        await DragonblightClient.get3v3Ladder(page * 50, 50, region)
-      );
-    }
-    const shuffleSpec = shuffleSpecs.find((s) => s.slug == bracket);
-    if (shuffleSpec) {
-      setLadderData(
-        await shuffleSpec.fetch(DragonblightClient, page * 50, 50, region)
-      );
-    }
-    const blitzSpec = blitzSpecs.find((s) => s.slug == bracket);
-    if (blitzSpec) {
-      setLadderData(
-        await blitzSpec.fetch(DragonblightClient, page * 50, 50, region)
-      );
-    }
-    if (bracket == "2v2") {
-      setLadderData(
-        await DragonblightClient.get2v2Ladder(page * 50, 50, region)
-      );
-    }
-    if (bracket == "5v5") {
-      setLadderData(
-        await DragonblightClient.get5v5Ladder(page * 50, 50, region)
-      );
-    }
-    if (bracket == "rbg") {
-      setLadderData(
-        await DragonblightClient.getRBGLadder(page * 50, 50, region)
-      );
-    }
+    //one endpoint serves every ladder: arena, RBG, each Shuffle and Blitz spec, and the combined lists
+    setLadderData(await DragonblightClient.getLadders(page * 50, 50, region, bracket));
 
     setLoading(false);
   }

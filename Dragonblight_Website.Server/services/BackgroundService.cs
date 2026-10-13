@@ -31,8 +31,6 @@ public class BgService : BackgroundService
             var charService = services.GetRequiredService<CharacterCacheService>();
             // await charService.CacheAllLadders("us", GameFlavor.MistsClassic);
             // await charService.CacheAllLadders("eu", GameFlavor.MistsClassic);
-            // //retail roughly doubles the Blizzard call volume - comment these two
-            // //out if the rate limit becomes a problem
             await charService.CacheAllLadders("us", GameFlavor.Retail);
             // await charService.CacheAllLadders("eu", GameFlavor.Retail);
         } 

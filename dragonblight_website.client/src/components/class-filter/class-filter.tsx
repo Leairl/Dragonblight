@@ -47,7 +47,7 @@ const ClassFilter : React.FC<ClassFilterProps> = (props) => {
     }
   };
   return (
-    <DropdownMenu.Root open={isOpen} onOpenChange={setIsOpen}>
+    <DropdownMenu.Root open={isOpen} onOpenChange={setIsOpen} modal={false}>
       <DropdownMenu.Trigger asChild>
         <Button className="CustomButton" variant="soft" color="gray">
           {selectedClasses.includes("All Classes") && "All Classes"}

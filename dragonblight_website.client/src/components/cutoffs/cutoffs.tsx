@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Dragonblight } from '../../clients/Dragonblight';
 import { Card } from '@radix-ui/themes';
-import { shuffleSpecs } from '../../helpers/shuffle-specs';
-import { blitzSpecs } from '../../helpers/blitz-specs';
+import { shuffleSpecs, blitzSpecs} from '../../helpers/solo-bracket-specs';
 import { getFlavor } from '../../helpers/game-flavor';
 
 
