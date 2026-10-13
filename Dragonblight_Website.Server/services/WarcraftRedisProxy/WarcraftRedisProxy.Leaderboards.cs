@@ -1,49 +1,63 @@
 using System.Text.Json;
 using ArgentPonyWarcraftClient;
+using Dragonblight_Website.Server.Helpers;
+
 
 //PvP ladders, seasons and rewards. The ladders and seasons come from Blizzard and are cached;
 //ladder history is our own record, kept as Redis lists.
 partial class WarcraftRedisProxy
 {
-    public async Task<PvpLeaderboard> Get2v2Leaderboard(string region, GameFlavor flavor = GameFlavor.MistsClassic)
+    public async Task<PvpLeaderboard> GetLeaderboard(string region, string bracket, GameFlavor flavor = GameFlavor.MistsClassic)
     {
         var ns = GetDynamicRegion(region, flavor);
-        return await GetBlizzardDataCached<PvpLeaderboard>("get2v2Leaderboard" + ns, async () =>
+        return await GetBlizzardDataCached<PvpLeaderboard>("getLeaderboard" + bracket + ns, async () =>
         {
-            var curr2v2Leaderboard = await warcraftClient.GetPvpLeaderboardAsync(await GetSeason(region, flavor), "2v2", ns, GetRegion(ns), GetLocale(ns));
-            return curr2v2Leaderboard.Value;
+            var currLeaderboard = await warcraftClient.GetPvpLeaderboardAsync(await GetSeason(region, flavor), bracket, ns, GetRegion(ns), GetLocale(ns));
+            return currLeaderboard.Value;
+        }, TimeSpan.FromHours(3)); //uses getredisproxy generic type of pvpleaderboard to get rbg ladder + region from redis
+    }
+    public async Task<PvpLeaderboardsIndex> GetLeaderboardIndex(string region, GameFlavor flavor = GameFlavor.MistsClassic)
+    {
+        var ns = GetDynamicRegion(region, flavor);
+        return await GetBlizzardDataCached<PvpLeaderboardsIndex>("getLeaderboardsIndex" + ns, async () =>
+        {
+            var currLeaderboardIndex = await warcraftClient.GetPvpLeaderboardsIndexAsync(await GetSeason(region, flavor), ns, GetRegion(ns), GetLocale(ns));
+            return currLeaderboardIndex.Value;
         }, TimeSpan.FromHours(3)); //uses getredisproxy generic type of pvpleaderboard to get rbg ladder + region from redis
     }
     
-    public async Task<PvpLeaderboard> Get3v3Leaderboard(string region, GameFlavor flavor = GameFlavor.MistsClassic)
+    // Gets all ladder brackets and finds all of the specialization data we need for shuffle and blitz.
+    public async Task<List<LadderBracket>> GetLadderBrackets(string region, GameFlavor flavor = GameFlavor.MistsClassic)
     {
         var ns = GetDynamicRegion(region, flavor);
-        return await GetBlizzardDataCached<PvpLeaderboard>("get3v3Leaderboard" + ns, async () =>
+        return await GetBlizzardDataCached<List<LadderBracket>>("getLadderBrackets" + ns, async () =>
         {
-            var curr3v3Leaderboard = await warcraftClient.GetPvpLeaderboardAsync(await GetSeason(region, flavor), "3v3", ns, GetRegion(ns), GetLocale(ns));
-            return curr3v3Leaderboard.Value;
-        }, TimeSpan.FromHours(3)); //uses getredisproxy generic type of pvpleaderboard to get rbg ladder + region from redis
-    }
-
-
-    public async Task<PvpLeaderboard> Get5v5Leaderboard(string region, GameFlavor flavor = GameFlavor.MistsClassic)
-    {
-        var ns = GetDynamicRegion(region, flavor);
-        return await GetBlizzardDataCached<PvpLeaderboard>("get5v5Leaderboard" + ns, async () =>
-        {
-            var curr5v5Leaderboard = await warcraftClient.GetPvpLeaderboardAsync(await GetSeason(region, flavor), "5v5", ns, GetRegion(ns), GetLocale(ns));
-            return curr5v5Leaderboard.Value;
-        }, TimeSpan.FromHours(3)); //uses getredisproxy generic type of pvpleaderboard to get rbg ladder + region from redis
-    }
-
-    public async Task<PvpLeaderboard> GetRBGLeaderboard(string region, GameFlavor flavor = GameFlavor.MistsClassic) //get rbgLeaderboard in redis
-    {
-        var ns = GetDynamicRegion(region, flavor);
-        return await GetBlizzardDataCached<PvpLeaderboard>("currRbgLadder" + ns, async () =>
-        {
-            var currRbgLadder = await warcraftClient.GetPvpLeaderboardAsync(await GetSeason(region, flavor), "rbg", ns, GetRegion(ns), GetLocale(ns));
-            return currRbgLadder.Value;
-        }, TimeSpan.FromHours(3)); //uses getredisproxy generic type of pvpleaderboard to get rbg ladder + region from redis
+            var leaderboardIndex = await GetLeaderboardIndex(region, flavor);
+            var ladderNames = leaderboardIndex.Leaderboards.Select(l => l.Name).ToHashSet();
+            // overall shuffle / blitz ladders and arena brackets without a spec
+            var brackets = ladderNames.Where(name => !name.Contains("-") || name.EndsWith("-overall")).Select(name => new LadderBracket { Slug = name, Ladder = name.Split('-')[0]}).ToList();
+           
+           var specIndex = await PlayableSpecializationsIndex(region, flavor);
+            foreach (var specList in specIndex?.CharacterSpecializations ?? [])
+            {
+                var spec = await PlayableSpecialization(specList.Id, region, flavor);
+                // returns all data we want from a spec we find
+                foreach (var ladder in new[] { "shuffle", "blitz" })
+                {
+                    var slug = LadderNames.ForSpec(ladder, spec?.PlayableClass?.Name, spec?.Name);
+                    if (ladderNames.Contains(slug))
+                    {
+                        brackets.Add(new LadderBracket { 
+                        Slug = slug, Ladder = ladder,
+                        ClassName = spec?.PlayableClass?.Name, 
+                        SpecName = spec?.Name,
+                        SpecId = spec?.Id,
+                         });
+                    }
+                }
+            }
+            return brackets;
+        }, TimeSpan.FromHours(3)); 
     }
     public async Task<PvpRewardsIndex> GetPvPRewards(string region, GameFlavor flavor = GameFlavor.MistsClassic)
     {
@@ -111,343 +125,7 @@ partial class WarcraftRedisProxy
     public async Task ClearLeaderboard(string bracket, string region, GameFlavor flavor = GameFlavor.MistsClassic)
     {
         region = GetDynamicRegion(region, flavor);
-        string key = "";
-        if (bracket == "rbg")
-        {
-            key = "currRbgLadder" + region;
-        }
-        if (bracket == "shuffle-warrior-fury")
-        {
-            key = "getShuffleWarriorFuryLeaderboard" + region;
-        }
-        if (bracket == "shuffle-deathknight-blood")
-        {
-            key = "getShuffleDeathKnightBloodLeaderboard" + region;
-        }
-        if (bracket == "shuffle-deathknight-frost")
-        {
-            key = "getShuffleDeathKnightFrostLeaderboard" + region;
-        }
-        if (bracket == "shuffle-deathknight-unholy")
-        {
-            key = "getShuffleDeathKnightUnholyLeaderboard" + region;
-        }
-        if (bracket == "shuffle-demonhunter-devourer")
-        {
-            key = "getShuffleDemonHunterDevourerLeaderboard" + region;
-        }
-        if (bracket == "shuffle-demonhunter-havoc")
-        {
-            key = "getShuffleDemonHunterHavocLeaderboard" + region;
-        }
-        if (bracket == "shuffle-demonhunter-vengeance")
-        {
-            key = "getShuffleDemonHunterVengeanceLeaderboard" + region;
-        }
-        if (bracket == "shuffle-druid-balance")
-        {
-            key = "getShuffleDruidBalanceLeaderboard" + region;
-        }
-        if (bracket == "shuffle-druid-feral")
-        {
-            key = "getShuffleDruidFeralLeaderboard" + region;
-        }
-        if (bracket == "shuffle-druid-guardian")
-        {
-            key = "getShuffleDruidGuardianLeaderboard" + region;
-        }
-        if (bracket == "shuffle-druid-restoration")
-        {
-            key = "getShuffleDruidRestorationLeaderboard" + region;
-        }
-        if (bracket == "shuffle-evoker-devastation")
-        {
-            key = "getShuffleEvokerDevastationLeaderboard" + region;
-        }
-        if (bracket == "shuffle-evoker-preservation")
-        {
-            key = "getShuffleEvokerPreservationLeaderboard" + region;
-        }
-        if (bracket == "shuffle-evoker-augmentation")
-        {
-            key = "getShuffleEvokerAugmentationLeaderboard" + region;
-        }
-        if (bracket == "shuffle-hunter-beastmastery")
-        {
-            key = "getShuffleHunterBeastMasteryLeaderboard" + region;
-        }
-        if (bracket == "shuffle-hunter-marksmanship")
-        {
-            key = "getShuffleHunterMarksmanshipLeaderboard" + region;
-        }
-        if (bracket == "shuffle-hunter-survival")
-        {
-            key = "getShuffleHunterSurvivalLeaderboard" + region;
-        }
-        if (bracket == "shuffle-mage-arcane")
-        {
-            key = "getShuffleMageArcaneLeaderboard" + region;
-        }
-        if (bracket == "shuffle-mage-fire")
-        {
-            key = "getShuffleMageFireLeaderboard" + region;
-        }
-        if (bracket == "shuffle-mage-frost")
-        {
-            key = "getShuffleMageFrostLeaderboard" + region;
-        }
-        if (bracket == "shuffle-monk-brewmaster")
-        {
-            key = "getShuffleMonkBrewmasterLeaderboard" + region;
-        }
-        if (bracket == "shuffle-monk-windwalker")
-        {
-            key = "getShuffleMonkWindwalkerLeaderboard" + region;
-        }
-        if (bracket == "shuffle-monk-mistweaver")
-        {
-            key = "getShuffleMonkMistweaverLeaderboard" + region;
-        }
-        if (bracket == "shuffle-paladin-holy")
-        {
-            key = "getShufflePaladinHolyLeaderboard" + region;
-        }
-        if (bracket == "shuffle-paladin-protection")
-        {
-            key = "getShufflePaladinProtectionLeaderboard" + region;
-        }
-        if (bracket == "shuffle-paladin-retribution")
-        {
-            key = "getShufflePaladinRetributionLeaderboard" + region;
-        }
-        if (bracket == "shuffle-priest-discipline")
-        {
-            key = "getShufflePriestDisciplineLeaderboard" + region;
-        }
-        if (bracket == "shuffle-priest-holy")
-        {
-            key = "getShufflePriestHolyLeaderboard" + region;
-        }
-        if (bracket == "shuffle-priest-shadow")
-        {
-            key = "getShufflePriestShadowLeaderboard" + region;
-        }
-        if (bracket == "shuffle-rogue-assassination")
-        {
-            key = "getShuffleRogueAssassinationLeaderboard" + region;
-        }
-        if (bracket == "shuffle-rogue-outlaw")
-        {
-            key = "getShuffleRogueOutlawLeaderboard" + region;
-        }
-        if (bracket == "shuffle-rogue-subtlety")
-        {
-            key = "getShuffleRogueSubtletyLeaderboard" + region;
-        }
-        if (bracket == "shuffle-shaman-elemental")
-        {
-            key = "getShuffleShamanElementalLeaderboard" + region;
-        }
-        if (bracket == "shuffle-shaman-enhancement")
-        {
-            key = "getShuffleShamanEnhancementLeaderboard" + region;
-        }
-        if (bracket == "shuffle-shaman-restoration")
-        {
-            key = "getShuffleShamanRestorationLeaderboard" + region;
-        }
-        if (bracket == "shuffle-warlock-affliction")
-        {
-            key = "getShuffleWarlockAfflictionLeaderboard" + region;
-        }
-        if (bracket == "shuffle-warlock-demonology")
-        {
-            key = "getShuffleWarlockDemonologyLeaderboard" + region;
-        }
-        if (bracket == "shuffle-warlock-destruction")
-        {
-            key = "getShuffleWarlockDestructionLeaderboard" + region;
-        }
-        if (bracket == "shuffle-warrior-arms")
-        {
-            key = "getShuffleWarriorArmsLeaderboard" + region;
-        }
-        if (bracket == "shuffle-warrior-protection")
-        {
-            key = "getShuffleWarriorProtectionLeaderboard" + region;
-        }
-        if (bracket == "blitz-warrior-fury")
-        {
-            key = "getBlitzWarriorFuryLeaderboard" + region;
-        }
-        if (bracket == "blitz-deathknight-blood")
-        {
-            key = "getBlitzDeathKnightBloodLeaderboard" + region;
-        }
-        if (bracket == "blitz-deathknight-frost")
-        {
-            key = "getBlitzDeathKnightFrostLeaderboard" + region;
-        }
-        if (bracket == "blitz-deathknight-unholy")
-        {
-            key = "getBlitzDeathKnightUnholyLeaderboard" + region;
-        }
-        if (bracket == "blitz-demonhunter-devourer")
-        {
-            key = "getBlitzDemonHunterDevourerLeaderboard" + region;
-        }
-        if (bracket == "blitz-demonhunter-havoc")
-        {
-            key = "getBlitzDemonHunterHavocLeaderboard" + region;
-        }
-        if (bracket == "blitz-demonhunter-vengeance")
-        {
-            key = "getBlitzDemonHunterVengeanceLeaderboard" + region;
-        }
-        if (bracket == "blitz-druid-balance")
-        {
-            key = "getBlitzDruidBalanceLeaderboard" + region;
-        }
-        if (bracket == "blitz-druid-feral")
-        {
-            key = "getBlitzDruidFeralLeaderboard" + region;
-        }
-        if (bracket == "blitz-druid-guardian")
-        {
-            key = "getBlitzDruidGuardianLeaderboard" + region;
-        }
-        if (bracket == "blitz-druid-restoration")
-        {
-            key = "getBlitzDruidRestorationLeaderboard" + region;
-        }
-        if (bracket == "blitz-evoker-devastation")
-        {
-            key = "getBlitzEvokerDevastationLeaderboard" + region;
-        }
-        if (bracket == "blitz-evoker-preservation")
-        {
-            key = "getBlitzEvokerPreservationLeaderboard" + region;
-        }
-        if (bracket == "blitz-evoker-augmentation")
-        {
-            key = "getBlitzEvokerAugmentationLeaderboard" + region;
-        }
-        if (bracket == "blitz-hunter-beastmastery")
-        {
-            key = "getBlitzHunterBeastMasteryLeaderboard" + region;
-        }
-        if (bracket == "blitz-hunter-marksmanship")
-        {
-            key = "getBlitzHunterMarksmanshipLeaderboard" + region;
-        }
-        if (bracket == "blitz-hunter-survival")
-        {
-            key = "getBlitzHunterSurvivalLeaderboard" + region;
-        }
-        if (bracket == "blitz-mage-arcane")
-        {
-            key = "getBlitzMageArcaneLeaderboard" + region;
-        }
-        if (bracket == "blitz-mage-fire")
-        {
-            key = "getBlitzMageFireLeaderboard" + region;
-        }
-        if (bracket == "blitz-mage-frost")
-        {
-            key = "getBlitzMageFrostLeaderboard" + region;
-        }
-        if (bracket == "blitz-monk-brewmaster")
-        {
-            key = "getBlitzMonkBrewmasterLeaderboard" + region;
-        }
-        if (bracket == "blitz-monk-windwalker")
-        {
-            key = "getBlitzMonkWindwalkerLeaderboard" + region;
-        }
-        if (bracket == "blitz-monk-mistweaver")
-        {
-            key = "getBlitzMonkMistweaverLeaderboard" + region;
-        }
-        if (bracket == "blitz-paladin-holy")
-        {
-            key = "getBlitzPaladinHolyLeaderboard" + region;
-        }
-        if (bracket == "blitz-paladin-protection")
-        {
-            key = "getBlitzPaladinProtectionLeaderboard" + region;
-        }
-        if (bracket == "blitz-paladin-retribution")
-        {
-            key = "getBlitzPaladinRetributionLeaderboard" + region;
-        }
-        if (bracket == "blitz-priest-discipline")
-        {
-            key = "getBlitzPriestDisciplineLeaderboard" + region;
-        }
-        if (bracket == "blitz-priest-holy")
-        {
-            key = "getBlitzPriestHolyLeaderboard" + region;
-        }
-        if (bracket == "blitz-priest-shadow")
-        {
-            key = "getBlitzPriestShadowLeaderboard" + region;
-        }
-        if (bracket == "blitz-rogue-assassination")
-        {
-            key = "getBlitzRogueAssassinationLeaderboard" + region;
-        }
-        if (bracket == "blitz-rogue-outlaw")
-        {
-            key = "getBlitzRogueOutlawLeaderboard" + region;
-        }
-        if (bracket == "blitz-rogue-subtlety")
-        {
-            key = "getBlitzRogueSubtletyLeaderboard" + region;
-        }
-        if (bracket == "blitz-shaman-elemental")
-        {
-            key = "getBlitzShamanElementalLeaderboard" + region;
-        }
-        if (bracket == "blitz-shaman-enhancement")
-        {
-            key = "getBlitzShamanEnhancementLeaderboard" + region;
-        }
-        if (bracket == "blitz-shaman-restoration")
-        {
-            key = "getBlitzShamanRestorationLeaderboard" + region;
-        }
-        if (bracket == "blitz-warlock-affliction")
-        {
-            key = "getBlitzWarlockAfflictionLeaderboard" + region;
-        }
-        if (bracket == "blitz-warlock-demonology")
-        {
-            key = "getBlitzWarlockDemonologyLeaderboard" + region;
-        }
-        if (bracket == "blitz-warlock-destruction")
-        {
-            key = "getBlitzWarlockDestructionLeaderboard" + region;
-        }
-        if (bracket == "blitz-warrior-arms")
-        {
-            key = "getBlitzWarriorArmsLeaderboard" + region;
-        }
-        if (bracket == "blitz-warrior-protection")
-        {
-            key = "getBlitzWarriorProtectionLeaderboard" + region;
-        }
-        if (bracket == "2v2")
-        {
-            key = "get2v2Leaderboard" + region;
-        }
-        if (bracket == "3v3")
-        {
-            key = "get3v3Leaderboard" + region;
-        }
-        if (bracket == "5v5")
-        {
-            key = "get5v5Leaderboard" + region;
-        }
+        string key = "getLeaderboard" + bracket + region;
         var db = redis.GetDatabase();
         await db.KeyDeleteAsync(VersionedKey(key));
     }

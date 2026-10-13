@@ -1,6 +1,6 @@
 using System.Text.Json;
 using ArgentPonyWarcraftClient;
-
+using Dragonblight_Website.Server.Helpers;
 //The lists the site builds for itself: characters that have been looked up, ladder players by
 //class, and the combined ladder summaries. Redis only - nothing here calls Blizzard.
 partial class WarcraftRedisProxy
@@ -57,24 +57,33 @@ partial class WarcraftRedisProxy
         //add spec and class of character from pvpleaderboardentries to dbleaderboardentries 
         var db = redis.GetDatabase();
         string key = flavor.KeyPrefix() + bracket + "_" + region + "_LADDER_COMBINED";
-        if (bracket.Contains("shuffle") || bracket.Contains("blitz"))
+        var bracketSplit = bracket.Split('-');
+        if (bracketSplit.Length == 3 && (bracketSplit[0] == "shuffle" || bracketSplit[0] == "blitz"))
         {
-            newPvpCharacterSummary.spec = bracket.Split('-')[2] ?? "";
+            newPvpCharacterSummary.spec = bracketSplit[2] ?? "";
+        }
+        // for overall solo brackets
+        if (bracketSplit.Length == 2 && (bracketSplit[0] == "shuffle" || bracketSplit[0] == "blitz"))
+        {
+            var charClass = LadderNames.BracketName(newPvpCharacterSummary.charSummary.CharacterClass.Name);
+            var bracketsIndex = await GetLeaderboardIndex(region, flavor);
+            var brackets = bracketsIndex.Leaderboards.Where(soloSpec => soloSpec.Name.StartsWith(bracketSplit[0] + "-" + charClass)).ToList();
+            var soloOverallEntry = newPvpCharacterSummary.PvpEntry;
+            foreach (var soloBracket in brackets)
+            {
+                List<PvpCharacterSummary?> ladder = await GetPvpLeaderSummaries(soloBracket.Name, region, flavor);
+                PvpCharacterSummary? specEntry = ladder.FirstOrDefault(e => e?.PvpEntry.Character.Id == soloOverallEntry.Character.Id);
+                if (specEntry?.PvpEntry.Rating == soloOverallEntry.Rating && 
+                specEntry.PvpEntry.SeasonMatchStatistics.Played == soloOverallEntry.SeasonMatchStatistics.Played && 
+                specEntry.PvpEntry.SeasonMatchStatistics.Won == soloOverallEntry.SeasonMatchStatistics.Won && 
+                specEntry.PvpEntry.SeasonMatchStatistics.Lost == soloOverallEntry.SeasonMatchStatistics.Lost)
+                {
+                    newPvpCharacterSummary.spec = specEntry.spec;
+                    break;
+                }
+            }
         }
         var serializedPvPCharSummary = JsonSerializer.Serialize(newPvpCharacterSummary);
-        if (bracket.Contains("shuffle"))
-        {
-            string shuffleKey = flavor.KeyPrefix() + "shuffle" + "_" + region + "_LADDER_COMBINED";
-            await db.ListRemoveAsync(shuffleKey, serializedPvPCharSummary);
-            await db.ListRightPushAsync(shuffleKey, serializedPvPCharSummary);
-        }
-        if (bracket.Contains("blitz"))
-        {
-            string blitzKey = flavor.KeyPrefix() + "blitz" + "_" + region + "_LADDER_COMBINED";
-            await db.ListRemoveAsync(blitzKey, serializedPvPCharSummary);
-            await db.ListRightPushAsync(blitzKey, serializedPvPCharSummary);
-        }
-        await db.ListRemoveAsync(key, serializedPvPCharSummary);
         await db.ListRightPushAsync(key, serializedPvPCharSummary);
 
     }
@@ -107,5 +116,13 @@ partial class WarcraftRedisProxy
         var serializedPlayer = JsonSerializer.Serialize(player);
         await db.ListRemoveAsync(key, serializedPlayer);
         await db.ListRightPushAsync(key, serializedPlayer);
+    }
+
+    // Replaces a Pvp character by looking at the index of a redis list whenever profile is pulled
+    public async Task ReplacePvpCharacterSummary(int index, PvpCharacterSummary summary, string bracket, string region, GameFlavor flavor = GameFlavor.MistsClassic)
+    {
+        var db = redis.GetDatabase();
+        string key = flavor.KeyPrefix() + bracket + "_" + region + "_LADDER_COMBINED";
+        await db.ListSetByIndexAsync(key, index, JsonSerializer.Serialize(summary));
     }
 }

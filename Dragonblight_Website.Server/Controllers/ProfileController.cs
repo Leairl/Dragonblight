@@ -29,7 +29,7 @@ namespace Dragonblight_Website.Server.Controllers
                                                     && x.charSummary.Realm.Slug.ToLower() == server.ToLower());
             if (playerSummary != null && playerSummary.PvpEntry != null) 
             {
-                await _warcraftCachedData.SavePvpCharacterSummary(new PvpCharacterSummary
+                await _warcraftCachedData.ReplacePvpCharacterSummary(ladder.IndexOf(playerSummary), new PvpCharacterSummary
                 {
                     charSummary = result,
                     spec = specName,
