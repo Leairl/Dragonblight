@@ -9,6 +9,8 @@ import { Dragonblight } from "../../clients/Dragonblight";
 import { UsRealms, EuRealms } from "../../clients/ServerNames";
 import { Link, Outlet } from "react-router";
 import { flavorHref, getFlavor } from "../../helpers/game-flavor";
+import { realmDisplayName, realmSlug } from "../../helpers/realmNameHelper";
+
 
 function HomePage() {
   //finding data with setSearchResults, and referencing / storing with searchResults
@@ -33,7 +35,7 @@ function HomePage() {
             <Select
               onSelect={(v, option)=> 
                 { 
-                  const optionsSplit = option.key.split('-')
+                  const optionsSplit = option.key.split('|')
                   const name = optionsSplit[0]
                   const server = optionsSplit[1]
                   const region = optionsSplit[2]
@@ -91,8 +93,8 @@ function HomePage() {
   ) {
     return (
       <Option
-        value={`${characterName}-${server}-${region}`}
-        key={`${characterName}-${server}-${region}-add`}
+        value={`${characterName}-${realmDisplayName(server)}-${region}`}
+        key={`${characterName}|${server}|${region}|add`}
       >
           <div className="flex">
             <div className="pr-1">
@@ -132,16 +134,16 @@ function HomePage() {
     }
     //returning data from character profile summary
     const client = new Dragonblight.SearchClient();
-    client.searchChar(search).then(async (data) => {
+    client.searchChar(search.replace("'", "").replace(" ", "-")).then(async (data) => {
       //map does for loop for each item and outputs a new item (converts to new type)
       const mapData = data.map(
         (characterSummary: Dragonblight.CharacterProfileSummary) => {
           return (
             <Option
               value={`${characterSummary.name}-${characterSummary.realm?.name}`}
-              key={`${characterSummary.name}-${
+              key={`${characterSummary.name}|${
                 characterSummary.realm?.slug
-              }-${GetRegion(characterSummary)}`}
+              }|${GetRegion(characterSummary)}`}
             >
               <Link
                 to={`/profile/${GetRegion(characterSummary)}/${
@@ -199,13 +201,13 @@ function HomePage() {
       UsServers =
         searchSplit.length > 1
           ? UsRealms.find((r) =>
-              r.toLowerCase().startsWith(searchSplit[1].toLowerCase())
+              r.toLowerCase().startsWith(searchSplit[1].toLowerCase().replace("'", "").replace(" ", "-"))
             )
           : UsRealms[0];
       EuServers =
         searchSplit.length > 1
           ? EuRealms.find((r) =>
-              r.toLowerCase().startsWith(searchSplit[1].toLowerCase())
+              r.toLowerCase().startsWith(searchSplit[1].toLowerCase().replace("'", "").replace(" ", "-"))
             )
           : EuRealms[0];
       }
@@ -219,13 +221,13 @@ function HomePage() {
       UsServers =
         searchSplit.length > 1
           ? retailUsRealms.realms?.find((r) =>
-              r.slug?.toLowerCase().startsWith(searchSplit[1].toLowerCase())
+              r.slug?.toLowerCase().startsWith(searchSplit[1].toLowerCase().replace("'", "").replace(" ", "-"))
             )?.slug
           : retailUsRealms.realms?.[0].slug;
       EuServers =
         searchSplit.length > 1
           ? retailEuRealms.realms?.find((r) =>
-              r.slug?.toLowerCase().startsWith(searchSplit[1].toLowerCase())
+              r.slug?.toLowerCase().startsWith(searchSplit[1].toLowerCase().replace("'", "").replace(" ", "-"))
             )?.slug
           : retailEuRealms.realms?.[0].slug;
       }

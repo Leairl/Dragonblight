@@ -53,14 +53,14 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
 
   // Blizzard's retail season rewards hold the live rank 1 cutoff: one reward for 3v3,
   // one per faction for RBG, none for 2v2. Undefined while rewards are loading.
-  function getRank1Reward(bracket: string, faction?: string, specId?: number) {
+  function getRank1Reward(bracket: string, specId?: number) {
     return bracketRewards(bracket, specId)?.find(
-      (r) => !r.faction?.type || r.faction.type === faction
+      (r) => !r.faction?.type 
     );
   }
 
-  function getRetailTier(bracket: string, current_rating: number, faction?: string, specId?: number): RatingTier | undefined {
-    const rank1 = getRank1Reward(bracket, faction, specId);
+  function getRetailTier(bracket: string, current_rating: number, specId?: number): RatingTier | undefined {
+    const rank1 = getRank1Reward(bracket, specId);
     if (rank1 && current_rating >= rank1.rating_cutoff) {
       return {
         // "Venomous Gladiator: Midnight Season 2" -> "Venomous Gladiator"
@@ -97,20 +97,19 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
   function getTitleLine(
     bracket: string,
     current_rating: number,
-    faction?: string,
     specId?: number
   ): string {
     if (getFlavor() === "retail") {
-      const tier = getRetailTier(bracket, current_rating, faction, specId);
+      const tier = getRetailTier(bracket, current_rating, specId);
       return tier ? `${tier.label} ${tier.title}` : "";
     }
     const title = getTitle(bracket, current_rating);
     return title ? `Predicted Title: ${title}` : "";
   }
 
-  function getBracketColor(bracket: string, current_rating: number, faction?: string, specId?: number): string | undefined {
+  function getBracketColor(bracket: string, current_rating: number, specId?: number): string | undefined {
     if (getFlavor() === "retail") {
-      return getRetailTier(bracket, current_rating, faction, specId)?.text ?? "text-stone-100";
+      return getRetailTier(bracket, current_rating, specId)?.text ?? "text-stone-100";
     }
     const title = getTitle(bracket, current_rating);
     if (title?.endsWith(" Gladiator")) {
@@ -136,7 +135,6 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
   // isolates rewards for a specific bracket, or returns [] when rewards are not yet loaded.
   function bracketRewards(bracket: string, specId?: number) {
     return rewards?.filter((r) => {
-      //a Shuffle rating belongs to one spec, and so does each Shuffle reward
       if (specId !== undefined && r.specialization?.id !== specId) {
         return false;
       }
@@ -147,10 +145,8 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
     });
   }
 
-  function getTitle(
-    bracket: string,
-    current_rating: number
-  ): string | undefined {
+  function getTitle(bracket: string, current_rating: number): string | undefined 
+  {
     // The best title is the reached reward with the highest cutoff, whatever order
     // the rewards arrive in.
     let best: Dragonblight.PvpSeasonRewardWithRank | undefined;
@@ -169,15 +165,11 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
     );
   }
 
-  function getCardBorder(
-    bracket: string,
-    current_rating: number,
-    faction?: string,
-    specId?: number
-  ): string | undefined {
+  function getCardBorder(bracket: string, current_rating: number, specId?: number): string | undefined 
+  {
     if (getFlavor() === "retail") {
       // Below Combatant the card keeps its default border.
-      return getRetailTier(bracket, current_rating, faction, specId)?.border ?? "";
+      return getRetailTier(bracket, current_rating, specId)?.border ?? "";
     }
     const title = getTitle(bracket, current_rating);
 
@@ -234,10 +226,8 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
     );
   }
 
-  function getRatingCard(
-    BracketStatistics: Dragonblight.CharacterPvpBracketStatistics | null,
-    index: number
-  ): ReactElement {
+  function getRatingCard(BracketStatistics: Dragonblight.CharacterPvpBracketStatistics | null, index: number): ReactElement 
+  {
     //connects specific bracket data into card, set to type ReactElement with tsx code inside return
     return (
       <div className="pb-10 pt-4 rating-card" key={"GetRating" + index}>
@@ -246,13 +236,13 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
             getCardBorder(
               BracketStatistics?.bracket?.type ?? "",
               BracketStatistics?.rating ?? 0,
-              BracketStatistics?.faction?.type,
               BracketStatistics?.specialization?.id
             ) +
             " " +
             (index == 0 || index == 2
               ? "mt-5 mb-3 mobile-padding rating-padding"
               : "mt-5 mb-3 rating-padding")
+            
           }
         >
           <div>
@@ -261,7 +251,6 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
                 getBracketColor(
                   BracketStatistics?.bracket?.type ?? "",
                   BracketStatistics?.rating ?? 0,
-                  BracketStatistics?.faction?.type,
                   BracketStatistics?.specialization?.id
                 ) +
                 " " +
@@ -276,7 +265,7 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
             {/* the fixed brackets arrive in brackets() order, which differs per flavor; Shuffle
                 ratings follow them, one per spec played, and are labelled by their spec */}
             {BracketStatistics?.specialization?.name
-              ? `${BracketStatistics.specialization.name} Shuffle`
+              ? `${BracketStatistics.specialization.name}` + ` ${BracketStatistics.bracket?.type?.charAt(0).toUpperCase()}${BracketStatistics.bracket?.type?.slice(1).toLowerCase()}`
               : brackets()[index]?.replace("rbg", "RBG")}
           </Heading>
         </Card>
@@ -284,18 +273,21 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
           <span className="text-green-300">
             {
               BracketStatistics?.specialization?.id != null
-                ? BracketStatistics?.season_round_statistics?.won
+                ? BracketStatistics?.season_round_statistics?.won 
+                ?? BracketStatistics?.season_match_statistics?.won 
                 : BracketStatistics?.season_match_statistics?.won
             }
-          </span>{" "}
+          </span>
           &nbsp;{
             BracketStatistics?.specialization?.id != null
-              ? BracketStatistics?.season_round_statistics?.played != null ? "-" : " "
+              ? BracketStatistics?.season_round_statistics?.played != null 
+              || BracketStatistics?.season_match_statistics?.played != null ? "-" : ""
               : BracketStatistics?.season_match_statistics?.played != null ? "-" : " "}&nbsp;{" "}
           <span className="text-red-300">
             {
               BracketStatistics?.specialization?.id != null
-                ? BracketStatistics?.season_round_statistics?.lost
+                ? BracketStatistics?.season_round_statistics?.lost 
+                ?? BracketStatistics?.season_match_statistics?.lost 
                 : BracketStatistics?.season_match_statistics?.lost
             }
           </span>
@@ -304,7 +296,6 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
           {getTitleLine(
             BracketStatistics?.bracket?.type ?? "",
             BracketStatistics?.rating ?? 0,
-            BracketStatistics?.faction?.type,
             BracketStatistics?.specialization?.id
           )}
         </span>
@@ -312,17 +303,32 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
     );
   }
   //loops through each character rating (remember: characterratings is updated every time the user looks up a character, and has character data from controller)
-  function getRatings() {
+   function getRatings() {
     const RatingCards: ReactElement[] = [];
+    const ShuffleCards: ReactElement[] = [];
+    const BlitzCards: ReactElement[] = [];
     if (characterRatings) {
+      
+      characterRatings.sort((a, b) => a?.bracket?.type?.localeCompare(b?.bracket?.type ?? "") ?? 0); //sorts characterRatings by bracket name, so the order is always the same
       // [{2v2}, {3v3}, {5v5}, {rbg}] - characterratings is being updated by setcharacterratings, which is communicating with the controller to call a character's bracket ratings.
       characterRatings.forEach((BracketStatistics, index) => {
-        //characterRatings[0] = {2v2}, characterRatings[1] = {3v3}, doing for each loop with each element inside of characterratings
-        RatingCards.push(getRatingCard(BracketStatistics, index)); // RatingCards[0] = {div+card+div}, pushes element data we are looking for into ratingcards
-      });
+      if (BracketStatistics?.bracket?.type?.startsWith("SHUFFLE")) {
+        ShuffleCards.push(getRatingCard(BracketStatistics, index));
+      }
+      else if (BracketStatistics?.bracket?.type?.startsWith("BLITZ")) {
+        BlitzCards.push(getRatingCard(BracketStatistics, index));
+      }  
+      else {
+        RatingCards.push(getRatingCard(BracketStatistics, index));
+      }
+      })
     }
     return (
-      <div className="flex-wrap flex flex-row width-60vw">{RatingCards}</div>
+      <div className= "flex-wrap flex flex-col items-center justify-center">
+      <div className="flex-wrap flex flex-row w-full">{RatingCards}</div>
+      <div className="flex-wrap flex flex-row w-full">{ShuffleCards}</div>
+      <div className="flex-wrap flex flex-row w-full">{BlitzCards}</div>
+      </div>
     );
   }
 };
