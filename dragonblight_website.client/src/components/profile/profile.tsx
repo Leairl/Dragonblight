@@ -63,6 +63,8 @@ const Profile: FC = () => {
 
         //profile data displayed before equipment sequentially
         setLoading(true)
+        setCharacterEquipmentSummary(undefined);
+        setcharacterSummary(undefined);
         setErr("");
         CharacterClient.getProfile(slug, characterName, region).then((data) => {
           if (data?.charSummary == null) {

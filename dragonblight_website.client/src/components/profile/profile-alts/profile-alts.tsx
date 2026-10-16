@@ -5,6 +5,8 @@ import { Dragonblight } from "../../../clients/Dragonblight";
 import { ClassColor } from "../../../helpers/classColorHelper";
 import { realmDisplayName } from "../../../helpers/realmNameHelper";
 import { retailTier } from "../../../helpers/ratingTierHelper";
+import { flavorHref } from "../../../helpers/game-flavor";
+
 import "./profile-alts.css";
 
 

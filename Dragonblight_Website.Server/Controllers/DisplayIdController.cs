@@ -9,7 +9,7 @@ namespace Dragonblight_Website.Server.Controller
     //uses "api/ to seperate our backend controllers from our frontend
     [ApiController]
     [Route("api/[controller]")]
-    
+
     public class DisplayIdController : ControllerBase
     {
         private readonly ILogger<DisplayIdController> _logger;
@@ -47,6 +47,30 @@ namespace Dragonblight_Website.Server.Controller
                 return Ok(new ItemDisplayInfo(item_id, 0, 0, 0)); // Return a default object with displayid set to 0
             }
         }
-        
+        [HttpGet("GetDisplayInfos")]
+        //Iactionresult used when you have action results incoming (200/401/404)
+        // pulls a list of item display info for multiple item ids from the query string.
+        public async Task<ActionResult<IEnumerable<ItemDisplayInfo>>> GetDisplayInfos([FromQuery] IEnumerable<int> item_ids)
+        {
+            try
+            {
+                if (HttpContext.GetGameFlavor() == GameFlavor.Retail)
+                {
+                    var infos = await Task.WhenAll(item_ids.Select(async item_id =>
+                       await _warcraftCachedData.GetItemDisplayInfo(item_id, "us", GameFlavor.Retail)
+                       ?? new ItemDisplayInfo(item_id, 0, 0, 0)));
+                    return Ok(infos);
+                }
+                //MoP Classic: unchanged, served from Item.csv
+                var itemDisplayInfos = ItemDisplayInfos.data.Where(i => item_ids.Contains(i.id)).ToList();
+                return Ok(itemDisplayInfos);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching display infos for item IDs {ItemIds}", string.Join(", ", item_ids));
+                return Ok(new List<ItemDisplayInfo>()); // Return an empty list on error
+            }
+        }
+
     }
 }
