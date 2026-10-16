@@ -38,13 +38,17 @@ namespace Dragonblight_Website.Server.Controllers
                 {
                     var profile = await _warcraftCachedData.GetCharSummary(server.ToLower(), characterName.ToLower(), region, HttpContext.GetGameFlavor());
                     var playableClass = profile?.CharacterClass != null ? await _warcraftCachedData.GetPlayableClass(profile.CharacterClass.Id, region, HttpContext.GetGameFlavor()) : null;
+                    var ladderIndex = await _warcraftCachedData.GetLeaderboardIndex(region, HttpContext.GetGameFlavor());
                     foreach (var spec in playableClass?.Specializations ?? [])
                     {
-                        var specBracket = "shuffle-" + BracketName(playableClass?.Name) + "-" + BracketName(spec.Name);
-                        var specRating = await _warcraftCachedData.GetPvpBracketRating(server.ToLower(), characterName.ToLower(), specBracket, region, HttpContext.GetGameFlavor());
-                        if (specRating?.Bracket != null)
+                        foreach (var ladder in ladderIndex.Leaderboards.Where(s => s.Name.Contains(spec.Name.ToLowerInvariant())))
                         {
-                            results.Add(specRating);
+                            var specBracket = ladder.Name;
+                            var specRating = await _warcraftCachedData.GetPvpBracketRating(server.ToLower(), characterName.ToLower(), specBracket, region, HttpContext.GetGameFlavor());
+                            if (specRating?.Bracket != null)
+                            {
+                                results.Add(specRating);
+                            }
                         }
                     }
                 }

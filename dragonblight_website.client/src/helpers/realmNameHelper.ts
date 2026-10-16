@@ -9,4 +9,7 @@ function realmDisplayName(slug: string | undefined): string {
     .join(" ");
 }
 
-export { realmDisplayName };
+function realmSlug(name: string | undefined): string {
+  return (name ?? "").toLowerCase().replace("'", "").replace(" ", "-");
+}
+export { realmDisplayName, realmSlug };

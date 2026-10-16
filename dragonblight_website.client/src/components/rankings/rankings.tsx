@@ -28,7 +28,7 @@ import SoloSpecFilter from "../solo-spec-filter/solo-spec-filter";
 
 const Skeletons = [0, 1, 2];
 
-function Rankings() {
+ function Rankings() {
   //const [count, setCount] = useState(0); //store dynamic data, focus on arena ladder component
   const [ladderData, setLadderData] = useState<
     Dragonblight.PvpCharacterSummary[]
