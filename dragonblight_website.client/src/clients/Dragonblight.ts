@@ -55,6 +55,43 @@ export class DisplayIdClient {
         }
         return Promise.resolve<ItemDisplayInfo>(null as any);
     }
+
+    getDisplayInfos(item_ids: number[] | undefined): Promise<ItemDisplayInfo[]> {
+        let url_ = this.baseUrl + "/api/DisplayId/GetDisplayInfos?";
+        if (item_ids === null)
+            throw new globalThis.Error("The parameter 'item_ids' cannot be null.");
+        else if (item_ids !== undefined)
+            item_ids && item_ids.forEach(item => { url_ += "item_ids=" + encodeURIComponent("" + item) + "&"; });
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetDisplayInfos(_response);
+        });
+    }
+
+    protected processGetDisplayInfos(response: Response): Promise<ItemDisplayInfo[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ItemDisplayInfo[];
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ItemDisplayInfo[]>(null as any);
+    }
 }
 
 export class AchievementClient {
