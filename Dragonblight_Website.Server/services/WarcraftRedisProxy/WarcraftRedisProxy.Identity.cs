@@ -51,6 +51,8 @@ partial class WarcraftRedisProxy
                 identity.PreviousNames.Insert(0, PreviousName);
                 var db = redis.GetDatabase(); //var to redis database
                 await db.ListRemoveAsync(flavor.KeyPrefix() + "CachedCharacters", oldName.ToLower() + "," + oldRealm + "," + GetProfileRegion(region, flavor));
+                identity.Name = name;
+                identity.Realm = realm;
             }
         }
         await SaveToRedis(IdentityKey(id, region, flavor), identity, null);
