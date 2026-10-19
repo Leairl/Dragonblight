@@ -44,12 +44,14 @@ partial class WarcraftRedisProxy
     public async Task InsertAltList(string server, string characterName, string region, CharacterAchievementsSummary achievements, GameFlavor flavor = GameFlavor.MistsClassic)
     {
         var key = AltListKey(achievements, region, flavor);
-        if (key == null)
+        var character = achievements?.Character;
+        if (key == null || character == null || character.Id == 0)
         {
             return;
         }
+        await RecordCharacter(character.Id, character.Name, character.Realm.Slug, region, flavor);
         var db = redis.GetDatabase();
-        await db.SetAddAsync(key, characterName.ToLowerInvariant() + "," + server);
+        await db.SetAddAsync(key, character.Id.ToString());
     }
 
     //the ladder sync route in: the achievements payload is over a megabyte per character, far too
@@ -80,20 +82,43 @@ partial class WarcraftRedisProxy
 
     //the account's other characters, as "charactername,server" - one redis read, nothing cached that
     //could fall behind, since the key is rebuilt from the character's own achievements every time
-    public async Task<List<string>> GetAlts(string server, string characterName, string region, GameFlavor flavor = GameFlavor.MistsClassic)
+    public async Task<List<CharacterIdentity>> GetAlts(string server, string characterName, string region, GameFlavor flavor = GameFlavor.MistsClassic)
     {
         var achievements = await GetCharacterAchievements(server, characterName, region, flavor);
         var key = AltListKey(achievements, region, flavor);
         if (key == null)
         {
-            return new List<string>();
+            return new List<CharacterIdentity>();
         }
         var db = redis.GetDatabase();
-        var self = characterName.ToLowerInvariant() + "," + server;
-        var alts = await db.SetMembersAsync(key);
-        return alts.Select(alt =>
+        var self = achievements?.Character?.Id ?? 0;
+        var entries = await db.SetMembersAsync(key);
+        var alts = new List<CharacterIdentity>();
+
+        //remove older entries with char,server in redis
+        foreach (var entry in entries.Where(m => m.ToString().Contains(',')))
         {
-            return alt.ToString();
-        }).Where(alt => alt != self).ToList();
+            var oldEntrySave = entry.ToString().Split(',');
+            await GetCharacterAchievements(oldEntrySave[1], oldEntrySave[0], region, flavor); //re-files whoever has that name now, by id
+            await db.SetRemoveAsync(key, entry);
+        }
+        //reads db set after cleaning up old entries
+        var altIds = await db.SetMembersAsync(key);
+        //prevents character youre currently looking at from displaying as its own alt
+        //and connects alts to the right identity key
+        foreach (var altId in altIds)
+        {
+            var id = (int)altId;
+            if (id == self)
+            {
+                continue;
+            }
+            var identity = await GetCharacterIdentity(id, region, flavor);
+            if (identity != null)
+            {
+                alts.Add(identity);
+            }
+        }
+        return alts;
     }
 }

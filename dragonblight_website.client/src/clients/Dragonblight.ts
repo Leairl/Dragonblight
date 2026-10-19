@@ -1470,9 +1470,14 @@ export interface GetAltsResponse {
     realm?: string | undefined;
     classchar?: string | undefined;
     spec?: string | undefined;
-    rating2v2?: number | undefined;
-    rating3v3?: number | undefined;
-    ratingRbg?: number | undefined;
+    ratings: { [key: string]: number; };
+    previousNames: PreviousCharacterName[];
+}
+
+export interface PreviousCharacterName {
+    name: string;
+    realm: string;
+    changed_at: Date;
 }
 
 export interface ClassAnalytics {
@@ -1492,6 +1497,7 @@ export interface PvpLeaderboardEntry {
 export interface CharacterProfileSummaryAndSpec {
     charSummary: CharacterProfileSummary;
     spec: string;
+    previousNames: PreviousCharacterName[];
 }
 
 export interface CharacterAppearanceSummary {

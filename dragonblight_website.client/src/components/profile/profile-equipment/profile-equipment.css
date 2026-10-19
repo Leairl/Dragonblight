@@ -17,6 +17,25 @@
   width: 100%;
 }
 
+.former-names-trigger {
+  margin: 0;
+  cursor: pointer;
+}
+
+.former-names-chevron {
+  transition: transform 200ms ease;
+}
+
+.former-names-trigger[data-state="open"] .former-names-chevron {
+  transform: rotate(180deg);
+}
+
+.former-name-date {
+  margin-left: auto;
+  padding-left: 1rem;
+  font-size: .7rem;
+  opacity: .6;
+}
 @media only screen and (max-width: 1600px) {
   .model3d  {
       visibility: hidden;

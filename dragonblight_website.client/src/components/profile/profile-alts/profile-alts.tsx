@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router";
 import { Card, Skeleton } from "@radix-ui/themes";
 import { Dragonblight } from "../../../clients/Dragonblight";
 import { ClassColor } from "../../../helpers/classColorHelper";
-import { realmDisplayName } from "../../../helpers/realmNameHelper";
+import { formerNames, realmDisplayName } from "../../../helpers/realmNameHelper";
 import { retailTier } from "../../../helpers/ratingTierHelper";
 import { flavorHref } from "../../../helpers/game-flavor";
 
@@ -87,12 +87,15 @@ const ProfileAlts: FC = (/*props*/) => {
             <span className="alt-realm">{realmDisplayName(alt.realm)}</span>
           </div>
         </Link>
+        {alt.previousNames?.length > 0 && (
+          <div className="alt-former">{formerNames(alt.previousNames, alt.realm)}</div>
+        )}
         <div className="alt-detail">
           <span className="alt-spec">{alt.spec}</span>
-          {/* an unplayed bracket comes back as 0 and is left off the card */}
-          {getRating("2v2", alt.rating2v2)}
-          {getRating("3v3", alt.rating3v3)}
-          {getRating("RBG", alt.ratingRbg)}
+          {/* takes list of bracket dictionaries and loops through each to get correct ratings per bracket on alts*/}
+          {Object.entries(alt.ratings ?? {}).map(([bracket, rating]) =>
+            getRating(bracket.toUpperCase(), rating)
+          )}
         </div>
       </Card>
     );

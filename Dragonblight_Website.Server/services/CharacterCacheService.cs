@@ -40,23 +40,26 @@ partial class CharacterCacheService(IWarcraftRedisProxy warcraftRedisProxy, ILog
             foreach(var player in slice) {
                 try 
                 {
+                    var name = player.Character.Name.ToLower();
                     var oldPlayer = oldarray.FirstOrDefault(p => {
                         return p.Character.Id == player.Character.Id;
                     });
-                    var summary = await warcraftRedisProxy.GetCharSummary(player.Character.Realm.Slug, player.Character.Name, region, flavor);
+                    
+                    await warcraftRedisProxy.RecordCharacter(player.Character.Id, player.Character.Name, player.Character.Realm.Slug, region, flavor);
+                    var summary = await warcraftRedisProxy.GetCharSummary(player.Character.Realm.Slug, name, region, flavor);
                     if (summary == new CharacterProfileSummary())
                     {
-                        redis.GetDatabase().KeyDelete("GetCharacter" + player.Character.Realm.Slug + player.Character.Name + warcraftRedisProxy.GetProfileRegion(region, flavor));
+                        redis.GetDatabase().KeyDelete(WarcraftRedisProxy.VersionedKey("GetCharacter" + player.Character.Realm.Slug + name + warcraftRedisProxy.GetProfileRegion(region, flavor)));
                         await Task.Delay(500);
-                        summary = await warcraftRedisProxy.GetCharSummary(player.Character.Realm.Slug, player.Character.Name, region, flavor);
+                        summary = await warcraftRedisProxy.GetCharSummary(player.Character.Realm.Slug, name, region, flavor);
                     }
-                    var talents = await warcraftRedisProxy.GetCharacterSpecName(player.Character.Realm.Slug, player.Character.Name, region, flavor);
+                    var talents = await warcraftRedisProxy.GetCharacterSpecName(player.Character.Realm.Slug, name, region, flavor);
                     if (talents == "" && flavor != GameFlavor.Retail)
                     {
-                        redis.GetDatabase().KeyDelete("characterSpecSummary" + player.Character.Name + player.Character.Realm.Slug + warcraftRedisProxy.GetProfileRegion(region, flavor));
-                        redis.GetDatabase().KeyDelete(flavor.KeyPrefix() + "characterSpecName" + player.Character.Name + player.Character.Realm.Slug + region);
+                        redis.GetDatabase().KeyDelete(WarcraftRedisProxy.VersionedKey("characterSpecSummary" + name + player.Character.Realm.Slug + warcraftRedisProxy.GetProfileRegion(region, flavor)));
+                        redis.GetDatabase().KeyDelete(WarcraftRedisProxy.VersionedKey(flavor.KeyPrefix() + "characterSpecName" + name + player.Character.Realm.Slug + region));
                         await Task.Delay(500);
-                        talents = await warcraftRedisProxy.GetCharacterSpecName(player.Character.Realm.Slug, player.Character.Name, region, flavor);
+                        talents = await warcraftRedisProxy.GetCharacterSpecName(player.Character.Realm.Slug, name, region, flavor);
                     }
                     var newPvpCharSummary = new PvpCharacterSummary
                         {
@@ -72,7 +75,7 @@ partial class CharacterCacheService(IWarcraftRedisProxy warcraftRedisProxy, ILog
                     };
                     await warcraftRedisProxy.InsertCacheClassCharacter(bracket, player, summary, region, flavor);
                     //files the character under its account's alt key while we are already walking the ladder
-                    await warcraftRedisProxy.IndexAltList(player.Character.Realm.Slug, player.Character.Name, region, flavor);
+                    await warcraftRedisProxy.IndexAltList(player.Character.Realm.Slug, name, region, flavor);
                 }
                 catch (Exception ex) 
                 {

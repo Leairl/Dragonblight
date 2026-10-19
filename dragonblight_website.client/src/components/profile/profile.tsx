@@ -14,9 +14,9 @@ import { InfoCircledIcon, ReloadIcon } from "@radix-ui/react-icons";
 const Profile: FC = () => {
     const [characterSummary, setcharacterSummary] = useState<Dragonblight.CharacterProfileSummary>();
     const [specName, setSpecName] = useState<string>();
+    const [previousNames, setPreviousNames] = useState<Dragonblight.PreviousCharacterName[]>();
     const [characterEquipmentSummary, setCharacterEquipmentSummary] = useState<Dragonblight.CharacterEquipmentSummary>();
     const [achievementsSummary, setAchievementsSummary] = useState<Dragonblight.CharacterAchievementsSummary>();
-
     const [characterNotFound, setCharacterNotFound] = useState<boolean>(false);
     const [loading, setLoading] = useState<boolean>(true);
     const [cookies, setCookie] = useCookies(["showModelViewer"]);
@@ -65,6 +65,7 @@ const Profile: FC = () => {
         setLoading(true)
         setCharacterEquipmentSummary(undefined);
         setcharacterSummary(undefined);
+        setPreviousNames(undefined);
         setErr("");
         CharacterClient.getProfile(slug, characterName, region).then((data) => {
           if (data?.charSummary == null) {
@@ -75,6 +76,7 @@ const Profile: FC = () => {
           setCharacterNotFound(false);
             setcharacterSummary(data.charSummary);
             setSpecName(data.charSummary.active_spec?.name);
+            setPreviousNames(data.previousNames);
             CharacterClient.getEquipment(slug, characterName, region).then((dataEquip) => {
                 setCharacterEquipmentSummary(dataEquip);
                 CharacterAchievementClient.getCharacterAchievements(slug, characterName, region).then((data) => {
@@ -196,6 +198,7 @@ const Profile: FC = () => {
     characterEquipmentSummary={characterEquipmentSummary} 
     characterAchievementsSummary={achievementsSummary} 
     specName={specName}
+    previousNames = {previousNames}
     showModelViewer={showModelViewer}
     loading={loading} 
     characterNotFound={characterNotFound}
