@@ -29,7 +29,7 @@ partial class WarcraftRedisProxy(WarcraftClient _warcraftClient, IConnectionMult
     private const string SchemaVersion = "v4:";
 
     //the key a cache entry actually lives under
-    private static string VersionedKey(string key) => SchemaVersion + key;
+    public static string VersionedKey(string key) => SchemaVersion + key;
 
     public async Task<T?> GetRedisData<T>(string key)
     {  //async call to return data (of generic type), second type is to define the type.
@@ -43,10 +43,10 @@ partial class WarcraftRedisProxy(WarcraftClient _warcraftClient, IConnectionMult
         return result;
     }
 
-    public async Task SaveToRedis<T>(string key, T wowClass, TimeSpan expiration) //no inital generic type T since it's not needed to show saved redis data
+    public async Task SaveToRedis<T>(string key, T value, TimeSpan? expiration) //no inital generic type T since it's not needed to show saved redis data
     {
         var db = redis.GetDatabase(); //var to redis database
-        var res = JsonSerializer.Serialize(wowClass); //serializes warcraftclient to string
+        var res = JsonSerializer.Serialize(value); //serializes warcraftclient to string
         await db.StringSetAsync(key, res, expiration); //saves string in redis database
     }
 

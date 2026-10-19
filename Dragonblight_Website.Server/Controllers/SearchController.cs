@@ -68,7 +68,8 @@ namespace Dragonblight_Website.Server.Controllers
                     return await _warcraftCachedData.GetCharSummary(playerSplit[1], playerSplit[0], RegionHelper.SimplifyRegion(playerSplit[2]), HttpContext.GetGameFlavor());
                 });
                 var result = await Task.WhenAll(top10CharSummaries);
-                result = result.Where(r => r != null).ToArray();
+                // makes sure the cached name doesn't appear twice
+                result = result.Where(r => r != null).DistinctBy(r => r.Id).ToArray();
                 return Ok(result);
             }
             catch (Exception ex)

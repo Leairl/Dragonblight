@@ -1,5 +1,6 @@
 using ArgentPonyWarcraftClient;
 using StackExchange.Redis;
+using YamlDotNet.Core.Tokens;
 
 //A character's profile endpoints: summary, appearance, achievements, equipment, stats and bracket
 //ratings. Each comes from Blizzard and is cached, and an empty result is fetched once more in
@@ -10,12 +11,12 @@ partial class WarcraftRedisProxy
     public async Task<CharacterPvpBracketStatistics> GetPvpBracketRating(string server, string characterName, string pvpBracket, string region, GameFlavor flavor = GameFlavor.MistsClassic)
     {
         //creates unique character key from their server, character name, and region (this will prevent any duplicates)
-        region = GetProfileRegion(region, flavor);
-        var result = await GetBlizzardDataCached<CharacterPvpBracketStatistics>("GetCharacterRating" + server + characterName + pvpBracket + region, async () =>
+        var ns = GetProfileRegion(region, flavor);
+        var result = await GetBlizzardDataCached<CharacterPvpBracketStatistics>("GetCharacterRating" + server + characterName + pvpBracket + ns, async () =>
         {
             //gets character data from wow api
             //storing into GetCharacter and pulls data with server, characterName, and region
-            var GetCharacter = await warcraftClient.GetCharacterPvpBracketStatisticsAsync(server, characterName, pvpBracket, region, GetRegion(region), GetLocale(region));
+            var GetCharacter = await warcraftClient.GetCharacterPvpBracketStatisticsAsync(server, characterName, pvpBracket, ns, GetRegion(region), GetLocale(region));
             if (GetCharacter != null)
             {
                 return GetCharacter.Value;
@@ -24,12 +25,12 @@ partial class WarcraftRedisProxy
         }, TimeSpan.FromHours(2)); //uses getredisproxy generic type of characterprofilesummer to get profile summary + region from redis
         if (result == new CharacterPvpBracketStatistics())
         {
-            redis.GetDatabase().KeyDelete(VersionedKey("GetCharacterRating" + server + characterName + pvpBracket + region));
-            result = await GetBlizzardDataCached<CharacterPvpBracketStatistics>("GetCharacterRating" + server + characterName + pvpBracket + region, async () =>
+            redis.GetDatabase().KeyDelete(VersionedKey("GetCharacterRating" + server + characterName + pvpBracket + ns));
+            result = await GetBlizzardDataCached<CharacterPvpBracketStatistics>("GetCharacterRating" + server + characterName + pvpBracket + ns, async () =>
             {
                 //gets character data from wow api
                 //storing into GetCharacter and pulls data with server, characterName, and region
-                var GetCharacter = await warcraftClient.GetCharacterPvpBracketStatisticsAsync(server, characterName, pvpBracket, region, GetRegion(region), GetLocale(region));
+                var GetCharacter = await warcraftClient.GetCharacterPvpBracketStatisticsAsync(server, characterName, pvpBracket, ns, GetRegion(region), GetLocale(region));
                 if (GetCharacter != null)
                 {
                     return GetCharacter.Value;
@@ -42,12 +43,12 @@ partial class WarcraftRedisProxy
     public async Task<CharacterStatisticsSummary> GetCharacterStats(string server, string characterName, string region, GameFlavor flavor = GameFlavor.MistsClassic)
     {
         //creates unique character key from their server, character name, and region (this will prevent any duplicates)
-        region = GetProfileRegion(region, flavor);
-        var result = await GetBlizzardDataCached<CharacterStatisticsSummary>("GetCharacterStats" + server + characterName + region, async () =>
+        var ns = GetProfileRegion(region, flavor);
+        var result = await GetBlizzardDataCached<CharacterStatisticsSummary>("GetCharacterStats" + server + characterName + ns, async () =>
         {
             //gets character data from wow api
             //storing into GetCharacter and pulls data with server, characterName, and region
-            var GetCharacterStats = await warcraftClient.GetCharacterStatisticsSummaryAsync(server, characterName, region, GetRegion(region), GetLocale(region));
+            var GetCharacterStats = await warcraftClient.GetCharacterStatisticsSummaryAsync(server, characterName, ns, GetRegion(region), GetLocale(region));
             if (GetCharacterStats != null)
             {
                 return GetCharacterStats.Value;
@@ -56,12 +57,12 @@ partial class WarcraftRedisProxy
         }, TimeSpan.FromHours(6)); //uses getredisproxy generic type of characterprofilesummer to get profile summary + region from redis
         if (result == new CharacterStatisticsSummary())
         {
-            redis.GetDatabase().KeyDelete(VersionedKey("GetCharacterStats" + server + characterName + region));
-            result = await GetBlizzardDataCached<CharacterStatisticsSummary>("GetCharacterStats" + server + characterName + region, async () =>
+            redis.GetDatabase().KeyDelete(VersionedKey("GetCharacterStats" + server + characterName + ns));
+            result = await GetBlizzardDataCached<CharacterStatisticsSummary>("GetCharacterStats" + server + characterName + ns, async () =>
             {
                 //gets character data from wow api
                 //storing into GetCharacter and pulls data with server, characterName, and region
-                var GetCharacterStats = await warcraftClient.GetCharacterStatisticsSummaryAsync(server, characterName, region, GetRegion(region), GetLocale(region));
+                var GetCharacterStats = await warcraftClient.GetCharacterStatisticsSummaryAsync(server, characterName, ns, GetRegion(region), GetLocale(region));
                 if (GetCharacterStats != null)
                 {
                     return GetCharacterStats.Value;
@@ -76,28 +77,28 @@ partial class WarcraftRedisProxy
     {
         logger.LogInformation("Getting char summary for" + " " + characterName + " " + server);
         //creates unique character key from their server, character name, and region (this will prevent any duplicates)
-        region = GetProfileRegion(region, flavor);
-        var result = await GetBlizzardDataCached<CharacterProfileSummary>("GetCharacter" + server + characterName + region, async () =>
+        var ns = GetProfileRegion(region, flavor);
+        var result = await GetBlizzardDataCached<CharacterProfileSummary>("GetCharacter" + server + characterName + ns, async () =>
         {
             //gets character data from wow api
             //storing into GetCharacter and pulls data with server, characterName, and region
-            var GetCharacter = await warcraftClient.GetCharacterProfileSummaryAsync(server, characterName, region, GetRegion(region), GetLocale(region));
-            if (GetCharacter != null)
+            var GetCharacter = await warcraftClient.GetCharacterProfileSummaryAsync(server, characterName, ns, GetRegion(region), GetLocale(region));
+            if (GetCharacter.Success && GetCharacter.Value != null)
             {
-                //call method to insert char name in cache
-                await InsertCacheCharacter(characterName, server, region, flavor);
+                await InsertCacheCharacter(characterName, server, ns, flavor);
+                await RecordCharacter(GetCharacter.Value.Id, GetCharacter.Value.Name, GetCharacter.Value.Realm.Slug, region, flavor);
                 return GetCharacter.Value;
             }
-            return new CharacterProfileSummary();
+            return null;
         }, TimeSpan.FromDays(1)); //uses getredisproxy generic type of characterprofilesummer to get profile summary + region from redis
         if (result == new CharacterProfileSummary())
         {
-            redis.GetDatabase().KeyDelete(VersionedKey("GetCharacter" + server + characterName + region));
-            result = await GetBlizzardDataCached<CharacterProfileSummary>("GetCharacter" + server + characterName + region, async () =>
+            redis.GetDatabase().KeyDelete(VersionedKey("GetCharacter" + server + characterName + ns));
+            result = await GetBlizzardDataCached<CharacterProfileSummary>("GetCharacter" + server + characterName + ns, async () =>
             {
                 //gets character data from wow api
                 //storing into GetCharacter and pulls data with server, characterName, and region
-                var GetCharacter = await warcraftClient.GetCharacterProfileSummaryAsync(server, characterName, region, GetRegion(region), GetLocale(region));
+                var GetCharacter = await warcraftClient.GetCharacterProfileSummaryAsync(server, characterName, ns, GetRegion(region), GetLocale(region));
                 if (GetCharacter != null)
                 {
                     //call method to insert char name in cache
@@ -112,12 +113,12 @@ partial class WarcraftRedisProxy
     // get character summary in redis for character appearance
     public async Task<CharacterAppearanceSummary> GetCharAppearance(string server, string characterName, string region, GameFlavor flavor = GameFlavor.MistsClassic)
     {
-        region = GetProfileRegion(region, flavor);
-        var result = await GetBlizzardDataCached<CharacterAppearanceSummary>("GetCharacterAppearance" + server + characterName + region, async () =>
+        var ns = GetProfileRegion(region, flavor);
+        var result = await GetBlizzardDataCached<CharacterAppearanceSummary>("GetCharacterAppearance" + server + characterName + ns, async () =>
         {
             //gets character data from wow api
             //storing into GetCharacter and pulls data with server, characterName, and region
-            var GetCharacter = await warcraftClient.GetCharacterAppearanceSummaryAsync(server, characterName, region, GetRegion(region), GetLocale(region));
+            var GetCharacter = await warcraftClient.GetCharacterAppearanceSummaryAsync(server, characterName, ns, GetRegion(region), GetLocale(region));
             if (GetCharacter != null)
             {
                 //call method to insert char name in cache
@@ -127,12 +128,12 @@ partial class WarcraftRedisProxy
         }, TimeSpan.FromDays(1)); //uses getredisproxy generic type of characterprofilesummer to get profile summary + region from redis
         if (result == new CharacterAppearanceSummary())
         {
-            redis.GetDatabase().KeyDelete(VersionedKey("GetCharacterAppearance" + server + characterName + region));
-            result = await GetBlizzardDataCached<CharacterAppearanceSummary>("GetCharacterAppearance" + server + characterName + region, async () =>
+            redis.GetDatabase().KeyDelete(VersionedKey("GetCharacterAppearance" + server + characterName + ns));
+            result = await GetBlizzardDataCached<CharacterAppearanceSummary>("GetCharacterAppearance" + server + characterName + ns, async () =>
             {
                 //gets character data from wow api
                 //storing into GetCharacter and pulls data with server, characterName, and region
-                var GetCharacter = await warcraftClient.GetCharacterAppearanceSummaryAsync(server, characterName, region, GetRegion(region), GetLocale(region));
+                var GetCharacter = await warcraftClient.GetCharacterAppearanceSummaryAsync(server, characterName, ns, GetRegion(region), GetLocale(region));
                 if (GetCharacter != null)
                 {
                     //call method to insert char name in cache
@@ -148,13 +149,12 @@ partial class WarcraftRedisProxy
     {
         //the alt list is keyed by the region the caller asked for, so hold on to it before the line
         //below overwrites region with the blizzard namespace
-        var altRegion = region;
-        region = GetProfileRegion(region, flavor);
-        var result = await GetBlizzardDataCached<CharacterAchievementsSummary>("GetCharacterAchievements" + server + characterName + region, async () =>
+        var ns = GetProfileRegion(region, flavor);
+        var result = await GetBlizzardDataCached<CharacterAchievementsSummary>("GetCharacterAchievements" + server + characterName + ns, async () =>
         {
             //gets character data from wow api
             //storing into GetCharacter and pulls data with server, characterName, and region
-            var GetCharacter = await warcraftClient.GetCharacterAchievementsSummaryAsync(server, characterName, region, GetRegion(region), GetLocale(region));
+            var GetCharacter = await warcraftClient.GetCharacterAchievementsSummaryAsync(server, characterName, ns, GetRegion(region), GetLocale(region));
             if (GetCharacter != null)
             {
                 //call method to insert char name in cache
@@ -164,12 +164,12 @@ partial class WarcraftRedisProxy
         }, TimeSpan.FromDays(1)); //uses getredisproxy generic type of characterprofilesummer to get profile summary + region from redis
         if (result == new CharacterAchievementsSummary())
         {
-            redis.GetDatabase().KeyDelete(VersionedKey("GetCharacterAchievements" + server + characterName + region));
-            result = await GetBlizzardDataCached<CharacterAchievementsSummary>("GetCharacterAchievements" + server + characterName + region, async () =>
+            redis.GetDatabase().KeyDelete(VersionedKey("GetCharacterAchievements" + server + characterName + ns));
+            result = await GetBlizzardDataCached<CharacterAchievementsSummary>("GetCharacterAchievements" + server + characterName + ns, async () =>
             {
                 //gets character data from wow api
                 //storing into GetCharacter and pulls data with server, characterName, and region
-                var GetCharacter = await warcraftClient.GetCharacterAchievementsSummaryAsync(server, characterName, region, GetRegion(region), GetLocale(region));
+                var GetCharacter = await warcraftClient.GetCharacterAchievementsSummaryAsync(server, characterName, ns, GetRegion(region), GetLocale(region));
                 if (GetCharacter != null)
                 {
                     //call method to insert char name in cache
@@ -180,18 +180,18 @@ partial class WarcraftRedisProxy
         }
         //every character whose achievements are read joins its account's alt list, so viewing one
         //character is what puts it within reach of the others
-        await InsertAltList(server, characterName, altRegion, result, flavor);
+        await InsertAltList(server, characterName, region, result, flavor);
         return result;
     }
     // get character summary in redis for character equipment
     public async Task<CharacterEquipmentSummary> GetCharEquipment(string server, string characterName, string region, GameFlavor flavor = GameFlavor.MistsClassic)
     {
-        region = GetProfileRegion(region, flavor);
-        var result = await GetBlizzardDataCached<CharacterEquipmentSummary>("GetCharacterEquipment" + server + characterName + region, async () =>
+        var ns = GetProfileRegion(region, flavor);
+        var result = await GetBlizzardDataCached<CharacterEquipmentSummary>("GetCharacterEquipment" + server + characterName + ns, async () =>
         {
             //gets character data from wow api
             //storing into GetCharacter and pulls data with server, characterName, and region
-            var GetCharacter = await warcraftClient.GetCharacterEquipmentSummaryAsync(server, characterName, region, GetRegion(region), GetLocale(region));
+            var GetCharacter = await warcraftClient.GetCharacterEquipmentSummaryAsync(server, characterName, ns, GetRegion(region), GetLocale(region));
             if (GetCharacter != null)
             {
                 //call method to insert char name in cache
@@ -201,12 +201,12 @@ partial class WarcraftRedisProxy
         }, TimeSpan.FromDays(1)); //uses getredisproxy generic type of characterprofilesummer to get profile summary + region from redis
         if (result == new CharacterEquipmentSummary())
         {
-            redis.GetDatabase().KeyDelete(VersionedKey("GetCharacterEquipment" + server + characterName + region));
-            result = await GetBlizzardDataCached<CharacterEquipmentSummary>("GetCharacterEquipment" + server + characterName + region, async () =>
+            redis.GetDatabase().KeyDelete(VersionedKey("GetCharacterEquipment" + server + characterName + ns));
+            result = await GetBlizzardDataCached<CharacterEquipmentSummary>("GetCharacterEquipment" + server + characterName + ns, async () =>
             {
                 //gets character data from wow api
                 //storing into GetCharacter and pulls data with server, characterName, and region
-                var GetCharacter = await warcraftClient.GetCharacterEquipmentSummaryAsync(server, characterName, region, GetRegion(region), GetLocale(region));
+                var GetCharacter = await warcraftClient.GetCharacterEquipmentSummaryAsync(server, characterName, ns, GetRegion(region), GetLocale(region));
                 if (GetCharacter != null)
                 {
                     //call method to insert char name in cache

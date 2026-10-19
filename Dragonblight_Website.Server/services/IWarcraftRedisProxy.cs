@@ -2,6 +2,8 @@ using ArgentPonyWarcraftClient;
 
 public interface IWarcraftRedisProxy
 {
+    Task RecordCharacter(int id, string name, string realm, string region, GameFlavor flavor);
+    Task<CharacterIdentity?> GetCharacterIdentity(int id, string region, GameFlavor flavor = GameFlavor.MistsClassic);
     Task<PlayableSpecializationsIndex?> PlayableSpecializationsIndex(string region, GameFlavor flavor = GameFlavor.Retail);
     Task<List<LadderBracket>> GetLadderBrackets(string region, GameFlavor flavor = GameFlavor.MistsClassic);
     Task<PlayableSpecialization?> PlayableSpecialization(int specializationId, string region, GameFlavor flavor = GameFlavor.Retail);
@@ -48,7 +50,7 @@ public interface IWarcraftRedisProxy
     Task ClearPvpCharacterSummary(string bracket, string region, GameFlavor flavor = GameFlavor.MistsClassic);
     Task InsertAltList(string server, string characterName, string region, CharacterAchievementsSummary achievements, GameFlavor flavor = GameFlavor.MistsClassic);
     Task IndexAltList(string server, string characterName, string region, GameFlavor flavor = GameFlavor.MistsClassic);
-    Task<List<string>> GetAlts(string server, string characterName, string region, GameFlavor flavor = GameFlavor.MistsClassic);
+    Task<List<CharacterIdentity>> GetAlts(string server, string characterName, string region, GameFlavor flavor = GameFlavor.MistsClassic);
     Task<RealmsIndex?> GetRealms(string region, GameFlavor flavor = GameFlavor.MistsClassic);
     Task ReplacePvpCharacterSummary(int index, PvpCharacterSummary summary, string bracket, string region, GameFlavor flavor = GameFlavor.MistsClassic);
 }

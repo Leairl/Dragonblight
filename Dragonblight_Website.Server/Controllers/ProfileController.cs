@@ -25,9 +25,10 @@ namespace Dragonblight_Website.Server.Controllers
         private async Task UpdateBracketSummary(string bracket, string region, string characterName, string server, CharacterProfileSummary result, string specName, GameFlavor flavor)
         {
             var ladder = await _warcraftCachedData.GetPvpLeaderSummaries(bracket, region, flavor);
-            var playerSummary = ladder.FirstOrDefault(x => x?.charSummary.Name.ToLower() == characterName.ToLower() 
-                                                    && x.charSummary.Realm.Slug.ToLower() == server.ToLower());
-            if (playerSummary != null && playerSummary.PvpEntry != null) 
+            //by id, so a renamed character's ladder entry is still found, and whoever takes over
+            //its old name doesn't overwrite it (new character with rename of old ladder entry doesn't have the old characters data)
+            var playerSummary = ladder.FirstOrDefault(x => x?.PvpEntry?.Character?.Id == result.Id);
+            if (playerSummary != null && playerSummary.PvpEntry != null)
             {
                 await _warcraftCachedData.ReplacePvpCharacterSummary(ladder.IndexOf(playerSummary), new PvpCharacterSummary
                 {
@@ -48,19 +49,28 @@ namespace Dragonblight_Website.Server.Controllers
             {
                 var result = await _warcraftCachedData.GetCharSummary(server.ToLower(), characterName.ToLower(), region, HttpContext.GetGameFlavor());
                 var specName = await _warcraftCachedData.GetCharacterSpecName(server.ToLower(), characterName.ToLower(), region, HttpContext.GetGameFlavor());
+                List<PreviousCharacterName> previousNames = [];
                 // spin off a background thread to update each bracket's char summary and spec name
                 var flavor = HttpContext.GetGameFlavor();
-                _ = Task.Run(async () => {
-                    foreach (var bracket in flavor.Brackets())
-                    {
-                        await UpdateBracketSummary(bracket, region, characterName, server, result, specName, flavor);
-                    }
-                });
+                if (result != null)
+                {
+                    await _warcraftCachedData.RecordCharacter(result.Id, result.Name, result.Realm.Slug, region, flavor);
+                    var identity = await _warcraftCachedData.GetCharacterIdentity(result.Id, region, flavor);
+                    previousNames = identity?.PreviousNames ?? [];
+                    _ = Task.Run(async () =>
+               {
+                   foreach (var bracket in flavor.Brackets())
+                   {
+                       await UpdateBracketSummary(bracket, region, characterName, server, result, specName, flavor);
+                   }
+               });
+                }
                 return Ok(new CharacterProfileSummaryAndSpec
                 {
                     // 2 properties pulled from class below (rbgEntry is pulling all leaderboad data & ProfileSummaryEntry is pulling CharacterSummary data)
                     charSummary = result,
-                    spec = specName
+                    spec = specName,
+                    previousNames = previousNames
                 });
             }
             catch (Exception ex)
@@ -125,9 +135,12 @@ namespace Dragonblight_Website.Server.Controllers
         {
             [JsonPropertyName("charSummary")]
             public required CharacterProfileSummary charSummary { get; init; }
-            
+
             [JsonPropertyName("spec")]
             public required string spec { get; init; }
+
+            [JsonPropertyName("previousNames")]
+            public List<PreviousCharacterName> previousNames { get; init; } = [];
         }
     }
 }

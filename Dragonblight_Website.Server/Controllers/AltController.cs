@@ -30,24 +30,27 @@ namespace Dragonblight_Website.Server.Controllers
                 var alts = new List<GetAltsResponse>();
                 foreach (var alt in altInfo)
                 {
-                    var parts = alt.Split(',');
-                    if (parts.Length != 2)
+                    var altName = alt.Name.ToLower();
+                    var altServer = alt.Realm;
+                    //class and spec come out of the summary caches the profile pages already fill
+                    var summary = await _warcraftCachedData.GetCharSummary(altServer, altName, region, flavor);
+                    if (summary == null || summary.Id != alt.Id)
                     {
                         continue;
                     }
-                    var altName = parts[0];
-                    var altServer = parts[1];
-                    //class and spec come out of the summary caches the profile pages already fill
-                    var summary = await _warcraftCachedData.GetCharSummary(altServer, altName, region, flavor);
+                    var ratings = new Dictionary<string, int>();
+                    foreach (var bracket in flavor.Brackets())
+                    {
+                        ratings[bracket] = await BracketRating(altServer, altName, bracket, region, flavor);
+                    }
                     alts.Add(new GetAltsResponse
                     {
                         name = summary?.Name ?? altName,
                         realm = altServer,
                         classchar = summary?.CharacterClass?.Name,
                         spec = await _warcraftCachedData.GetCharacterSpecName(altServer, altName, region, flavor),
-                        rating2v2 = await BracketRating(altServer, altName, "2v2", region, flavor),
-                        rating3v3 = await BracketRating(altServer, altName, "3v3", region, flavor),
-                        ratingRbg = await BracketRating(altServer, altName, "rbg", region, flavor)
+                        ratings = ratings,
+                        previousNames = alt.PreviousNames
                     });
                 }
                 //a character with no alts is an empty list, not a missing character
@@ -68,6 +71,7 @@ namespace Dragonblight_Website.Server.Controllers
         }
     }
     public class GetAltsResponse
+
     {
         [JsonPropertyName("name")]
         public string? name { get; set; }
@@ -81,13 +85,11 @@ namespace Dragonblight_Website.Server.Controllers
         [JsonPropertyName("spec")]
         public string? spec { get; set; }
 
-        [JsonPropertyName("rating2v2")]
-        public int? rating2v2 { get; set; }
+        [JsonPropertyName("ratings")]
+        public Dictionary<string, int> ratings { get; set; } = [];
 
-        [JsonPropertyName("rating3v3")]
-        public int? rating3v3 { get; set; }
-
-        [JsonPropertyName("ratingRbg")]
-        public int? ratingRbg { get; set; }
+        [JsonPropertyName("previousNames")]
+        public List<PreviousCharacterName> previousNames { get; set; } = [];
     }
+
 }

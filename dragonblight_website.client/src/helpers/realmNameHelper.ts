@@ -12,4 +12,20 @@ function realmDisplayName(slug: string | undefined): string {
 function realmSlug(name: string | undefined): string {
   return (name ?? "").toLowerCase().replace("'", "").replace(" ", "-");
 }
-export { realmDisplayName, realmSlug };
+
+function formerNames(
+  previous: { name: string; realm: string }[] | undefined,
+  currentRealm: string | undefined
+): string {
+  if (!previous?.length) {
+    return "";
+  }
+  const names = previous.map((p) =>
+    p.realm === currentRealm?.toLowerCase()
+      ? p.name
+      : p.name + "-" + realmDisplayName(p.realm)
+  );
+  return "Formerly " + names.join(", ");
+}
+
+export { realmDisplayName, realmSlug, formerNames};
