@@ -1471,7 +1471,17 @@ export interface GetAltsResponse {
     classchar?: string | undefined;
     spec?: string | undefined;
     ratings: { [key: string]: number; };
+    soloRatings: SoloRating[];
     previousNames: PreviousCharacterName[];
+}
+
+export interface SoloRating {
+    slug: string;
+    ladder: string;
+    className: string;
+    specName: string;
+    specId: number;
+    rating: number;
 }
 
 export interface PreviousCharacterName {

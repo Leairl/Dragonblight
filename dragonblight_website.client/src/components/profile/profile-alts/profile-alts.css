@@ -9,6 +9,56 @@
     font-style: italic;
     opacity: .6;
 }
+.alt-solo-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .6rem;
+    margin-top: .2rem;
+    font-size: .78rem;
+}
+.alt-grid {
+    display: grid;
+    align-items: center;
+    column-gap: .75rem;
+    font-size: .78rem;
+}
+
+.alt-grid-header {
+    padding: 0 var(--card-padding, .75rem);
+    font-size: .7rem;
+    letter-spacing: .04em;
+    opacity: .6;
+}
+
+.alt-cell {
+    min-width: 0;
+}
+
+.alt-solo-cell {
+    display: flex;
+    flex-direction: row;
+    gap: .15rem;
+}
+
+.alt-none {
+    opacity: .35;
+}
+
+.alt-cards {
+    overflow-x: auto;
+}
+
+
+.alt-spec-icon {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    margin-right: .25rem;
+    vertical-align: middle;
+}
+.alt-grid {
+    min-width: 32rem;
+}
 .alt-intro {
     font-size: .8rem;
     font-style: italic;
