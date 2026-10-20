@@ -1,18 +1,21 @@
 import React, { FC, ReactElement, useEffect, useState } from "react";
 import { Dragonblight } from "../../../clients/Dragonblight";
 import { useParams } from "react-router";
-import { Card, Heading, Skeleton } from "@radix-ui/themes";
+import { Card, Heading, Separator, Skeleton } from "@radix-ui/themes";
 import "./profile-rating.css";
 import { brackets, getFlavor } from "../../../helpers/game-flavor";
 import { RatingTier, RetailTiers } from "../../../helpers/ratingTierHelper";
+import { SoloSpecIcon } from "../../../helpers/solo-bracket-specs";
+
 
 interface ProfileRatingProps {
   // Arrives after the ratings, so a Gladiator title can appear a moment after the card.
   achievements?: Dragonblight.CharacterAchievementsSummary;
   characterNotFound?: boolean;
+  characterClass: string | undefined;
 }
 
-const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound }) => {
+const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound, characterClass }) => {
   // pulls dictionary of keys from pvp bracket
   const [characterRatings, setcharacterRatings] = useState<
     Dragonblight.CharacterPvpBracketStatistics[]
@@ -23,6 +26,7 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
   >();
   const [seasonStart, setSeasonStart] = useState<Date | null>();
   const { region, server, characterName } = useParams();
+  const [soloMode, setSoloMode] = useState<"shuffle" | "blitz">("shuffle");
 
   async function CutoffData() {
     const DragonblightClient = new Dragonblight.PvpLeaderboardClient();
@@ -55,7 +59,7 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
   // one per faction for RBG, none for 2v2. Undefined while rewards are loading.
   function getRank1Reward(bracket: string, specId?: number) {
     return bracketRewards(bracket, specId)?.find(
-      (r) => !r.faction?.type 
+      (r) => !r.faction?.type
     );
   }
 
@@ -67,7 +71,6 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
         title: rank1.achievement?.name?.split(":")[0] ?? "Rank 1",
         label: "Predicted Title:",
         text: "text-orange-500",
-        border: "border-orange-500 border-2",
       };
     }
     const tier = RetailTiers.find(([minimum]) => current_rating >= minimum)?.[1];
@@ -145,8 +148,7 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
     });
   }
 
-  function getTitle(bracket: string, current_rating: number): string | undefined 
-  {
+  function getTitle(bracket: string, current_rating: number): string | undefined {
     // The best title is the reached reward with the highest cutoff, whatever order
     // the rewards arrive in.
     let best: Dragonblight.PvpSeasonRewardWithRank | undefined;
@@ -165,38 +167,10 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
     );
   }
 
-  function getCardBorder(bracket: string, current_rating: number, specId?: number): string | undefined 
-  {
-    if (getFlavor() === "retail") {
-      // Below Combatant the card keeps its default border.
-      return getRetailTier(bracket, current_rating, specId)?.border ?? "";
-    }
-    const title = getTitle(bracket, current_rating);
-
-    if (title?.endsWith(" Gladiator")) {
-      return "border-yellow-600 border-2";
-    }
-    if (title?.startsWith("Gladiator") || title?.startsWith("Hero of the Faction")) {
-      return "border-purple-500 border-2";
-    }
-    if (title?.startsWith("Duelist")) {
-      return "border-blue-500 border-2";
-    }
-    if (title?.startsWith("Rival")) {
-      return "border-green-500 border-2";
-    }
-    if (title?.startsWith("Challenger")) {
-      return "border-neutral-500 border-2";
-    }
-    if (title?.startsWith("")) {
-      return "border-stone-100 border-2";
-    }
-  }
-
   return (
     <div className={characterNotFound ? "page-container not-found" : "page-container"}>
       <div>{loading && getSkeletons()}</div>
-      <div>{!loading && getRatings()}</div>
+      <div className="w-full">{!loading && getRatings()}</div>
     </div>
   );
 
@@ -226,25 +200,28 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
     );
   }
 
-  function getRatingCard(BracketStatistics: Dragonblight.CharacterPvpBracketStatistics | null, index: number): ReactElement 
-  {
-    //connects specific bracket data into card, set to type ReactElement with tsx code inside return
+  function getRatingCard(BracketStatistics: Dragonblight.CharacterPvpBracketStatistics | null, index: number): ReactElement {
     return (
-      <div className="pb-10 pt-4 rating-card" key={"GetRating" + index}>
-        <Card
-          className={
-            getCardBorder(
-              BracketStatistics?.bracket?.type ?? "",
-              BracketStatistics?.rating ?? 0,
-              BracketStatistics?.specialization?.id
-            ) +
-            " " +
-            (index == 0 || index == 2
-              ? "mt-5 mb-3 mobile-padding rating-padding"
-              : "mt-5 mb-3 rating-padding")
-            
-          }
-        >
+      <div className={"pb-10 pt-4 rating-card"} key={"GetRating" + index}>
+
+        <Card className="rating-padding border-card">
+          <Heading size="3" className="text-center">
+            {BracketStatistics?.specialization?.name && characterClass && (
+              <img
+                className="rating-spec-icon"
+                src={SoloSpecIcon({
+                  slug: "",
+                  className: characterClass,
+                  specName: BracketStatistics.specialization.name,
+                  specId: BracketStatistics.specialization.id ?? 0,
+                })}
+                alt={BracketStatistics.specialization.name}
+              />
+            )}
+
+            {" "}
+            {!BracketStatistics?.specialization?.name && brackets()[index]?.replace("rbg", "RBG")}
+          </Heading>
           <div>
             <div
               className={
@@ -254,80 +231,97 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
                   BracketStatistics?.specialization?.id
                 ) +
                 " " +
-                "font-bold text-3xl flex justify-center"
+                "font-bold text-3xl flex justify-center text-shadow-md text-shadow-black"
+
               }
             >
               {BracketStatistics?.rating ? BracketStatistics?.rating : "0"}
             </div>
           </div>
-          <Heading size="3" className="text-center">
-            {" "}
-            {/* the fixed brackets arrive in brackets() order, which differs per flavor; Shuffle
-                ratings follow them, one per spec played, and are labelled by their spec */}
-            {BracketStatistics?.specialization?.name
-              ? `${BracketStatistics.specialization.name}` + ` ${BracketStatistics.bracket?.type?.charAt(0).toUpperCase()}${BracketStatistics.bracket?.type?.slice(1).toLowerCase()}`
-              : brackets()[index]?.replace("rbg", "RBG")}
-          </Heading>
+          <div className="flex justify-center text-sm">
+            <span className="text-green-300">
+              {
+                BracketStatistics?.specialization?.id != null
+                  ? BracketStatistics?.season_round_statistics?.won
+                  ?? BracketStatistics?.season_match_statistics?.won
+                  : BracketStatistics?.season_match_statistics?.won
+              }
+            </span>
+            &nbsp;{
+              BracketStatistics?.specialization?.id != null
+                ? BracketStatistics?.season_round_statistics?.played != null
+                  || BracketStatistics?.season_match_statistics?.played != null ? "-" : ""
+                : BracketStatistics?.season_match_statistics?.played != null ? "-" : " "}&nbsp;{" "}
+            <span className="text-red-300">
+              {
+                BracketStatistics?.specialization?.id != null
+                  ? BracketStatistics?.season_round_statistics?.lost
+                  ?? BracketStatistics?.season_match_statistics?.lost
+                  : BracketStatistics?.season_match_statistics?.lost
+              }
+            </span>
+          </div>
+          {/* mt-auto fills all space vertically from the top, pushing the prediction text to the bottom */}
+          <span className="text-xs italic mt-auto text-center">
+            {getTitleLine(
+              BracketStatistics?.bracket?.type ?? "",
+              BracketStatistics?.rating ?? 0,
+              BracketStatistics?.specialization?.id
+            )}
+          </span>
         </Card>
-        <div className="flex justify-center text-sm">
-          <span className="text-green-300">
-            {
-              BracketStatistics?.specialization?.id != null
-                ? BracketStatistics?.season_round_statistics?.won 
-                ?? BracketStatistics?.season_match_statistics?.won 
-                : BracketStatistics?.season_match_statistics?.won
-            }
-          </span>
-          &nbsp;{
-            BracketStatistics?.specialization?.id != null
-              ? BracketStatistics?.season_round_statistics?.played != null 
-              || BracketStatistics?.season_match_statistics?.played != null ? "-" : ""
-              : BracketStatistics?.season_match_statistics?.played != null ? "-" : " "}&nbsp;{" "}
-          <span className="text-red-300">
-            {
-              BracketStatistics?.specialization?.id != null
-                ? BracketStatistics?.season_round_statistics?.lost 
-                ?? BracketStatistics?.season_match_statistics?.lost 
-                : BracketStatistics?.season_match_statistics?.lost
-            }
-          </span>
-        </div>
-        <span className="text-xs italic justify-center">
-          {getTitleLine(
-            BracketStatistics?.bracket?.type ?? "",
-            BracketStatistics?.rating ?? 0,
-            BracketStatistics?.specialization?.id
-          )}
-        </span>
       </div>
     );
   }
   //loops through each character rating (remember: characterratings is updated every time the user looks up a character, and has character data from controller)
-   function getRatings() {
+  function getRatings() {
     const RatingCards: ReactElement[] = [];
     const ShuffleCards: ReactElement[] = [];
     const BlitzCards: ReactElement[] = [];
     if (characterRatings) {
-      
+
       characterRatings.sort((a, b) => a?.bracket?.type?.localeCompare(b?.bracket?.type ?? "") ?? 0); //sorts characterRatings by bracket name, so the order is always the same
       // [{2v2}, {3v3}, {5v5}, {rbg}] - characterratings is being updated by setcharacterratings, which is communicating with the controller to call a character's bracket ratings.
       characterRatings.forEach((BracketStatistics, index) => {
-      if (BracketStatistics?.bracket?.type?.startsWith("SHUFFLE")) {
-        ShuffleCards.push(getRatingCard(BracketStatistics, index));
-      }
-      else if (BracketStatistics?.bracket?.type?.startsWith("BLITZ")) {
-        BlitzCards.push(getRatingCard(BracketStatistics, index));
-      }  
-      else {
-        RatingCards.push(getRatingCard(BracketStatistics, index));
-      }
+        if (BracketStatistics?.bracket?.type?.startsWith("SHUFFLE")) {
+          ShuffleCards.push(getRatingCard(BracketStatistics, index));
+        }
+        else if (BracketStatistics?.bracket?.type?.startsWith("BLITZ")) {
+          BlitzCards.push(getRatingCard(BracketStatistics, index));
+        }
+        else {
+          RatingCards.push(getRatingCard(BracketStatistics, index));
+        }
       })
     }
     return (
-      <div className= "flex-wrap flex flex-col items-center justify-center">
-      <div className="flex-wrap flex flex-row w-full">{RatingCards}</div>
-      <div className="flex-wrap flex flex-row w-full">{ShuffleCards}</div>
-      <div className="flex-wrap flex flex-row w-full">{BlitzCards}</div>
+      <div className="flex-wrap flex flex-col items-end">
+        <div className="flex-wrap flex flex-row ">{RatingCards}</div>
+        {(ShuffleCards.length > 0 || BlitzCards.length > 0) && (
+          <div className="flex flex-col items-center">
+            <Card className="rating-titles">
+              <button
+                type="button"
+                className={"rating-section-title" + (soloMode === "shuffle" ? " active" : "")}
+                onClick={() => setSoloMode("shuffle")}
+              >
+                Shuffle
+              </button>
+              <Separator orientation="vertical" className="rating-titles-separator" />
+              <button
+                type="button"
+                className={"rating-section-title" + (soloMode === "blitz" ? " active" : "")}
+                onClick={() => setSoloMode("blitz")}
+              >
+                Blitz
+              </button>
+            </Card>
+            {/* switches to shuffle or blitz depending on what is the active useState for soloMode */}
+            <div className="flex-wrap flex flex-row">
+              {soloMode === "shuffle" ? ShuffleCards : BlitzCards}
+            </div>
+          </div>
+        )}
       </div>
     );
   }

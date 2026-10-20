@@ -5,9 +5,9 @@
 }
 
 .main-card {
-    width: 100%; /* Full width of the container */
+    width: 100%;
+    /* Full width of the container */
 }
-
 .rating-cards {
     display: flex;
     width: 100%;
@@ -18,57 +18,97 @@
     width: 60vw;
     justify-self: center;
 }
-.mobile-padding{
+
+.mobile-padding {
     margin-left: unset;
     margin-right: unset;
 }
-.rating-padding{
-    margin: .25rem
-}
 
-@media only screen and (max-width: 800px) {
-    .width-60vw  {
-        width: auto;
-    }
-    .rating-card{
-        flex: 1 1 50% !important;
-    }
-    .rating-padding{
-        margin-bottom: 1rem;
-        margin-top: 1rem;
-        margin-left: 0rem;
-        margin-right: 0rem;
-    }
-    .mobile-padding{
-        margin-left: 0rem;
-        margin-right: 1rem !important;
-    }
+.rating-padding {
+    margin: .25rem;
+    padding: 12px;
+    min-height: 200px;
+    --color-panel: #31353b;
+    display: flex;
+    flex-direction: column;
+}
+.border-card {
+    border: 2px solid black;
 }
 .rating-card {
     text-align: center;
-    flex: 2 1 auto;
-
+    flex: 0 0 180px;
+    width: 180px;
+    min-width: 0;
 }
+
 
 .page-container.not-found {
-  position: relative;
+    position: relative;
 }
+
 .not-found .rating-card {
-  filter: blur(3px);
-  pointer-events: none;
-  user-select: none;
+    filter: blur(3px);
+    pointer-events: none;
+    user-select: none;
 }
+
+
 /* Radix pulses every skeleton with an !important animation, and the colour only comes from its
    keyframes, so stopping it means setting the colour here */
 .not-found .rt-Skeleton {
-  animation: none !important;
-  background-color: var(--gray-a3) !important;
+    animation: none !important;
+    background-color: var(--gray-a3) !important;
 }
+
 .not-found-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.rating-spec-icon {
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    vertical-align: middle;
+}
+.rating-titles {
+    display: grid;
+    padding: 0;
+    margin-top: 12px;
+    grid-template-columns: 1fr auto 1fr;
+    
+}
+.rating-section-title {
+    padding: 8px 20px;
+    text-align: center;
+    opacity: .5;
+    cursor: pointer;
+    font-size: 18px;
+}
+.rating-titles-separator {
+    height: auto;
+}
+.rating-section-title:hover {
+    opacity: 0.8;
+}
+.rating-section-title.active {
+    opacity: 1;
+    border-bottom-color: currentColor;
+}
+@media only screen and (max-width: 800px) {
+        .width-60vw {
+        width: auto;
+    }
+
+    .rating-card {
+        flex: 0 0 140px !important;
+        min-width: 100px;
+    }
+
+
 }

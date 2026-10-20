@@ -1,31 +1,31 @@
 .alt-pane {
     display: flex;
     flex-direction: column;
-    padding: .75rem;
+    padding: 12px;
     max-width: 60vw;
 }
 .alt-former {
-    font-size: .75rem;
+    font-size: 12px;
     font-style: italic;
     opacity: .6;
 }
 .alt-solo-row {
     display: flex;
     flex-wrap: wrap;
-    gap: .6rem;
-    margin-top: .2rem;
-    font-size: .78rem;
+    gap: 10px;
+    margin-top: 3px;
+    font-size: 12px;
 }
 .alt-grid {
     display: grid;
     align-items: center;
-    column-gap: .75rem;
-    font-size: .78rem;
+    column-gap: 12px;
+    font-size: 12px;
 }
 
 .alt-grid-header {
-    padding: 0 var(--card-padding, .75rem);
-    font-size: .7rem;
+    padding: 0 var(--card-padding, 12px);
+    font-size: 11px;
     letter-spacing: .04em;
     opacity: .6;
 }
@@ -34,10 +34,14 @@
     min-width: 0;
 }
 
-.alt-solo-cell {
-    display: flex;
-    flex-direction: row;
-    gap: .15rem;
+.alt-solo-cell .alt-rating{
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    padding: 2px 6px 2px 2px;
+    border: 1px solid var(--gray-a5);
+    border-radius: 4px;
+    background: var(--gray-a2);
 }
 
 .alt-none {
@@ -50,42 +54,43 @@
 
 
 .alt-spec-icon {
+    display: inline-block;
     width: 16px;
     height: 16px;
     border-radius: 3px;
-    margin-right: .25rem;
+    margin-right: 4px;
     vertical-align: middle;
 }
-.alt-grid {
-    min-width: 32rem;
-}
 .alt-intro {
-    font-size: .8rem;
+    font-size: 13px;
     font-style: italic;
     opacity: .75;
-    margin-bottom: .75rem;
-    max-width: 44rem;
+    margin-bottom: 12px;
+    max-width: 704px;
 }
 
 .alt-empty {
-    font-size: .9rem;
+    font-size: 14px;
     opacity: .75;
 }
 
 .alt-cards {
     display: flex;
     flex-direction: column;
-    gap: .5rem;
+    gap: 8px;
 }
 
-.alt-card {
+.alt-card,
+.alt-grid-header {
     width: 100%;
+    min-width: 860px;
 }
+
 
 .alt-head {
     display: flex;
     align-items: center;
-    gap: .4rem;
+    gap: 6px;
 }
 
 .alt-name {
@@ -93,7 +98,7 @@
 }
 
 .alt-realm {
-    font-size: .8rem;
+    font-size: 13px;
     opacity: .7;
 }
 
@@ -101,9 +106,9 @@
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
-    gap: .6rem;
-    margin-top: .25rem;
-    font-size: .78rem;
+    gap: 10px;
+    margin-top: 4px;
+    font-size: 12px;
 }
 
 .alt-spec {
@@ -116,14 +121,9 @@
     }
 }
 
-.alt-rating {
-    font-variant-numeric: tabular-nums;
-    opacity: .85;
-}
-
 .alt-bracket {
     opacity: .6;
     text-transform: uppercase;
     letter-spacing: .04em;
-    font-size: .7rem;
+    font-size: 11px;
 }
