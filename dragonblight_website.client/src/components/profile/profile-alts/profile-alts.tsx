@@ -5,7 +5,8 @@ import { Dragonblight } from "../../../clients/Dragonblight";
 import { ClassColor } from "../../../helpers/classColorHelper";
 import { formerNames, realmDisplayName } from "../../../helpers/realmNameHelper";
 import { retailTier } from "../../../helpers/ratingTierHelper";
-import { flavorHref } from "../../../helpers/game-flavor";
+import { flavorHref, brackets as flavorBrackets } from "../../../helpers/game-flavor";
+import { SoloSpecIcon } from "../../../helpers/solo-bracket-specs";
 
 import "./profile-alts.css";
 
@@ -34,6 +35,11 @@ const ProfileAlts: FC = (/*props*/) => {
       });
   }, [region, server, characterName]);
 
+  const soloLadders: string[] = flavorBrackets().filter((b) => b === "shuffle" || b === "blitz");
+  const brackets = flavorBrackets().filter((b) => !soloLadders.includes(b));
+  const gridStyle = {
+    gridTemplateColumns: `2fr repeat(${flavorBrackets().length}, 1fr)`,
+  };
   return (
     <div className="alt-pane">
       <p className="alt-intro">
@@ -46,10 +52,30 @@ const ProfileAlts: FC = (/*props*/) => {
         </p>
       )}
       {!loading && (
-        <div className="alt-cards">{alts?.map(getAltCard)}</div>
+        <div className="alt-cards">
+          {alts && alts.length > 0 && (
+            <div className="alt-grid alt-grid-header" style={gridStyle}>
+              <span>Character</span>
+              {brackets.map((b) => <span key={b}>{b.toUpperCase()}</span>)}
+              {soloLadders.map((l) => <span key={l}>{l.toUpperCase()}</span>)}
+            </div>
+          )}
+          {alts?.map(getAltCard)}
+        </div>
       )}
     </div>
   );
+  function getRatingCell(bracket: string, rating: number | undefined) {
+    return (
+      <span className="alt-cell alt-rating" key={bracket}>
+        {rating ? (
+          <span className={retailTier(rating)?.text ?? "text-stone-100"}>{rating}</span>
+        ) : (
+          <span className="alt-none">–</span>
+        )}
+      </span>
+    );
+  }
 
   function getRating(bracket: string, rating: number | undefined) {
     if (!rating) {
@@ -65,38 +91,56 @@ const ProfileAlts: FC = (/*props*/) => {
       </span>
     );
   }
+  function getSoloRatings(alt: Dragonblight.GetAltsResponse, ladder: string, label: string) {
+    const specs = alt.soloRatings?.filter((s) => s.ladder === ladder) ?? [];
+    if (specs.length === 0) {
+      return <span className="alt-cell alt-none" key={ladder}>–</span>;
+    }
+    return (
+      <div className="alt-cell alt-solo-cell" key={ladder}>
+        {specs.map((s) => (
+          <span className="alt-rating" key={s.slug} title={`${s.specName} · ${label}`}>
+            <img className="alt-spec-icon" src={SoloSpecIcon(s)} alt={s.specName} />
+            <span className={retailTier(s.rating)?.text ?? "text-stone-100"}>{s.rating}</span>
+          </span>
+        ))}
+      </div>
+    );
+  }
+
 
   function getAltCard(alt: Dragonblight.GetAltsResponse, index: number) {
     return (
       <Card className="alt-card" key={"Alt" + index}>
-        <Link to={`/profile/${region}/${alt.realm}/${alt.name}`}>
-          <div className="alt-head">
-            <img
-              src={`/ClassIcons/${alt.classchar}.png`}
-              height="25px"
-              width="25px"
-              style={{ maxHeight: "25px", maxWidth: "25px" }}
-              alt={alt.classchar ?? ""}
-            ></img>
-            <span
-              className="alt-name"
-              style={{ color: ClassColor.get(alt.classchar ?? "") }}
-            >
-              {alt.name}
-            </span>
-            <span className="alt-realm">{realmDisplayName(alt.realm)}</span>
-          </div>
-        </Link>
-        {alt.previousNames?.length > 0 && (
-          <div className="alt-former">{formerNames(alt.previousNames, alt.realm)}</div>
-        )}
-        <div className="alt-detail">
-          <span className="alt-spec">{alt.spec}</span>
-          {/* takes list of bracket dictionaries and loops through each to get correct ratings per bracket on alts*/}
-          {Object.entries(alt.ratings ?? {}).map(([bracket, rating]) =>
-            getRating(bracket.toUpperCase(), rating)
-          )}
-        </div>
+<div className="alt-grid" style={gridStyle}>
+  <div className="alt-cell">
+    <Link to={`/profile/${region}/${alt.realm}/${alt.name}`}>
+      <div className="alt-head">
+        <img
+          src={`/ClassIcons/${alt.classchar}.png`}
+          height="25px"
+          width="25px"
+          style={{ maxHeight: "25px", maxWidth: "25px" }}
+          alt={alt.classchar ?? ""}
+        ></img>
+        <span
+          className="alt-name"
+          style={{ color: ClassColor.get(alt.classchar ?? "") }}
+        >
+          {alt.name}
+        </span>
+        <span className="alt-realm">{realmDisplayName(alt.realm)}</span>
+      </div>
+    </Link>
+    {alt.previousNames?.length > 0 && (
+      <div className="alt-former">{formerNames(alt.previousNames, alt.realm)}</div>
+    )}
+    <span className="alt-spec">{alt.spec}</span>
+  </div>
+  {brackets.map((b) => getRatingCell(b, alt.ratings?.[b]))}
+  {soloLadders.map((l) => getSoloRatings(alt, l, l === "shuffle" ? "Solo Shuffle" : "Blitz"))}
+</div>
+
       </Card>
     );
   }

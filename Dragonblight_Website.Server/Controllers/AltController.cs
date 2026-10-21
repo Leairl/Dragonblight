@@ -25,6 +25,7 @@ namespace Dragonblight_Website.Server.Controllers
                 var flavor = HttpContext.GetGameFlavor();
                 server = server.ToLower();
                 characterName = characterName.ToLower();
+                var ladderBrackets = await _warcraftCachedData.GetLadderBrackets(region, flavor);
                 //the account's other characters, as "charactername,server"
                 var altInfo = await _warcraftCachedData.GetAlts(server, characterName, region, flavor);
                 var alts = new List<GetAltsResponse>();
@@ -34,6 +35,7 @@ namespace Dragonblight_Website.Server.Controllers
                     var altServer = alt.Realm;
                     //class and spec come out of the summary caches the profile pages already fill
                     var summary = await _warcraftCachedData.GetCharSummary(altServer, altName, region, flavor);
+
                     if (summary == null || summary.Id != alt.Id)
                     {
                         continue;
@@ -43,6 +45,24 @@ namespace Dragonblight_Website.Server.Controllers
                     {
                         ratings[bracket] = await BracketRating(altServer, altName, bracket, region, flavor);
                     }
+                    var specBrackets = ladderBrackets.Where(b => b.SpecName != null && b.ClassName == summary.CharacterClass?.Name);
+                    var soloRatings = new List<SoloRating>();
+                    foreach (var specBracket in specBrackets)
+                    {
+                        var rating = await BracketRating(altServer, altName, specBracket.Slug, region, flavor);
+                        if (rating > 0)
+                        {
+                            soloRatings.Add(new SoloRating
+                            {
+                                slug = specBracket.Slug,
+                                ladder = specBracket.Ladder,
+                                className = specBracket.ClassName ?? "",
+                                specName = specBracket.SpecName ?? "",
+                                specId = specBracket.SpecId ?? 0,
+                                rating = rating
+                            });
+                        }
+                    }
                     alts.Add(new GetAltsResponse
                     {
                         name = summary?.Name ?? altName,
@@ -50,6 +70,7 @@ namespace Dragonblight_Website.Server.Controllers
                         classchar = summary?.CharacterClass?.Name,
                         spec = await _warcraftCachedData.GetCharacterSpecName(altServer, altName, region, flavor),
                         ratings = ratings,
+                        soloRatings = soloRatings,
                         previousNames = alt.PreviousNames
                     });
                 }
@@ -88,8 +109,26 @@ namespace Dragonblight_Website.Server.Controllers
         [JsonPropertyName("ratings")]
         public Dictionary<string, int> ratings { get; set; } = [];
 
+        [JsonPropertyName("soloRatings")]
+        public List<SoloRating> soloRatings { get; set; } = [];
+
         [JsonPropertyName("previousNames")]
         public List<PreviousCharacterName> previousNames { get; set; } = [];
     }
-
+    //one Shuffle or Blitz spec the alt has played
+    public class SoloRating
+    {
+        [JsonPropertyName("slug")]
+        public string slug { get; set; } = "";
+        [JsonPropertyName("ladder")]
+        public string ladder { get; set; } = "";
+        [JsonPropertyName("className")]
+        public string className { get; set; } = "";
+        [JsonPropertyName("specName")]
+        public string specName { get; set; } = "";
+        [JsonPropertyName("specId")]
+        public int specId { get; set; }
+        [JsonPropertyName("rating")]
+        public int rating { get; set; }
+    }
 }
