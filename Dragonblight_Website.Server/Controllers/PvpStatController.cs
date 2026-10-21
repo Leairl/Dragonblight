@@ -36,20 +36,23 @@ namespace Dragonblight_Website.Server.Controllers
                 //the ones the character has played are kept: an unplayed spec comes back null.
                 if (HttpContext.GetGameFlavor() == GameFlavor.Retail)
                 {
-                    var profile = await _warcraftCachedData.GetCharSummary(server.ToLower(), characterName.ToLower(), region, HttpContext.GetGameFlavor());
-                    var playableClass = profile?.CharacterClass != null ? await _warcraftCachedData.GetPlayableClass(profile.CharacterClass.Id, region, HttpContext.GetGameFlavor()) : null;
-                    var ladderIndex = await _warcraftCachedData.GetLeaderboardIndex(region, HttpContext.GetGameFlavor());
-                    foreach (var spec in playableClass?.Specializations ?? [])
+                    var flavor = HttpContext.GetGameFlavor();
+                    var profile = await _warcraftCachedData.GetCharSummary(server.ToLower(), characterName.ToLower(), region, flavor);
+                    var ladderBrackets = await _warcraftCachedData.GetLadderBrackets(region, flavor);
+                    var specBrackets = ladderBrackets.Where(b => b.SpecName != null && b.ClassName == profile?.CharacterClass?.Name);
+                    foreach (var specBracket in specBrackets)
                     {
-                        foreach (var ladder in ladderIndex.Leaderboards.Where(s => s.Name.Contains(spec.Name.ToLowerInvariant())))
+                        var specRating = await _warcraftCachedData.GetPvpBracketRating(server.ToLower(), characterName.ToLower(), specBracket.Slug, region, flavor);
+                        if (specRating?.Bracket == null)
                         {
-                            var specBracket = ladder.Name;
-                            var specRating = await _warcraftCachedData.GetPvpBracketRating(server.ToLower(), characterName.ToLower(), specBracket, region, HttpContext.GetGameFlavor());
-                            if (specRating?.Bracket != null)
+                            specRating = new CharacterPvpBracketStatistics
                             {
-                                results.Add(specRating);
-                            }
+                                Bracket = new Bracket { Type = specBracket.Ladder.ToUpperInvariant() },
+                                Specialization = new PlayableSpecializationReference { Id = specBracket.SpecId ?? 0, Name = specBracket.SpecName },
+                                Rating = 0
+                            };
                         }
+                        results.Add(specRating);
                     }
                 }
                 return Ok(results);

@@ -203,7 +203,7 @@ const Profile: FC = () => {
     loading={loading} 
     characterNotFound={characterNotFound}
     ></ProfileEquipment> 
-    <ProfileRating achievements={achievementsSummary} characterNotFound={characterNotFound}></ProfileRating>
+    <ProfileRating achievements={achievementsSummary} characterNotFound={characterNotFound} characterClass={characterSummary?.character_class?.name}></ProfileRating>
     </div>
     <ProfileStats characterProfileSummary={characterSummary} characterEquipmentSummary={characterEquipmentSummary} loading={loading} characterNotFound={characterNotFound}></ProfileStats>
 </div>

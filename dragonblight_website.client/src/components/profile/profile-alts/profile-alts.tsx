@@ -38,7 +38,8 @@ const ProfileAlts: FC = (/*props*/) => {
   const soloLadders: string[] = flavorBrackets().filter((b) => b === "shuffle" || b === "blitz");
   const brackets = flavorBrackets().filter((b) => !soloLadders.includes(b));
   const gridStyle = {
-    gridTemplateColumns: `2fr repeat(${flavorBrackets().length}, 1fr)`,
+   gridTemplateColumns: `minmax(220px, 2fr) repeat(${flavorBrackets().length}, minmax(70px, 1fr))`,
+
   };
   return (
     <div className="alt-pane">
