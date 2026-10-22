@@ -1572,6 +1572,7 @@ export interface GetAltsResponse {
     realm?: string | undefined;
     classchar?: string | undefined;
     spec?: string | undefined;
+    faction?: string | undefined;
     ratings: { [key: string]: number; };
     soloRatings: SoloRating[];
     previousNames: PreviousCharacterName[];

@@ -82,6 +82,9 @@ namespace Dragonblight_Website.Server.Controllers
                     .Where(achieve => achieve.CompletedTimestamp != null)
                     .Select(achieve => (achieve, title: PvpTitles.SeasonalTitles(achieve.Achievement?.Name)))
                     .Where(x => x.title != null)
+                    .OrderByDescending(x => x.achieve.CompletedTimestamp)
+                    //this is for tbc achieves (when achievements were released in 2008)
+                    .ThenByDescending(x => x.achieve.Id)
                     .GroupBy(x => x.title!.Value.tier)
                     .Select(tier => new {tier = tier.Key, achievements = tier.Select((a,b) => (a.achieve, a.title!.Value.season))});
 

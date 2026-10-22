@@ -4,7 +4,7 @@ import { useParams } from "react-router";
 import { Card, Heading, Separator, Skeleton } from "@radix-ui/themes";
 import "./profile-rating.css";
 import { brackets, getFlavor } from "../../../helpers/game-flavor";
-import { RatingTier, RetailTiers } from "../../../helpers/ratingTierHelper";
+import { bestReward, ratingColor, RatingTier, RetailTiers } from "../../../helpers/ratingTierHelper";
 import { SoloSpecIcon } from "../../../helpers/solo-bracket-specs";
 import { progressPropDefs } from "@radix-ui/themes/components/progress.props";
 
@@ -14,9 +14,11 @@ interface ProfileRatingProps {
   achievements?: Dragonblight.CharacterAchievementsSummary;
   characterNotFound?: boolean;
   characterClass: string | undefined;
+  characterFaction: string | undefined;
+
 }
 
-const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound, characterClass }) => {
+const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound, characterClass, characterFaction }) => {
   // pulls dictionary of keys from pvp bracket
   const [characterRatings, setcharacterRatings] = useState<
     Dragonblight.CharacterPvpBracketStatistics[]
@@ -56,16 +58,9 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
     );
   }, [region, server, characterName]);
 
-  // Blizzard's retail season rewards hold the live rank 1 cutoff: one reward for 3v3,
-  // one per faction for RBG, none for 2v2. Undefined while rewards are loading.
-  function getRank1Reward(bracket: string, specId?: number) {
-    return bracketRewards(bracket, specId)?.find(
-      (r) => !r.faction?.type
-    );
-  }
 
   function getRetailTier(bracket: string, current_rating: number, specId?: number): RatingTier | undefined {
-    const rank1 = getRank1Reward(bracket, specId);
+    const rank1 = bestReward(rewards, bracket, current_rating, specId);
     if (rank1 && current_rating >= rank1.rating_cutoff) {
       return {
         // "Venomous Gladiator: Midnight Season 2" -> "Venomous Gladiator"
@@ -107,33 +102,8 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
       const tier = getRetailTier(bracket, current_rating, specId);
       return tier ? `${tier.label} ${tier.title}` : "";
     }
-    const title = getTitle(bracket, current_rating);
+    const title = bestReward(rewards, bracket, current_rating, specId);
     return title ? `Predicted Title: ${title}` : "";
-  }
-
-  function getBracketColor(bracket: string, current_rating: number, specId?: number): string | undefined {
-    if (getFlavor() === "retail") {
-      return getRetailTier(bracket, current_rating, specId)?.text ?? "text-stone-100";
-    }
-    const title = getTitle(bracket, current_rating);
-    if (title?.endsWith(" Gladiator")) {
-      return "text-yellow-600";
-    }
-    if (title?.startsWith("Gladiator") || title?.startsWith("Hero of the Faction")) {
-      return "text-purple-500	";
-    }
-    if (title?.startsWith("Duelist")) {
-      return "text-blue-500";
-    }
-    if (title?.startsWith("Rival")) {
-      return "text-green-500";
-    }
-    if (title?.startsWith("Challenger")) {
-      return "text-neutral-500";
-    }
-    if (title?.startsWith("")) {
-      return "text-stone-100";
-    }
   }
 
   // isolates rewards for a specific bracket, or returns [] when rewards are not yet loaded.
@@ -149,29 +119,9 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
     });
   }
 
-  function getTitle(bracket: string, current_rating: number): string | undefined {
-    // The best title is the reached reward with the highest cutoff, whatever order
-    // the rewards arrive in.
-    let best: Dragonblight.PvpSeasonRewardWithRank | undefined;
-    for (const bracketReward of bracketRewards(bracket) ?? []) {
-      if (
-        current_rating >= bracketReward.rating_cutoff &&
-        bracketReward.rating_cutoff > (best?.rating_cutoff ?? -1)
-      )
-        best = bracketReward;
-    }
-    return (
-      best?.achievement?.name
-        ?.replace(/ - Season [0-9][0-9]/, "")
-        .replace(/: Season [0-9][0-9]/, "")
-        .replace("[DNT] ", "") ?? ""
-    );
-  }
-
   return (
     <div className={characterNotFound ? "page-container not-found" : "page-container"}>
-      <div>{loading && getSkeletons()}</div>
-      <div className="w-full">{!loading && getRatings()}</div>
+      <div className="w-full">{loading ? getSkeletons() : getRatings()}</div>
     </div>
   );
 
@@ -197,7 +147,7 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
       SkeletonCards.push(getSkeleton(i));
     }
     return (
-      <div className="flex-wrap flex flex-row width-60vw">{SkeletonCards}</div>
+      <div className="flex flex-wrap flex-row justify-end w-full">{SkeletonCards}</div>
     );
   }
 
@@ -225,12 +175,10 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
           </Heading>
           <div>
             <div
-              className={
-                getBracketColor(
-                  BracketStatistics?.bracket?.type ?? "",
-                  BracketStatistics?.rating ?? 0,
-                  BracketStatistics?.specialization?.id
-                ) +
+              className={ratingColor(rewards,
+                BracketStatistics?.bracket?.type ?? "",
+                BracketStatistics?.rating ?? 0,
+                BracketStatistics?.specialization?.id) +
                 " " +
                 "font-bold text-3xl flex justify-center text-shadow-md text-shadow-black"
 
