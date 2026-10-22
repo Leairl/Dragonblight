@@ -28,7 +28,7 @@
     margin: .25rem;
     padding: 12px;
     min-height: 200px;
-    --color-panel: #31353b;
+  --color-panel: #292c31;
     display: flex;
     flex-direction: column;
 }
@@ -39,6 +39,7 @@
     text-align: center;
     flex: 0 0 180px;
     width: 180px;
+    padding-top: 4px;
     min-width: 0;
 }
 

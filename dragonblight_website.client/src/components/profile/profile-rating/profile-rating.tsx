@@ -6,6 +6,7 @@ import "./profile-rating.css";
 import { brackets, getFlavor } from "../../../helpers/game-flavor";
 import { RatingTier, RetailTiers } from "../../../helpers/ratingTierHelper";
 import { SoloSpecIcon } from "../../../helpers/solo-bracket-specs";
+import { progressPropDefs } from "@radix-ui/themes/components/progress.props";
 
 
 interface ProfileRatingProps {
@@ -192,7 +193,7 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
   }
   function getSkeletons() {
     const SkeletonCards = [];
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 3; i++) {
       SkeletonCards.push(getSkeleton(i));
     }
     return (
@@ -202,7 +203,7 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
 
   function getRatingCard(BracketStatistics: Dragonblight.CharacterPvpBracketStatistics | null, index: number): ReactElement {
     return (
-      <div className={"pb-10 pt-4 rating-card"} key={"GetRating" + index}>
+      <div className={"pb-10 rating-card"} key={"GetRating" + index}>
 
         <Card className="rating-padding border-card">
           <Heading size="3" className="text-center">

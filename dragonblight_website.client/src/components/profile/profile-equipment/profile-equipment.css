@@ -87,6 +87,7 @@
   width: 60vw;
   /*min-width: 510px; */
   --color-panel: #292c31;
+  border: 2px solid black;
 }
 .header-card {
   display: flex;
@@ -98,6 +99,8 @@
   width: 60vw;
   /*min-width: 510px; */
   --color-panel: #292c31;
+  border: 2px solid black;
+  
 }
 
 .talent-row{
