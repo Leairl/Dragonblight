@@ -128,7 +128,7 @@ const ProfileStats: FC<ProfileStatsProps> = (props) => {
     //connects specific bracket data into card, set to type ReactElement with tsx code inside return
     return (
       <div key={"GetStatsGeneral"}>
-        <Card>
+        <Card className="border-card">
           <Heading mb="2" size="2">
             {" "}
             General{" "}
@@ -157,7 +157,7 @@ const ProfileStats: FC<ProfileStatsProps> = (props) => {
     //connects specific bracket data into card, set to type ReactElement with tsx code inside return
     return (
       <div className="pt-3" key={"GetStatsAttributes"}>
-        <Card>
+        <Card className="border-card">
           <Heading mb="2" size="2">
             {" "}
             Attributes{" "}
@@ -255,7 +255,7 @@ const ProfileStats: FC<ProfileStatsProps> = (props) => {
   function getSecondaryCard(): ReactElement {
     return (
       <div className="pt-3" key={"GetStatsSecondary"}>
-        <Card>
+        <Card className="border-card">
           <Heading mb="2" size="2">
             {" "}
             Secondary{" "}
@@ -521,7 +521,7 @@ const ProfileStats: FC<ProfileStatsProps> = (props) => {
     //connects specific bracket data into card, set to type ReactElement with tsx code inside return
     return (
       <div className="pt-3" key={"GetStatsDefense"}>
-        <Card>
+        <Card className="border-card">
           <Heading mb="2" size="2">
             {" "}
             Defense{" "}

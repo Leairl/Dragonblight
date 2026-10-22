@@ -8,11 +8,18 @@
     --card-padding: 0px !important;
     --base-card-padding-left: 10px !important;
     --base-card-padding-right: 10px !important;
+    border: 2px solid black;
 
 }
+.border-card{
+    border: 2px solid black;
+}
+
 .profile-stats {
     width: 12.5rem;
     padding-left: 10px;
+  --color-panel: #292c31;
+  
 }
 @media only screen and (max-width: 800px) {
     .profile-stats{

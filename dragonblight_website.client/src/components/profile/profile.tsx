@@ -2,6 +2,7 @@ import React, { FC, useEffect, useState } from 'react';
 import ProfileEquipment from './profile-equipment/profile-equipment';
 import ProfileRating from './profile-rating/profile-rating';
 import ProfileStats from './profile-stats/profile-stats';
+import ProfileExperience from './profile-experience/profile-experience';
 import { Dragonblight } from '../../clients/Dragonblight';
 import { useNavigate, useParams } from 'react-router';
 import { getFlavor } from '../../helpers/game-flavor';
@@ -203,7 +204,14 @@ const Profile: FC = () => {
     loading={loading} 
     characterNotFound={characterNotFound}
     ></ProfileEquipment> 
-    <ProfileRating achievements={achievementsSummary} characterNotFound={characterNotFound} characterClass={characterSummary?.character_class?.name}></ProfileRating>
+    {/* makes the exp / rating row maintain accurate column size with profile card*/}
+    <div className='flex flex-row w-0 min-w-full'>
+    <ProfileExperience characterNotFound={characterNotFound}></ProfileExperience>
+    <div className='flex-1'>
+          <ProfileRating achievements={achievementsSummary} characterNotFound={characterNotFound} characterClass={characterSummary?.character_class?.name}></ProfileRating>
+
+    </div>
+    </div>
     </div>
     <ProfileStats characterProfileSummary={characterSummary} characterEquipmentSummary={characterEquipmentSummary} loading={loading} characterNotFound={characterNotFound}></ProfileStats>
 </div>
