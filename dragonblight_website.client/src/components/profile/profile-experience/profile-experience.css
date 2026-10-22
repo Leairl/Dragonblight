@@ -20,7 +20,13 @@
     width: 32px;
     height: 32px;
 }
-
+.experience-icon-slot {
+    display: flex;
+    align-items: center;
+    width: 32px;
+    margin-right: 16px;
+    flex-shrink: 0;
+}
 @media only screen and (max-width: 800px) {
 
 .profile-experience {

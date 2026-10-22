@@ -357,7 +357,7 @@ const ProfileEquipment: FC<profileEquipmentProps> = (props) => {
       .catch(() => setTiers([]));
   }, [region, server, characterName]);
   //only Gladiator and Rank 1 have custom icons
-  const customAchievements = tiers.filter((a) => a.tier === "Gladiator" || a.tier === "RankOne");
+  const customAchievements = tiers.filter((a) => ["Gladiator", "RankOne", "LegendRankOne", "BlitzRankOne"].includes(a.tier ?? ""));
 
   return (
     <div className={props.characterNotFound ? "page-container not-found" : "page-container"}>
@@ -971,7 +971,8 @@ function getSkeleton(i: number) {
   );
 }
 function numberedIcon(a: Dragonblight.TierAchievements): string {
-  const prefix = a.tier === "RankOne" ? "red" : "blue";
+  const color: Record<string, string> = { Gladiator: "blue", RankOne: "red", LegendRankOne: "purple", BlitzRankOne: "green" };
+  const prefix = color[a.tier ?? ""];
   const number = a.achievements?.length;
   return `/numberedAchievementIcons/${prefix}_${number}.png`;
 }

@@ -3,8 +3,10 @@ import "./profile-experience.css";
 import { Dragonblight } from "../../../clients/Dragonblight";
 import { useParams } from "react-router";
 import * as Accordion from "@radix-ui/react-accordion";
-import { Card, ChevronDownIcon, Heading } from "@radix-ui/themes";
-import { seasonalIcon } from "../../../helpers/seasonal-icons";
+import { Card, Heading, Skeleton } from "@radix-ui/themes";
+import { ChevronDownIcon } from "@radix-ui/react-icons";
+import { seasonalIcon, tierColor } from "../../../helpers/seasonal-icons";
+import { getFlavor } from "../../../helpers/game-flavor";
 
 
 interface ProfileExperienceProps {
@@ -18,17 +20,20 @@ const ProfileExperience: FC<ProfileExperienceProps> = ({ achievements, character
   const [seasons, setSeasons] = useState<Dragonblight.SeasonalAchievement[]>([]);
   const [seasonStart, setSeasonStart] = useState<Date | null>();
   const { region, server, characterName } = useParams();
+  const [loading, setLoading] = useState<boolean>(true);
 
   //calls the client when the page opens
   useEffect(() => {
     if (region == null || server == null || characterName == null) {
       return;
     }
+    setLoading(true);
     new Dragonblight.AchievementClient()
       //pull from url and get list of seasonal achievements from method
-      .getHighestSeasonalAchievements(server?.replace(" ", "-"), characterName, region)
+      .getHighestSeasonalAchievements(server.replace(" ", "-"), characterName, region)
       .then(setSeasons)
-      .catch(() => setSeasons([]));
+      .catch(() => setSeasons([]))
+      .finally(() => setLoading(false));
   }, [region, server, characterName]);
   function expansionOf(season: string | undefined): string {
     const Expansion = season ?? "";
@@ -48,28 +53,21 @@ const ProfileExperience: FC<ProfileExperienceProps> = ({ achievements, character
     expansions.set(ExpansionName, [...(expansions.get(ExpansionName) ?? []), season])
 
   }
-  function getExperienceColor(season: string): string | undefined {
-    const seasonalExperience = season;
-    if (seasonalExperience?.includes(" Gladiator")) {
-      return "text-yellow-600";
-    }
-    if (seasonalExperience?.includes("Gladiator") || seasonalExperience?.includes("Hero of the Faction")) {
-      return "text-purple-500	";
-    }
-    if (seasonalExperience?.includes("Duelist")) {
-      return "text-blue-500";
-    }
-    if (seasonalExperience?.includes("Rival")) {
-      return "text-green-500";
-    }
-    if (seasonalExperience?.includes("Challenger")) {
-      return "text-neutral-500";
-    }
-    if (seasonalExperience?.includes("")) {
-      return "text-stone-100";
-    }
+  function getSkeleton(i: number) {
+    return (
+      <Skeleton key={"ExperienceSkeleton" + i}>
+        <Card className="border-card dropdown-accordionCard h-[45px]"></Card>
+      </Skeleton>
+    );
   }
-  return (
+  function getSkeletons() {
+    return (
+      <div className="pt-2 profile-experience">
+        {[0, 1, 2].map((i) => getSkeleton(i))}
+      </div>
+    );
+  }
+  return loading ? getSkeletons() : (
     //loops through the dictionary and for each expansion key we loop through all seasons of
     //that expansion and show the name of that achievement in the list of strings  <Accordion.Root type="multiple" className="profile-experience">
     <Accordion.Root type="multiple" className="pt-2 profile-experience">
@@ -92,11 +90,11 @@ const ProfileExperience: FC<ProfileExperienceProps> = ({ achievements, character
                 return (
                   <div key={s.id}>
 
-                      <div className="experience-season text-shadow-md text-shadow-black">
-                        {s.season}
-                      </div>
-                      <div className="flex flex-row">
-                      <div className="flex items-center gap-1 pr-4">
+                    <div className="experience-season text-shadow-md text-shadow-black">
+                      {s.season}
+                    </div>
+                    <div className="flex flex-row">
+                      <div className="experience-icon-slot">
                         {icon && (
                           <img
                             src={icon}
@@ -105,10 +103,10 @@ const ProfileExperience: FC<ProfileExperienceProps> = ({ achievements, character
                           />
                         )}
                       </div>
-                    <div className={getExperienceColor(s.name ?? "") + " text-shadow-md text-shadow-black"}>
-                      {seasonalTitle}
-                    </div>
+                      <div className={(tierColor[s.tier ?? ""] ?? "text-stone-100") + " text-shadow-md text-shadow-black"}>
+                        {seasonalTitle}
                       </div>
+                    </div>
                   </div>
                 );
               })}
