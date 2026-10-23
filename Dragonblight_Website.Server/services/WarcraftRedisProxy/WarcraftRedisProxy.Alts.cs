@@ -6,10 +6,13 @@ partial class WarcraftRedisProxy
 {
     //Alt tracking: these achievements are account wide, so every character on a battle.net account
     //reports the same completion timestamp for them. Joining those timestamps into one key gives a
-    //ready made list of the account's characters - no character is ever compared against another,
-    //and the list cannot go stale, because a character files itself under the key its own
-    //achievements produce.
-    private static readonly int[] AltAchievements = [40142, 9911, 7380, 7433];
+    //ready made list of the account's characters.
+    private static int[] AltAchievements(GameFlavor flavor) => flavor switch
+    {
+        GameFlavor.Retail => [40142, 9911, 7380, 7433],
+        GameFlavor.MistsClassic => [15, 7382],
+        _ => [],
+    };
 
     //a missing achievement counts as timestamp 0 rather than dropping the character: an account that
     //never earned one never earned it on any of its characters, so its characters still agree and
@@ -20,7 +23,7 @@ partial class WarcraftRedisProxy
     {
         var stamps = new List<string>();
         var found = 0;
-        foreach (var id in AltAchievements)
+        foreach (var id in AltAchievements(flavor))
         {
             var achievement = achievements?.Achievements?.FirstOrDefault(a => a.Id == id && a.CompletedTimestamp != null);
             if (achievement == null)

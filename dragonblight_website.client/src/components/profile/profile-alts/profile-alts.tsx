@@ -16,12 +16,15 @@ const ProfileAlts: FC = (/*props*/) => {
   const [loading, setLoading] = useState<boolean>(true);
   const [rewards, setRewards] = useState<Dragonblight.PvpSeasonRewardWithRank[]>([]);
   const { region, server, characterName } = useParams();
-  const rewardBracket: Record<string, string> = {
-    "3v3": "ARENA_3v3",
-    rbg: "BATTLEGROUNDS",
-    shuffle: "SHUFFLE",
-    blitz: "BLITZ",
-  };
+const rewardBracket: Record<string, string> = {
+  "2v2": "ARENA_2v2",
+  "3v3": "ARENA_3v3",
+  "5v5": "ARENA_5v5",
+  rbg: "BATTLEGROUNDS",
+  shuffle: "SHUFFLE",
+  blitz: "BLITZ",
+};
+
   //same pattern as the other profile panes: refetch whenever the looked up character changes
   useEffect(() => {
     if (region == null || server == null || characterName == null) {
@@ -30,6 +33,7 @@ const ProfileAlts: FC = (/*props*/) => {
     setLoading(true);
     const AltClient = new Dragonblight.AltClient();
     const slug = server?.replace(" ", "-");
+    //how it gets bracket data for character
     AltClient.getAlts(slug, characterName, region)
       .then((data) => {
         setAlts(data);
@@ -43,7 +47,7 @@ const ProfileAlts: FC = (/*props*/) => {
     [region, server, characterName]);
 
   useEffect(() => {
-    //updates pvprewards on pageload
+    //updates pvprewards on pageload and when we change region. puts pvprewards data into setrewards list
     new Dragonblight.PvpLeaderboardClient()
       .getPvPRewards(region)
       .then(setRewards)
@@ -81,9 +85,7 @@ const ProfileAlts: FC = (/*props*/) => {
     </div>
   );
   function getRatingCell(bracket: string, rating: number | undefined) {
-     const color = bestReward(rewards, rewardBracket[bracket], rating)
-    ? RankOneColor
-    : (retailTier(rating)?.text ?? "text-stone-100");
+     const color = ratingColor(rewards, rewardBracket[bracket], rating);
     return (
       <span className="alt-cell alt-rating" key={bracket}>
         {rating ? 
@@ -104,10 +106,9 @@ const ProfileAlts: FC = (/*props*/) => {
 
     return (
       <div className="alt-cell alt-solo-cell" key={ladder}>
+        {/* loops through specs for solo and checks the highest tier for that characters rating in that spec bracket*/}
         {specs.map((s) => {
-          const color = bestReward(rewards, rewardBracket[ladder], s.rating, s.specId)
-            ? RankOneColor
-            : (retailTier(s.rating)?.text ?? "text-stone-100");
+          const color = ratingColor(rewards, rewardBracket[ladder], s.rating, s.specId);
         return(
         <span className="alt-rating" key={s.slug} title={`${s.specName} · ${label}`}>
           <img className="alt-spec-icon" src={SoloSpecIcon(s)} alt={s.specName} />
