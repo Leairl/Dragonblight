@@ -41,15 +41,16 @@ namespace Dragonblight_Website.Server.Controllers
                         continue;
                     }
                     var ratings = new Dictionary<string, int>();
+                    var season = await _warcraftCachedData.GetSeason(region, flavor);
                     foreach (var bracket in flavor.Brackets())
                     {
-                        ratings[bracket] = await BracketRating(altServer, altName, bracket, region, flavor);
+                        ratings[bracket] = await BracketRating(altServer, altName, bracket, region, flavor, season);
                     }
                     var specBrackets = ladderBrackets.Where(b => b.SpecName != null && b.ClassName == summary.CharacterClass?.Name);
                     var soloRatings = new List<SoloRating>();
                     foreach (var specBracket in specBrackets)
                     {
-                        var rating = await BracketRating(altServer, altName, specBracket.Slug, region, flavor);
+                        var rating = await BracketRating(altServer, altName, specBracket.Slug, region, flavor, season);
                         if (rating > 0)
                         {
                             soloRatings.Add(new SoloRating
@@ -85,10 +86,17 @@ namespace Dragonblight_Website.Server.Controllers
         }
 
         //an unplayed bracket comes back as an empty statistics object, which reads as rating 0
-        private async Task<int> BracketRating(string server, string characterName, string bracket, string region, GameFlavor flavor)
+        private async Task<int> BracketRating(string server, string characterName, string bracket, string region, GameFlavor flavor, int season)
         {
             var stats = await _warcraftCachedData.GetPvpBracketRating(server, characterName, bracket, region, flavor);
-            return stats?.Rating ?? 0;
+            if (season == stats?.Season?.Id && stats != null)
+            {
+                return stats?.Rating ?? 0;
+            }
+            else
+            {
+                return 0;
+            }
         }
     }
     public class GetAltsResponse
@@ -105,7 +113,7 @@ namespace Dragonblight_Website.Server.Controllers
 
         [JsonPropertyName("spec")]
         public string? Spec { get; set; }
-        
+
 
         [JsonPropertyName("ratings")]
         public Dictionary<string, int> Ratings { get; set; } = [];

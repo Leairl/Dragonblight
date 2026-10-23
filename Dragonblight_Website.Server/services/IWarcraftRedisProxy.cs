@@ -2,6 +2,7 @@ using ArgentPonyWarcraftClient;
 
 public interface IWarcraftRedisProxy
 {
+    Task<CharacterMediaSummary?> GetCharMedia(string server, string characterName, string region, GameFlavor flavor = GameFlavor.MistsClassic);
     Task RecordCharacter(int id, string name, string realm, string region, GameFlavor flavor);
     Task<CharacterIdentity?> GetCharacterIdentity(int id, string region, GameFlavor flavor = GameFlavor.MistsClassic);
     Task<PlayableSpecializationsIndex?> PlayableSpecializationsIndex(string region, GameFlavor flavor = GameFlavor.Retail);

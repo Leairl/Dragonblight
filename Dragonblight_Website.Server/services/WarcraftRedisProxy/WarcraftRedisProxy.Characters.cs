@@ -40,6 +40,17 @@ partial class WarcraftRedisProxy
         }
         return result;
     }
+    //the character's rendered images from blizzard: "avatar" (a small head shot) and "main-raw" (the full body)
+    public async Task<CharacterMediaSummary?> GetCharMedia(string server, string characterName, string region, GameFlavor flavor = GameFlavor.MistsClassic)
+    {
+        var ns = GetProfileRegion(region, flavor);
+        return await GetBlizzardDataCached<CharacterMediaSummary?>("GetCharacterMedia" + server + characterName + ns, async () =>
+        {
+            var media = await warcraftClient.GetCharacterMediaSummaryAsync(server, characterName, ns, GetRegion(region), GetLocale(region));
+            return media.Success ? media.Value : null;
+        }, TimeSpan.FromDays(1));
+    }
+
     public async Task<CharacterStatisticsSummary> GetCharacterStats(string server, string characterName, string region, GameFlavor flavor = GameFlavor.MistsClassic)
     {
         //creates unique character key from their server, character name, and region (this will prevent any duplicates)
