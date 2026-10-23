@@ -28,6 +28,7 @@ interface profileEquipmentProps {
   characterAchievementsSummary:
   | Dragonblight.CharacterAchievementsSummary
   | undefined;
+  characterImage: string | undefined;
   showModelViewer: boolean;
   loading: boolean;
   characterNotFound: boolean;
@@ -186,6 +187,7 @@ const ProfileEquipment: FC<profileEquipmentProps> = (props) => {
   const buildNumber = useRef(0);
   const [seasonal, setSeasonal] = useState<Dragonblight.SeasonalAchievement[]>([]);
   const [tiers, setTiers] = useState<Dragonblight.TierAchievements[]>([]);
+
 
 
   window.onbeforeunload = () => setModelLoading(true);
@@ -395,629 +397,633 @@ const ProfileEquipment: FC<profileEquipmentProps> = (props) => {
               )}
             </div>
           )}
-    </Card>
-  {
-    (props.currTab == "gear" || props?.currTab == undefined) && (
-      <Card className="paperdoll-card overflow-visible">
-        {(loading || props.characterNotFound) && (
-          <div>
-            <Flex className="flex-row items-center">
-              <div className="flex-1"></div>
-            </Flex>
-            <div className="paperdoll pt-2">
-              <div className="paperdoll-column paperdoll-left">
-                {getSlotSkeleton(0, 9)}
-              </div>
-              <Skeleton width="0px"></Skeleton>
-              <Skeleton
-                className=" mx-auto mt-1"
-                width="350px"
-                height="500px"
-              ></Skeleton>
-              <div className="paperdoll-column paperdoll-right">
-                {" "}
-                {getSlotSkeleton(9, 19)}
-              </div>
-            </div>
-          </div>
-        )}
-        {!loading && !props.characterNotFound && (
-          <div>
-            <div className={modelLoading ? "model3d" : "model3d invisible"}>
-              <div className="grid min-h-[250px] w-full place-items-center overflow-x-scroll rounded-lg p-6 lg:overflow-visible">
-                <svg
-                  className="w-16 h-16 animate-spin text-gray-900/50"
-                  viewBox="0 0 64 64"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                >
-                  <path
-                    d="M32 3C35.8083 3 39.5794 3.75011 43.0978 5.20749C46.6163 6.66488 49.8132 8.80101 52.5061 11.4939C55.199 14.1868 57.3351 17.3837 58.7925 20.9022C60.2499 24.4206 61 28.1917 61 32C61 35.8083 60.2499 39.5794 58.7925 43.0978C57.3351 46.6163 55.199 49.8132 52.5061 52.5061C49.8132 55.199 46.6163 57.3351 43.0978 58.7925C39.5794 60.2499 35.8083 61 32 61C28.1917 61 24.4206 60.2499 20.9022 58.7925C17.3837 57.3351 14.1868 55.199 11.4939 52.5061C8.801 49.8132 6.66487 46.6163 5.20749 43.0978C3.7501 39.5794 3 35.8083 3 32C3 28.1917 3.75011 24.4206 5.2075 20.9022C6.66489 17.3837 8.80101 14.1868 11.4939 11.4939C14.1868 8.80099 17.3838 6.66487 20.9022 5.20749C24.4206 3.7501 28.1917 3 32 3L32 3Z"
-                    stroke="currentColor"
-                    strokeWidth="5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  ></path>
-                  <path
-                    d="M32 3C36.5778 3 41.0906 4.08374 45.1692 6.16256C49.2477 8.24138 52.7762 11.2562 55.466 14.9605C58.1558 18.6647 59.9304 22.9531 60.6448 27.4748C61.3591 31.9965 60.9928 36.6232 59.5759 40.9762"
-                    stroke="currentColor"
-                    strokeWidth="5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    style={{
-                      color: `${ClassColor.get(
-                        props.characterProfileSummary?.character_class
-                          ?.name ?? "black"
-                      )}`,
-                    }}
-                  ></path>
-                </svg>
-              </div>
-            </div>
-            <div
-              id="model3d"
-              className={
-                modelLoading || !props.showModelViewer
-                  ? "invisible model3d"
-                  : "model3d"
-              }
-            ></div>
-            <div className="paperdoll pt-2">
-              <div className="paperdoll-column"> {getSlotIcons(0, 9)} </div>
-              <div id="model3d" className="model3dx"></div>
-              <div className="paperdoll-column"> {getSlotIcons(9, 19)} </div>
-            </div>
-          </div>
-        )}
-      </Card>)
-  }
-  {
-    props.currTab == "talents" && (
-      <Card className="talent-row">
-        {/* the two games draw talents nothing alike: retail has three grid trees that come
+        </Card>
+        {
+          (props.currTab == "gear" || props?.currTab == undefined) && (
+            <Card className="paperdoll-card overflow-visible">
+              {(loading || props.characterNotFound) && (
+                <div>
+                  <Flex className="flex-row items-center">
+                    <div className="flex-1"></div>
+                  </Flex>
+                  <div className="paperdoll pt-2">
+                    <div className="paperdoll-column paperdoll-left">
+                      {getSlotSkeleton(0, 9)}
+                    </div>
+                    <Skeleton width="0px"></Skeleton>
+                    <Skeleton
+                      className=" mx-auto mt-1"
+                      width="350px"
+                      height="500px"
+                    ></Skeleton>
+                    <div className="paperdoll-column paperdoll-right">
+                      {" "}
+                      {getSlotSkeleton(9, 19)}
+                    </div>
+                  </div>
+                </div>
+              )}
+              {!loading && !props.characterNotFound && (
+                <div>
+                  <div className={modelLoading ? "model3d" : "model3d invisible"}>
+                    <div className="grid min-h-[250px] w-full place-items-center overflow-x-scroll rounded-lg p-6 lg:overflow-visible">
+                      <svg
+                        className="w-16 h-16 animate-spin text-gray-900/50"
+                        viewBox="0 0 64 64"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                      >
+                        <path
+                          d="M32 3C35.8083 3 39.5794 3.75011 43.0978 5.20749C46.6163 6.66488 49.8132 8.80101 52.5061 11.4939C55.199 14.1868 57.3351 17.3837 58.7925 20.9022C60.2499 24.4206 61 28.1917 61 32C61 35.8083 60.2499 39.5794 58.7925 43.0978C57.3351 46.6163 55.199 49.8132 52.5061 52.5061C49.8132 55.199 46.6163 57.3351 43.0978 58.7925C39.5794 60.2499 35.8083 61 32 61C28.1917 61 24.4206 60.2499 20.9022 58.7925C17.3837 57.3351 14.1868 55.199 11.4939 52.5061C8.801 49.8132 6.66487 46.6163 5.20749 43.0978C3.7501 39.5794 3 35.8083 3 32C3 28.1917 3.75011 24.4206 5.2075 20.9022C6.66489 17.3837 8.80101 14.1868 11.4939 11.4939C14.1868 8.80099 17.3838 6.66487 20.9022 5.20749C24.4206 3.7501 28.1917 3 32 3L32 3Z"
+                          stroke="currentColor"
+                          strokeWidth="5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        ></path>
+                        <path
+                          d="M32 3C36.5778 3 41.0906 4.08374 45.1692 6.16256C49.2477 8.24138 52.7762 11.2562 55.466 14.9605C58.1558 18.6647 59.9304 22.9531 60.6448 27.4748C61.3591 31.9965 60.9928 36.6232 59.5759 40.9762"
+                          stroke="currentColor"
+                          strokeWidth="5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          style={{
+                            color: `${ClassColor.get(
+                              props.characterProfileSummary?.character_class
+                                ?.name ?? "black"
+                            )}`,
+                          }}
+                        ></path>
+                      </svg>
+                    </div>
+                  </div>
+                  <div
+                    id="model3d"
+                    className={
+                      modelLoading || !props.showModelViewer
+                        ? "invisible model3d"
+                        : "model3d"
+                    }
+                  ></div>
+                  <div className="paperdoll pt-2">
+                    <div className="paperdoll-column"> {getSlotIcons(0, 9)} </div>
+                    <div id="model3d" className="model3dx">
+                      {!props.showModelViewer && props.characterImage && (
+                        <img src={props.characterImage} alt="" className="character-render" />
+                      )}
+                    </div>
+                    <div className="paperdoll-column"> {getSlotIcons(9, 19)} </div>
+                  </div>
+                </div>
+              )}
+            </Card>)
+        }
+        {
+          props.currTab == "talents" && (
+            <Card className="talent-row">
+              {/* the two games draw talents nothing alike: retail has three grid trees that come
                 from the API, MoP Classic a fixed 6x3 pane that ships with the client */}
-        {getFlavor() === "retail" ? (
-          <RetailTalentViewer
-            charClass={
-              props.characterProfileSummary?.character_class?.name ?? ""
-            }
-            region={region ?? ""}
-            charName={characterName ?? ""}
-            server={server ?? ""}
-          ></RetailTalentViewer>
-        ) : (
-          <TalentViewer
-            charClass={
-              props.characterProfileSummary?.character_class?.name ?? ""
-            }
-            charClassId={props.characterProfileSummary?.character_class?.id ?? 0}
-            region={region ?? ""}
-            charName={characterName ?? ""}
-            server={server ?? ""}
-          ></TalentViewer>
-        )}
-      </Card>
-    )
-  }
-  {
-    props.currTab == "alts" && (
-      <Card className="talent-row">
-        <ProfileAlts></ProfileAlts>
-      </Card>
-    )
-  }
-  {
-    props.currTab == "glyphs" && (
-      <Card className="talent-row">
-        <GlyphViewer
-          pet={false}
-          charClass={
-            props.characterProfileSummary?.character_class?.name ?? ""
-          }
-          region={region ?? ""}
-          charName={characterName ?? ""}
-          server={server ?? ""}
-        ></GlyphViewer>
-      </Card>
-    )
-  }
+              {getFlavor() === "retail" ? (
+                <RetailTalentViewer
+                  charClass={
+                    props.characterProfileSummary?.character_class?.name ?? ""
+                  }
+                  region={region ?? ""}
+                  charName={characterName ?? ""}
+                  server={server ?? ""}
+                ></RetailTalentViewer>
+              ) : (
+                <TalentViewer
+                  charClass={
+                    props.characterProfileSummary?.character_class?.name ?? ""
+                  }
+                  charClassId={props.characterProfileSummary?.character_class?.id ?? 0}
+                  region={region ?? ""}
+                  charName={characterName ?? ""}
+                  server={server ?? ""}
+                ></TalentViewer>
+              )}
+            </Card>
+          )
+        }
+        {
+          props.currTab == "alts" && (
+            <Card className="talent-row">
+              <ProfileAlts></ProfileAlts>
+            </Card>
+          )
+        }
+        {
+          props.currTab == "glyphs" && (
+            <Card className="talent-row">
+              <GlyphViewer
+                pet={false}
+                charClass={
+                  props.characterProfileSummary?.character_class?.name ?? ""
+                }
+                region={region ?? ""}
+                charName={characterName ?? ""}
+                server={server ?? ""}
+              ></GlyphViewer>
+            </Card>
+          )
+        }
       </div >
     </div >
   );
-function getSlotSkeleton(skip: number, end: number) {
-  //for loop (map) with slots in parameter s to pull correct gear ids, and place them in the correct spots for our profile page.
-  //pulls from slots array, and checks with each function for that piece of gear.
-  return slots.slice(skip, end).map((s, i) => (
-    //for example, slots.slice seperates into categories (left, right, and bottom), for left, if we pull cloak (slot_id = 15), looks into the SlotName array
-    //and pulls element 15 out, allowing the user to see the unique gear id of slot_id 15.
-    <div
-      className={
-        i + skip > 9 ? "right-itemslot-row itemSlotRow" : "itemSlotRow"
-      }
-      key={s}
-    >
-      <a
+  function getSlotSkeleton(skip: number, end: number) {
+    //for loop (map) with slots in parameter s to pull correct gear ids, and place them in the correct spots for our profile page.
+    //pulls from slots array, and checks with each function for that piece of gear.
+    return slots.slice(skip, end).map((s, i) => (
+      //for example, slots.slice seperates into categories (left, right, and bottom), for left, if we pull cloak (slot_id = 15), looks into the SlotName array
+      //and pulls element 15 out, allowing the user to see the unique gear id of slot_id 15.
+      <div
         className={
-          i + skip > 8
-            ? "aligned-right slot-icon-background"
-            : "slot-icon-background"
+          i + skip > 9 ? "right-itemslot-row itemSlotRow" : "itemSlotRow"
         }
-        style={{ backgroundImage: `url(${getBackgroundIcon(s)})` }}
+        key={s}
       >
-        <Skeleton>
-          <div className="slot-icon-box">
-            <img
-              className="slot-icon"
-              src={
-                "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-              }
-            />
-          </div>
-        </Skeleton>
-      </a>
-      <div className="item-details ">
-        <a
-          className={
-            i + skip > 8 ? "align-right-name item-name" : "item-name"
-          }
-        >
-          <Skeleton width={"200px"} height={"15px"}></Skeleton>
-        </a>
-
         <a
           className={
             i + skip > 8
-              ? "align-right-name item-enchant float-end"
-              : "item-enchant"
+              ? "aligned-right slot-icon-background"
+              : "slot-icon-background"
           }
+          style={{ backgroundImage: `url(${getBackgroundIcon(s)})` }}
         >
-          <Skeleton width={"100px"} height={"15px"}></Skeleton>
+          <Skeleton>
+            <div className="slot-icon-box">
+              <img
+                className="slot-icon"
+                src={
+                  "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+                }
+              />
+            </div>
+          </Skeleton>
         </a>
-      </div>
-    </div>
-  ));
-}
+        <div className="item-details ">
+          <a
+            className={
+              i + skip > 8 ? "align-right-name item-name" : "item-name"
+            }
+          >
+            <Skeleton width={"200px"} height={"15px"}></Skeleton>
+          </a>
 
-function getCharacterHeader() {
-  return (
-    <div className="flex flex-row px[1px] ">
-      <img
-        className="m-1"
-        src={`/ProfileClassIcons/${props.characterProfileSummary?.character_class?.name
-          ?.toLowerCase()
-          .replace(" ", "")}.png`}
-        height="34px"
-        width="34px"
-        style={{ maxHeight: "34px", maxWidth: "34px" }}
-      ></img>
-      <img
-        className="my-1"
-        src={props.specName == "" || props.specName == undefined ? `/unknown.png` : `/Specs/${props.specName
-          ?.toLowerCase()}_${props.characterProfileSummary?.character_class?.name
-            ?.toLowerCase()}.png`}
-        height="34px"
-        width="34px"
-        style={{ maxHeight: "34px", maxWidth: "34px" }}
-      ></img>
-      <img
-        className="my-1 ml-1"
-        src={`/RaceIcons/${props.characterProfileSummary?.race?.name
-          ?.toLowerCase()
-          .replace(" ", "")}${props.characterProfileSummary?.gender?.name == "Female"
-            ? "-f"
-            : "-m"
-          }.png`}
-        height="34px"
-        width="34px"
-        style={{ maxHeight: "34px", maxWidth: "34px" }}
-      ></img>
-      <img
-        className="m-1"
-        src={`/ProfileFactions/${props.characterProfileSummary?.faction?.name}.png`}
-        height="34px"
-        width="34px"
-        style={{ maxHeight: "34px", maxWidth: "34px" }}
-      ></img>
-      <div className="pl-2 flex flex-col justify-center">
-        <Heading
-          className="character-text"
-          size="3"
-          style={{
-            color: `${ClassColor.get(
-              props.characterProfileSummary?.character_class?.name ?? ""
-            )}`,
-          }}
-        >
-          <span className="hide-">
-            {getTitledName() +
-              " - " +
-              getRealmName()}{" "}
-          </span>
-          {props.previousNames && props.previousNames.length > 0 && (
-            <DropdownMenu.Root modal={false}>
-              <DropdownMenu.Trigger>
-                <Button variant="ghost" size="1" color="gray" className="former-names-trigger">
-                  <ChevronDownIcon className="former-names-chevron" />
-                </Button>
-              </DropdownMenu.Trigger>
-              <DropdownMenu.Content size="1">
-                <DropdownMenu.Label>Previously known as</DropdownMenu.Label>
-                {props.previousNames.map((p) => (
-                  <DropdownMenu.Item key={p.name + p.realm}>
-                    {p.realm === props.characterProfileSummary?.realm?.slug
-                      ? p.name
-                      : p.name + " - " + realmDisplayName(p.realm)}
-                    <span className="former-name-date">
-                      {new Date(p.changed_at).toLocaleDateString()}
-                    </span>
-                  </DropdownMenu.Item>
-                ))}
-              </DropdownMenu.Content>
-            </DropdownMenu.Root>
-          )}
-        </Heading>
-        <Heading size="2" className="guild-text">
-          {props.characterProfileSummary?.guild?.name
-            ? "<" + props.characterProfileSummary?.guild?.name + ">"
-            : ""}{" "}
-        </Heading>
-      </div>
-      <div className="flex-1"></div>
-    </div>
-  );
-}
-
-function getSlotIcons(skip: number, end: number) {
-  //for loop (map) with slots in parameter s to pull correct gear ids, and place them in the correct spots for our profile page.
-  //pulls from slots array, and checks with each function for that piece of gear.
-  return slots.slice(skip, end).map(
-    (s, i) =>
-      (getItem(props.characterEquipmentSummary, s) == 0 && (
-        <div
-          className={
-            i + skip > 8 ? "right-itemslot-row itemSlotRow" : "itemSlotRow"
-          }
-          key={s}
-        >
           <a
             className={
               i + skip > 8
-                ? "aligned-right slot-icon-background"
-                : "slot-icon-background"
+                ? "align-right-name item-enchant float-end"
+                : "item-enchant"
             }
-            style={{ backgroundImage: `url(${getBackgroundIcon(s)})` }}
-          ></a>
-          <div className="item-details "></div>
+          >
+            <Skeleton width={"100px"} height={"15px"}></Skeleton>
+          </a>
         </div>
-      )) ||
-      (getItem(props.characterEquipmentSummary, s) != 0 && (
-        //for example, slots.slice seperates into categories (left, right, and bottom), for left, if we pull cloak (slot_id = 15), looks into the SlotName array
-        //and pulls element 15 out, allowing the user to see the unique gear id of slot_id 15.
-        <div
-          className={
-            i + skip > 8 ? "right-itemslot-row itemSlotRow" : "itemSlotRow"
-          }
-          key={s}
-        >
-          <a
+      </div>
+    ));
+  }
+
+  function getCharacterHeader() {
+    return (
+      <div className="flex flex-row px[1px] ">
+        <img
+          className="m-1"
+          src={`/ProfileClassIcons/${props.characterProfileSummary?.character_class?.name
+            ?.toLowerCase()
+            .replace(" ", "")}.png`}
+          height="34px"
+          width="34px"
+          style={{ maxHeight: "34px", maxWidth: "34px" }}
+        ></img>
+        <img
+          className="my-1"
+          src={props.specName == "" || props.specName == undefined ? `/unknown.png` : `/Specs/${props.specName
+            ?.toLowerCase()}_${props.characterProfileSummary?.character_class?.name
+              ?.toLowerCase()}.png`}
+          height="34px"
+          width="34px"
+          style={{ maxHeight: "34px", maxWidth: "34px" }}
+        ></img>
+        <img
+          className="my-1 ml-1"
+          src={`/RaceIcons/${props.characterProfileSummary?.race?.name
+            ?.toLowerCase()
+            .replace(" ", "")}${props.characterProfileSummary?.gender?.name == "Female"
+              ? "-f"
+              : "-m"
+            }.png`}
+          height="34px"
+          width="34px"
+          style={{ maxHeight: "34px", maxWidth: "34px" }}
+        ></img>
+        <img
+          className="m-1"
+          src={`/ProfileFactions/${props.characterProfileSummary?.faction?.name}.png`}
+          height="34px"
+          width="34px"
+          style={{ maxHeight: "34px", maxWidth: "34px" }}
+        ></img>
+        <div className="pl-2 flex flex-col justify-center">
+          <Heading
+            className="character-text"
+            size="3"
+            style={{
+              color: `${ClassColor.get(
+                props.characterProfileSummary?.character_class?.name ?? ""
+              )}`,
+            }}
+          >
+            <span className="hide-">
+              {getTitledName() +
+                " - " +
+                getRealmName()}{" "}
+            </span>
+            {props.previousNames && props.previousNames.length > 0 && (
+              <DropdownMenu.Root modal={false}>
+                <DropdownMenu.Trigger>
+                  <Button variant="ghost" size="1" color="gray" className="former-names-trigger">
+                    <ChevronDownIcon className="former-names-chevron" />
+                  </Button>
+                </DropdownMenu.Trigger>
+                <DropdownMenu.Content size="1">
+                  <DropdownMenu.Label>Previously known as</DropdownMenu.Label>
+                  {props.previousNames.map((p) => (
+                    <DropdownMenu.Item key={p.name + p.realm}>
+                      {p.realm === props.characterProfileSummary?.realm?.slug
+                        ? p.name
+                        : p.name + " - " + realmDisplayName(p.realm)}
+                      <span className="former-name-date">
+                        {new Date(p.changed_at).toLocaleDateString()}
+                      </span>
+                    </DropdownMenu.Item>
+                  ))}
+                </DropdownMenu.Content>
+              </DropdownMenu.Root>
+            )}
+          </Heading>
+          <Heading size="2" className="guild-text">
+            {props.characterProfileSummary?.guild?.name
+              ? "<" + props.characterProfileSummary?.guild?.name + ">"
+              : ""}{" "}
+          </Heading>
+        </div>
+        <div className="flex-1"></div>
+      </div>
+    );
+  }
+
+  function getSlotIcons(skip: number, end: number) {
+    //for loop (map) with slots in parameter s to pull correct gear ids, and place them in the correct spots for our profile page.
+    //pulls from slots array, and checks with each function for that piece of gear.
+    return slots.slice(skip, end).map(
+      (s, i) =>
+        (getItem(props.characterEquipmentSummary, s) == 0 && (
+          <div
             className={
-              i + skip > 8
-                ? "aligned-right slot-icon-background"
-                : "slot-icon-background"
+              i + skip > 8 ? "right-itemslot-row itemSlotRow" : "itemSlotRow"
             }
-            style={{ backgroundImage: `url(${getBackgroundIcon(s)})` }}
-            href={wowheadUrl(`item=${getItem(
-              props.characterEquipmentSummary,
-              s
-            )}`)}
-            rel={itemTooltipParams(s)}
-          ></a>
-          <div className="item-details ">
+            key={s}
+          >
             <a
               className={
-                i + skip > 8 ? "align-right-name item-name" : "item-name"
+                i + skip > 8
+                  ? "aligned-right slot-icon-background"
+                  : "slot-icon-background"
               }
+              style={{ backgroundImage: `url(${getBackgroundIcon(s)})` }}
+            ></a>
+            <div className="item-details "></div>
+          </div>
+        )) ||
+        (getItem(props.characterEquipmentSummary, s) != 0 && (
+          //for example, slots.slice seperates into categories (left, right, and bottom), for left, if we pull cloak (slot_id = 15), looks into the SlotName array
+          //and pulls element 15 out, allowing the user to see the unique gear id of slot_id 15.
+          <div
+            className={
+              i + skip > 8 ? "right-itemslot-row itemSlotRow" : "itemSlotRow"
+            }
+            key={s}
+          >
+            <a
+              className={
+                i + skip > 8
+                  ? "aligned-right slot-icon-background"
+                  : "slot-icon-background"
+              }
+              style={{ backgroundImage: `url(${getBackgroundIcon(s)})` }}
               href={wowheadUrl(`item=${getItem(
                 props.characterEquipmentSummary,
                 s
               )}`)}
-              data-wowhead={itemTooltipParams(s)}
-            >
-              {getItemName(s)}
-            </a>
-            <a
-              className={
-                i + skip > 8
-                  ? "align-right-name item-enchant"
-                  : "item-enchant"
-              }
-              href={wowheadUrl(`item=${getEnchant(s)?.source_item?.id
-                }`)}
-            >
-              <div className="green_text">
-                {" "}
-                {getEnchantName(s)}{" "}
-              </div>
-            </a>
-            {/* one icon per socket. Wowhead's script draws the gem and its tooltip from the
+              rel={itemTooltipParams(s)}
+            ></a>
+            <div className="item-details ">
+              <a
+                className={
+                  i + skip > 8 ? "align-right-name item-name" : "item-name"
+                }
+                href={wowheadUrl(`item=${getItem(
+                  props.characterEquipmentSummary,
+                  s
+                )}`)}
+                data-wowhead={itemTooltipParams(s)}
+              >
+                {getItemName(s)}
+              </a>
+              <a
+                className={
+                  i + skip > 8
+                    ? "align-right-name item-enchant"
+                    : "item-enchant"
+                }
+                href={wowheadUrl(`item=${getEnchant(s)?.source_item?.id
+                  }`)}
+              >
+                <div className="green_text">
+                  {" "}
+                  {getEnchantName(s)}{" "}
+                </div>
+              </a>
+              {/* one icon per socket. Wowhead's script draws the gem and its tooltip from the
                   link, the same way it does for gear; an empty socket is shown as a hole, since
                   it is a stat the character is not getting. */}
-            {getGemSockets(s).length > 0 && (
-              <div className={i + skip > 8 ? "item-gems align-right-gems" : "item-gems"}>
-                {getGemSockets(s).map((gem, socketIndex) =>
-                  gem.itemId != undefined ? (
-                    <a
-                      key={"gem" + s + socketIndex}
-                      className="gem-icon"
-                      href={wowheadUrl(`item=${gem.itemId}`)}
-                      data-wowhead={`item=${gem.itemId}`}
-                    ></a>
-                  ) : (
-                    <span
-                      key={"gem" + s + socketIndex}
-                      className="gem-empty"
-                      title={gem.empty}
-                    ></span>
-                  )
-                )}
-              </div>
-            )}
+              {getGemSockets(s).length > 0 && (
+                <div className={i + skip > 8 ? "item-gems align-right-gems" : "item-gems"}>
+                  {getGemSockets(s).map((gem, socketIndex) =>
+                    gem.itemId != undefined ? (
+                      <a
+                        key={"gem" + s + socketIndex}
+                        className="gem-icon"
+                        href={wowheadUrl(`item=${gem.itemId}`)}
+                        data-wowhead={`item=${gem.itemId}`}
+                      ></a>
+                    ) : (
+                      <span
+                        key={"gem" + s + socketIndex}
+                        className="gem-empty"
+                        title={gem.empty}
+                      ></span>
+                    )
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      ))
-  );
-}
-//check to make sure the correct item is located in the correct position when featuring profile
-function getItem(
-  charSummary: Dragonblight.CharacterEquipmentSummary | undefined,
-  s: number
-) {
-  if (charSummary?.equipped_items != null) {
-    const equipmentItem = charSummary.equipped_items.find(
-      (item) => item.slot?.type?.toLowerCase() == slotName[s]
+        ))
     );
-    //checking to see if a player does or does not have gear equipped.
-    if (equipmentItem != undefined) {
-      return equipmentItem.item?.id;
-    }
   }
-  return 0;
-}
-function getItemName(s: number) {
-  if (props.characterEquipmentSummary?.equipped_items != null) {
-    const equipmentItem = props.characterEquipmentSummary.equipped_items.find(
-      (item) => item.slot?.type?.toLowerCase() == slotName[s]
-    );
-    //checking to see if a player does or does not have gear equipped.
-    if (equipmentItem != undefined) {
-      return equipmentItem.name;
-    }
-  }
-  return 0;
-}
-
-//the enchant's source item name (e.g. "Enchant Boots - Lynx's Dexterity"), falling
-//back to the display string when there is no source item
-//Retail titles put the name in display_string as "{name} the Faceless One";
-//MoP Classic puts a %s placeholder in name. Handle both, and show the bare
-//name when there's no title or neither placeholder is present.
-function getTitledName(): string {
-  const name = props.characterProfileSummary?.name ?? characterName ?? "";
-  const title = props.characterProfileSummary?.active_title;
-  if (title?.display_string?.includes("{name}")) {
-    return title.display_string.replace("{name}", name);
-  }
-  if (title?.name?.includes("%s")) {
-    return title.name.replace("%s", name);
-  }
-  return name;
-}
-
-//blizzard's realm name once the summary arrives, the slug spelled out until then
-function getRealmName(): string {
-  return props.characterProfileSummary?.realm?.name ?? realmDisplayName(server);
-}
-
-function getEnchantName(s: number): string {
-  const enchant = getEnchant(s);
-  if (!enchant) return "";
-  const name = enchant.source_item?.name ?? enchant.display_string ?? "";
-  return stripWowMarkup(name.replace("Enchanted: ", ""));
-}
-
-function getEnchant(s: number): Dragonblight.Enchantment | undefined {
-  if (props.characterEquipmentSummary?.equipped_items != null) {
-    const equipmentItem = props.characterEquipmentSummary.equipped_items.find(
-      (item) => item.slot?.type?.toLowerCase() == slotName[s]
-    );
-    //equipmentItem.enchantments.length > 0 in case there is an empty list (no for loop)
-    if (
-      equipmentItem != undefined &&
-      equipmentItem.enchantments != null &&
-      equipmentItem.enchantments.length > 0
-    ) {
-      const enchant = equipmentItem.enchantments.find(
-        (e) => e.enchantment_slot?.id == 0
+  //check to make sure the correct item is located in the correct position when featuring profile
+  function getItem(
+    charSummary: Dragonblight.CharacterEquipmentSummary | undefined,
+    s: number
+  ) {
+    if (charSummary?.equipped_items != null) {
+      const equipmentItem = charSummary.equipped_items.find(
+        (item) => item.slot?.type?.toLowerCase() == slotName[s]
       );
-      //checks to see if a player has an enchantment or not.
-      if (enchant != undefined) {
-        return enchant;
+      //checking to see if a player does or does not have gear equipped.
+      if (equipmentItem != undefined) {
+        return equipmentItem.item?.id;
       }
     }
+    return 0;
   }
-}
-
-function getRandomEnchantments(s: number) {
-  if (props.characterEquipmentSummary?.equipped_items != null) {
-    const equipmentItem = props.characterEquipmentSummary.equipped_items.find(
-      (item) => item.slot?.type?.toLowerCase() == slotName[s]
-    );
-    //checking to see if a player does or does not have gear with random enchants.
-    if (equipmentItem != undefined) {
-      let randomEnchantment = "";
-      RandEnchant.forEach((value, key) => {
-        if (equipmentItem.name?.endsWith(value)) {
-          randomEnchantment += key + ":";
-        }
-      });
-      return randomEnchantment;
-    }
-  }
-  return 0;
-}
-
-//What Wowhead needs to draw the item this character is actually wearing. Without the bonus ids
-//and item level it renders the item's base version instead: a crafted 331 shows as its 246 base,
-//with "Random Stat 1" in place of the stats the crafter chose. The bonus ids carry the upgrade
-//track, the crafted stats and any PvP scaling; the item level is what the character has.
-function itemTooltipParams(s: number): string {
-  const item = props.characterEquipmentSummary?.equipped_items?.find(
-    (i) => i.slot?.type?.toLowerCase() == slotName[s]
-  );
-  return (
-    `item=${getItem(props.characterEquipmentSummary, s)}` +
-    `&ench=${getEnchant(s)?.enchantment_id}` +
-    `&gems=${getGems(s)}` +
-    `&rand=${getRandomEnchantments(s)}` +
-    `&pcs=${getPcs(s)}` +
-    `&transmog=${getTransmog(props.characterEquipmentSummary, s, true)}` +
-    `&bonus=${item?.bonus_list?.join(":") ?? ""}` +
-    `&ilvl=${item?.level?.value ?? ""}`
-  );
-}
-
-//the equipped pieces of an item's set, which is how Wowhead knows which set bonuses are active
-function getPcs(s: number): string | undefined {
-  if (props.characterEquipmentSummary?.equipped_items != null) {
-    const equipmentItem = props.characterEquipmentSummary.equipped_items.find(
-      (item) => item.slot?.type?.toLowerCase() == slotName[s]
-    );
-    if (equipmentItem != undefined) {
-      const pcs = equipmentItem.set?.items?.filter((i) => i.is_equipped);
-      if (pcs != undefined) {
-        return pcs.map((t) => t.item?.id).join(":");
+  function getItemName(s: number) {
+    if (props.characterEquipmentSummary?.equipped_items != null) {
+      const equipmentItem = props.characterEquipmentSummary.equipped_items.find(
+        (item) => item.slot?.type?.toLowerCase() == slotName[s]
+      );
+      //checking to see if a player does or does not have gear equipped.
+      if (equipmentItem != undefined) {
+        return equipmentItem.name;
       }
     }
+    return 0;
   }
-}
 
-//What sits in each of an item's sockets, in socket order. Retail reports sockets directly and
-//includes the empty ones; MoP Classic has no sockets array at all and reports its gems as
-//enchantments in slots 2 to 4, where an empty socket simply does not appear.
-function getGemSockets(s: number): { itemId?: number; empty?: string }[] {
-  const equipmentItem = props.characterEquipmentSummary?.equipped_items?.find(
-    (item) => item.slot?.type?.toLowerCase() == slotName[s]
-  );
-  if (equipmentItem?.sockets != null) {
-    return equipmentItem.sockets.map((socket) =>
-      socket.item?.id != undefined
-        ? { itemId: socket.item.id }
-        : { empty: socket.socket_type?.name ?? "Empty Socket" }
-    );
+  //the enchant's source item name (e.g. "Enchant Boots - Lynx's Dexterity"), falling
+  //back to the display string when there is no source item
+  //Retail titles put the name in display_string as "{name} the Faceless One";
+  //MoP Classic puts a %s placeholder in name. Handle both, and show the bare
+  //name when there's no title or neither placeholder is present.
+  function getTitledName(): string {
+    const name = props.characterProfileSummary?.name ?? characterName ?? "";
+    const title = props.characterProfileSummary?.active_title;
+    if (title?.display_string?.includes("{name}")) {
+      return title.display_string.replace("{name}", name);
+    }
+    if (title?.name?.includes("%s")) {
+      return title.name.replace("%s", name);
+    }
+    return name;
   }
-  return (equipmentItem?.enchantments ?? [])
-    .filter(
-      (e) =>
-        e.enchantment_slot?.id == 2 ||
-        e.enchantment_slot?.id == 3 ||
-        e.enchantment_slot?.id == 4
-    )
-    .map((e) => ({ itemId: e.source_item?.id }));
-}
 
-//the gem ids Wowhead needs in order to draw the item as it is socketed
-function getGems(s: number): string {
-  return getGemSockets(s)
-    .map((gem) => gem.itemId)
-    .filter((id) => id != undefined)
-    .join(":");
-}
+  //blizzard's realm name once the summary arrives, the slug spelled out until then
+  function getRealmName(): string {
+    return props.characterProfileSummary?.realm?.name ?? realmDisplayName(server);
+  }
 
-//check to make sure the correct transmog is shown when featuring profile
-function getTransmog(
-  charSummary: Dragonblight.CharacterEquipmentSummary | undefined,
-  s: number,
-  tt: boolean = false
-) {
-  if (charSummary?.equipped_items != null) {
-    const equipmentItem = charSummary.equipped_items.find(
-      (item) => item.slot?.type?.toLowerCase() == slotName[s]
-    );
-    //checking to see if a player does or does not have gear equipped.
-    if (equipmentItem != undefined) {
-      if (equipmentItem.transmog?.item?.id != null) {
-        return equipmentItem.transmog?.item?.id;
-      }
-      else if (equipmentItem?.item?.id != null) {
-        if (tt) {
-          return 0;
-        }
-        else {
-          return equipmentItem?.item?.id;
+  function getEnchantName(s: number): string {
+    const enchant = getEnchant(s);
+    if (!enchant) return "";
+    const name = enchant.source_item?.name ?? enchant.display_string ?? "";
+    return stripWowMarkup(name.replace("Enchanted: ", ""));
+  }
+
+  function getEnchant(s: number): Dragonblight.Enchantment | undefined {
+    if (props.characterEquipmentSummary?.equipped_items != null) {
+      const equipmentItem = props.characterEquipmentSummary.equipped_items.find(
+        (item) => item.slot?.type?.toLowerCase() == slotName[s]
+      );
+      //equipmentItem.enchantments.length > 0 in case there is an empty list (no for loop)
+      if (
+        equipmentItem != undefined &&
+        equipmentItem.enchantments != null &&
+        equipmentItem.enchantments.length > 0
+      ) {
+        const enchant = equipmentItem.enchantments.find(
+          (e) => e.enchantment_slot?.id == 0
+        );
+        //checks to see if a player has an enchantment or not.
+        if (enchant != undefined) {
+          return enchant;
         }
       }
     }
   }
-  return 0;
-}
 
-function getSkeleton(i: number) {
-  return (
-    <Skeleton key={"SkeletonRating" + i}>
-      <Card className={"w-[34px] h-[34px] m-1"}></Card>
-    </Skeleton>
-  );
-}
-function numberedIcon(a: Dragonblight.TierAchievements): string {
-  const color: Record<string, string> = { Gladiator: "blue", RankOne: "red", LegendRankOne: "purple", BlitzRankOne: "green" };
-  const prefix = color[a.tier ?? ""];
-  const number = a.achievements?.length;
-  return `/numberedAchievementIcons/${prefix}_${number}.png`;
-}
-//pushes the correct achievement icon onto the page
-function getAchievementIcon(a: Dragonblight.TierAchievements) {
-  return (
-    <Tooltip.Provider delayDuration={100} key={"achievementIcon" + a.tier}>
-      <Tooltip.Root>
-        <Tooltip.Portal>
-          <Tooltip.Content
-            side="top"
-            avoidCollisions={false}
-            className="block max-w-sm max-h-64 overflow-y-auto p-2 rounded-lg shadow-sm bg-neutral-800 border border-neutral-950 z-100">
-            {a.achievements?.map((x) => (
-              <div key={x.id}>{x.name}</div>
-            ))}
-          </Tooltip.Content>
-        </Tooltip.Portal>
-        <Tooltip.Trigger className="cursor-default">
-          <div className="pr-1">
-            <img
-              className="mr-1 my-1"
-              src={numberedIcon(a)}
-              onError={(e) => {
-                //no image for this season yet - hide it instead of showing a broken icon
-                e.currentTarget.parentElement!.style.display = "none";
-              }}
-              height="34px"
-              width="34px"
-              style={{ maxHeight: "34px", maxWidth: "34px" }}
-            ></img>
-          </div>
-        </Tooltip.Trigger>
-      </Tooltip.Root>
-    </Tooltip.Provider>
-  );
-}
-
-function getSkeletonIconCards() {
-  const SkeletonIconCards = [];
-  for (let i = 0; i < 4; i++) {
-    SkeletonIconCards.push(getSkeleton(i));
+  function getRandomEnchantments(s: number) {
+    if (props.characterEquipmentSummary?.equipped_items != null) {
+      const equipmentItem = props.characterEquipmentSummary.equipped_items.find(
+        (item) => item.slot?.type?.toLowerCase() == slotName[s]
+      );
+      //checking to see if a player does or does not have gear with random enchants.
+      if (equipmentItem != undefined) {
+        let randomEnchantment = "";
+        RandEnchant.forEach((value, key) => {
+          if (equipmentItem.name?.endsWith(value)) {
+            randomEnchantment += key + ":";
+          }
+        });
+        return randomEnchantment;
+      }
+    }
+    return 0;
   }
-  return <div className="flex flex-row">{SkeletonIconCards}</div>;
-}
+
+  //What Wowhead needs to draw the item this character is actually wearing. Without the bonus ids
+  //and item level it renders the item's base version instead: a crafted 331 shows as its 246 base,
+  //with "Random Stat 1" in place of the stats the crafter chose. The bonus ids carry the upgrade
+  //track, the crafted stats and any PvP scaling; the item level is what the character has.
+  function itemTooltipParams(s: number): string {
+    const item = props.characterEquipmentSummary?.equipped_items?.find(
+      (i) => i.slot?.type?.toLowerCase() == slotName[s]
+    );
+    return (
+      `item=${getItem(props.characterEquipmentSummary, s)}` +
+      `&ench=${getEnchant(s)?.enchantment_id}` +
+      `&gems=${getGems(s)}` +
+      `&rand=${getRandomEnchantments(s)}` +
+      `&pcs=${getPcs(s)}` +
+      `&transmog=${getTransmog(props.characterEquipmentSummary, s, true)}` +
+      `&bonus=${item?.bonus_list?.join(":") ?? ""}` +
+      `&ilvl=${item?.level?.value ?? ""}`
+    );
+  }
+
+  //the equipped pieces of an item's set, which is how Wowhead knows which set bonuses are active
+  function getPcs(s: number): string | undefined {
+    if (props.characterEquipmentSummary?.equipped_items != null) {
+      const equipmentItem = props.characterEquipmentSummary.equipped_items.find(
+        (item) => item.slot?.type?.toLowerCase() == slotName[s]
+      );
+      if (equipmentItem != undefined) {
+        const pcs = equipmentItem.set?.items?.filter((i) => i.is_equipped);
+        if (pcs != undefined) {
+          return pcs.map((t) => t.item?.id).join(":");
+        }
+      }
+    }
+  }
+
+  //What sits in each of an item's sockets, in socket order. Retail reports sockets directly and
+  //includes the empty ones; MoP Classic has no sockets array at all and reports its gems as
+  //enchantments in slots 2 to 4, where an empty socket simply does not appear.
+  function getGemSockets(s: number): { itemId?: number; empty?: string }[] {
+    const equipmentItem = props.characterEquipmentSummary?.equipped_items?.find(
+      (item) => item.slot?.type?.toLowerCase() == slotName[s]
+    );
+    if (equipmentItem?.sockets != null) {
+      return equipmentItem.sockets.map((socket) =>
+        socket.item?.id != undefined
+          ? { itemId: socket.item.id }
+          : { empty: socket.socket_type?.name ?? "Empty Socket" }
+      );
+    }
+    return (equipmentItem?.enchantments ?? [])
+      .filter(
+        (e) =>
+          e.enchantment_slot?.id == 2 ||
+          e.enchantment_slot?.id == 3 ||
+          e.enchantment_slot?.id == 4
+      )
+      .map((e) => ({ itemId: e.source_item?.id }));
+  }
+
+  //the gem ids Wowhead needs in order to draw the item as it is socketed
+  function getGems(s: number): string {
+    return getGemSockets(s)
+      .map((gem) => gem.itemId)
+      .filter((id) => id != undefined)
+      .join(":");
+  }
+
+  //check to make sure the correct transmog is shown when featuring profile
+  function getTransmog(
+    charSummary: Dragonblight.CharacterEquipmentSummary | undefined,
+    s: number,
+    tt: boolean = false
+  ) {
+    if (charSummary?.equipped_items != null) {
+      const equipmentItem = charSummary.equipped_items.find(
+        (item) => item.slot?.type?.toLowerCase() == slotName[s]
+      );
+      //checking to see if a player does or does not have gear equipped.
+      if (equipmentItem != undefined) {
+        if (equipmentItem.transmog?.item?.id != null) {
+          return equipmentItem.transmog?.item?.id;
+        }
+        else if (equipmentItem?.item?.id != null) {
+          if (tt) {
+            return 0;
+          }
+          else {
+            return equipmentItem?.item?.id;
+          }
+        }
+      }
+    }
+    return 0;
+  }
+
+  function getSkeleton(i: number) {
+    return (
+      <Skeleton key={"SkeletonRating" + i}>
+        <Card className={"w-[34px] h-[34px] m-1"}></Card>
+      </Skeleton>
+    );
+  }
+  function numberedIcon(a: Dragonblight.TierAchievements): string {
+    const color: Record<string, string> = { Gladiator: "blue", RankOne: "red", LegendRankOne: "purple", BlitzRankOne: "green" };
+    const prefix = color[a.tier ?? ""];
+    const number = a.achievements?.length;
+    return `/numberedAchievementIcons/${prefix}_${number}.png`;
+  }
+  //pushes the correct achievement icon onto the page
+  function getAchievementIcon(a: Dragonblight.TierAchievements) {
+    return (
+      <Tooltip.Provider delayDuration={100} key={"achievementIcon" + a.tier}>
+        <Tooltip.Root>
+          <Tooltip.Portal>
+            <Tooltip.Content
+              side="top"
+              avoidCollisions={false}
+              className="block max-w-sm max-h-64 overflow-y-auto p-2 rounded-lg shadow-sm bg-neutral-800 border border-neutral-950 z-100">
+              {a.achievements?.map((x) => (
+                <div key={x.id}>{x.name}</div>
+              ))}
+            </Tooltip.Content>
+          </Tooltip.Portal>
+          <Tooltip.Trigger className="cursor-default">
+            <div className="pr-1">
+              <img
+                className="mr-1 my-1"
+                src={numberedIcon(a)}
+                onError={(e) => {
+                  //no image for this season yet - hide it instead of showing a broken icon
+                  e.currentTarget.parentElement!.style.display = "none";
+                }}
+                height="34px"
+                width="34px"
+                style={{ maxHeight: "34px", maxWidth: "34px" }}
+              ></img>
+            </div>
+          </Tooltip.Trigger>
+        </Tooltip.Root>
+      </Tooltip.Provider>
+    );
+  }
+
+  function getSkeletonIconCards() {
+    const SkeletonIconCards = [];
+    for (let i = 0; i < 4; i++) {
+      SkeletonIconCards.push(getSkeleton(i));
+    }
+    return <div className="flex flex-row">{SkeletonIconCards}</div>;
+  }
 };
 export default ProfileEquipment;
 

@@ -14,6 +14,7 @@ import { InfoCircledIcon, ReloadIcon } from "@radix-ui/react-icons";
 
 const Profile: FC = () => {
   const [characterSummary, setcharacterSummary] = useState<Dragonblight.CharacterProfileSummary>();
+  const [characterImage, setCharacterImage] = useState<string>();
   const [specName, setSpecName] = useState<string>();
   const [previousNames, setPreviousNames] = useState<Dragonblight.PreviousCharacterName[]>();
   const [characterEquipmentSummary, setCharacterEquipmentSummary] = useState<Dragonblight.CharacterEquipmentSummary>();
@@ -23,7 +24,7 @@ const Profile: FC = () => {
   const [cookies, setCookie] = useCookies(["showModelViewer"]);
   //makes sure showModelViewer is always set to true, and to use our cookies whenever we refresh (keeps the switch at the same spot)
   const [showModelViewer, setShowModelViewer] = useState(
-    cookies.showModelViewer ?? true
+    cookies.showModelViewer ?? false
   );
   const { region, server, characterName, urlTab } = useParams();
   const navigate = useNavigate();
@@ -67,7 +68,11 @@ const Profile: FC = () => {
     setCharacterEquipmentSummary(undefined);
     setcharacterSummary(undefined);
     setPreviousNames(undefined);
+    setCharacterImage(undefined);
     setErr("");
+    CharacterClient.getCharacterImage(slug, characterName, region)
+      .then((imgSrc) => setCharacterImage(imgSrc || undefined))
+      .catch(() => setCharacterImage(undefined));
     CharacterClient.getProfile(slug, characterName, region).then((data) => {
       if (data?.charSummary == null) {
         setCharacterNotFound(true);
@@ -200,6 +205,7 @@ const Profile: FC = () => {
             characterAchievementsSummary={achievementsSummary}
             specName={specName}
             previousNames={previousNames}
+            characterImage={characterImage}
             showModelViewer={showModelViewer}
             loading={loading}
             characterNotFound={characterNotFound}

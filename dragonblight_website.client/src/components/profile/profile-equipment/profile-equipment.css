@@ -26,6 +26,17 @@
   transition: transform 200ms ease;
 }
 
+.character-render {
+  position: absolute;
+  left: 50%;
+  top: 45%;
+  transform: translate(-50%, -50%);
+  height: 180%;
+  width: auto;
+  max-width: none;
+  pointer-events: none;
+}
+
 .former-names-trigger[data-state="open"] .former-names-chevron {
   transform: rotate(180deg);
 }
@@ -43,6 +54,9 @@
   .model3dx {
     visibility: hidden;
   }
+  .model3dx .character-render {
+  visibility: visible;
+}
 }
 
 

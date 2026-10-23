@@ -26,10 +26,29 @@ namespace Dragonblight_Website.Server.Controllers
             {
                 //order matters: the client labels rating cards by position using the same list
                 var Brackets = HttpContext.GetGameFlavor().Brackets();
+                var Season = await _warcraftCachedData.GetSeason(region, HttpContext.GetGameFlavor());
                 List<CharacterPvpBracketStatistics> results = new List<CharacterPvpBracketStatistics>();
                 foreach (var PvPBracket in Brackets)
                 {
-                    results.Add(await _warcraftCachedData.GetPvpBracketRating(server.ToLower(), characterName.ToLower(), PvPBracket, region, HttpContext.GetGameFlavor()));
+                    var BracketRating = await _warcraftCachedData.GetPvpBracketRating(server.ToLower(), characterName.ToLower(), PvPBracket, region, HttpContext.GetGameFlavor());
+
+                    if (Season == (BracketRating?.Season?.Id ?? 0) && BracketRating != null)
+                    {
+                        results.Add(BracketRating);
+                    }
+                    else
+                    {
+                        BracketRating = new CharacterPvpBracketStatistics
+                        {
+                            Bracket = new Bracket { Type = BracketRating?.Bracket.Type },
+                            Rating = 0,
+                            Season = new PvpSeasonReference
+                            {
+                                Id = Season
+                            }
+                        };
+                        results.Add(BracketRating);
+                    }
                 }
                 //Solo Shuffle keeps a rating per spec, so after the fixed brackets come the character's
                 //class's spec brackets. They go last so the cards above keep their positions, and only
@@ -49,10 +68,31 @@ namespace Dragonblight_Website.Server.Controllers
                             {
                                 Bracket = new Bracket { Type = specBracket.Ladder.ToUpperInvariant() },
                                 Specialization = new PlayableSpecializationReference { Id = specBracket.SpecId ?? 0, Name = specBracket.SpecName },
-                                Rating = 0
+                                Rating = 0,
+                                Season = new PvpSeasonReference
+                                {
+                                    Id = Season
+                                }
                             };
                         }
-                        results.Add(specRating);
+                        if (Season == (specRating?.Season?.Id ?? 0) && specRating != null)
+                        {
+                            results.Add(specRating);
+                        }
+                        else
+                        {
+                            specRating = new CharacterPvpBracketStatistics
+                            {
+                                Bracket = new Bracket { Type = specBracket.Ladder.ToUpperInvariant() },
+                                Specialization = new PlayableSpecializationReference { Id = specBracket.SpecId ?? 0, Name = specBracket.SpecName },
+                                Rating = 0,
+                                Season = new PvpSeasonReference
+                                {
+                                    Id = Season
+                                }
+                            };
+                            results.Add(specRating);
+                        }
                     }
                 }
                 return Ok(results);

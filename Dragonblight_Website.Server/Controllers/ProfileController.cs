@@ -131,6 +131,22 @@ namespace Dragonblight_Website.Server.Controllers
                 return StatusCode(500, "An error occurred while processing your request.");
             }
         }
+        //the full-body render shown in place of the 3D model while the model viewer is off
+        [HttpGet("GetCharacterImage")]
+        public async Task<ActionResult<string>> GetCharacterImage(string server, string characterName, string region)
+        {
+            try
+            {
+                var media = await _warcraftCachedData.GetCharMedia(server.ToLower(), characterName.ToLower(), region, HttpContext.GetGameFlavor());
+                return Ok(media?.Assets?.FirstOrDefault(a => a.Key == "main-raw")?.Value);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting character image.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
         public class CharacterProfileSummaryAndSpec
         {
             [JsonPropertyName("charSummary")]
