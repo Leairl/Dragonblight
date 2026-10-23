@@ -102,7 +102,8 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
       const tier = getRetailTier(bracket, current_rating, specId);
       return tier ? `${tier.label} ${tier.title}` : "";
     }
-    const title = bestReward(rewards, bracket, current_rating, specId);
+    const reward = bestReward(rewards, bracket, current_rating, specId);
+    const title = reward?.achievement?.name?.split(":")[0];
     return title ? `Predicted Title: ${title}` : "";
   }
 
