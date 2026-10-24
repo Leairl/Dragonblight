@@ -377,7 +377,7 @@ const ProfileEquipment: FC<profileEquipmentProps> = (props) => {
         </div>
       )}
       <div className="center-column">
-        <Card className="mb-3 header-card">
+        <Card className={props.characterNotFound ? "mb-3 header-card" :"mb-3 header-card border-card"}>
           {(loading || props.characterNotFound) && (
             <div className="flex flex-row">
               {getSkeletonIconCards()}
@@ -400,7 +400,7 @@ const ProfileEquipment: FC<profileEquipmentProps> = (props) => {
         </Card>
         {
           (props.currTab == "gear" || props?.currTab == undefined) && (
-            <Card className="paperdoll-card overflow-visible">
+            <Card className= {props.characterNotFound ? "paperdoll-card overflow-visible": "paperdoll-card overflow-visible border-card"}>
               {(loading || props.characterNotFound) && (
                 <div>
                   <Flex className="flex-row items-center">
@@ -588,7 +588,7 @@ const ProfileEquipment: FC<profileEquipmentProps> = (props) => {
 
   function getCharacterHeader() {
     return (
-      <div className="flex flex-row px[1px] ">
+      <div className="flex flex-row px[1px]">
         <img
           className="m-1"
           src={`/ProfileClassIcons/${props.characterProfileSummary?.character_class?.name

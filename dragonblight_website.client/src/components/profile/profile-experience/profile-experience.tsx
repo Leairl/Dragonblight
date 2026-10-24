@@ -67,10 +67,10 @@ const ProfileExperience: FC<ProfileExperienceProps> = ({ achievements, character
       </div>
     );
   }
-  return loading ? getSkeletons() : (
+  return loading || characterNotFound ? getSkeletons() : (
     //loops through the dictionary and for each expansion key we loop through all seasons of
     //that expansion and show the name of that achievement in the list of strings  <Accordion.Root type="multiple" className="profile-experience">
-    <Accordion.Root type="multiple" className="pt-2 profile-experience">
+    <Accordion.Root type="multiple" className= {characterNotFound ? "pt-2 profile-experience not-found" : "pt-2 profile-experience"}>
       {[...expansions].map(([expansion, seasonsOfExpansion]) => (
         <Card key={expansion} className=" border-card dropdown-accordionCard">
           <Accordion.Item value={expansion}>
