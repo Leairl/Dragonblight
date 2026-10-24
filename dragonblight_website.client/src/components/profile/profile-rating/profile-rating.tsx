@@ -66,7 +66,6 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
         // "Venomous Gladiator: Midnight Season 2" -> "Venomous Gladiator"
         title: rank1.achievement?.name?.split(":")[0] ?? "Rank 1",
         label: "Predicted Title:",
-        text: "text-orange-500",
       };
     }
     const tier = RetailTiers.find(([minimum]) => current_rating >= minimum)?.[1];

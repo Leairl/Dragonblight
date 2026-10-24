@@ -5,8 +5,9 @@ import { useParams } from "react-router";
 import * as Accordion from "@radix-ui/react-accordion";
 import { Card, Heading, Skeleton } from "@radix-ui/themes";
 import { ChevronDownIcon } from "@radix-ui/react-icons";
-import { seasonalIcon, tierColor } from "../../../helpers/seasonal-icons";
+import { seasonalIcon } from "../../../helpers/seasonal-icons";
 import { getFlavor } from "../../../helpers/game-flavor";
+import { TitleColors } from "../../../helpers/ratingTierHelper";
 
 
 interface ProfileExperienceProps {
@@ -103,7 +104,7 @@ const ProfileExperience: FC<ProfileExperienceProps> = ({ achievements, character
                           />
                         )}
                       </div>
-                      <div className={(tierColor[s.tier ?? ""] ?? "text-stone-100") + " text-shadow-md text-shadow-black"}>
+                      <div className={(TitleColors(s.name ?? "") ?? "text-stone-100") + " text-shadow-md text-shadow-black"}>
                         {seasonalTitle}
                       </div>
                     </div>

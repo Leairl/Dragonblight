@@ -4,7 +4,7 @@ import { Card, Skeleton } from "@radix-ui/themes";
 import { Dragonblight } from "../../../clients/Dragonblight";
 import { ClassColor } from "../../../helpers/classColorHelper";
 import { formerNames, realmDisplayName } from "../../../helpers/realmNameHelper";
-import { retailTier, bestReward, classicTitleColor, ratingColor, RankOneColor } from "../../../helpers/ratingTierHelper";
+import { retailTier, bestReward, ratingColor, RankOneColor } from "../../../helpers/ratingTierHelper";
 import { flavorHref, brackets as flavorBrackets } from "../../../helpers/game-flavor";
 import { SoloSpecIcon } from "../../../helpers/solo-bracket-specs";
 

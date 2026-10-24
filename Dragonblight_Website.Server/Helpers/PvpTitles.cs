@@ -3,7 +3,7 @@
 public static class PvpTitles
 {
     //lowest to highest, so a bigger value is a better title
-    public enum Tier { Challenger, Rival, Duelist, Legend, Gladiator, BlitzRankOne, LegendRankOne, RankOne }
+    public enum Tier { Challenger, Rival, Duelist, Elite, Legend, Gladiator, BlitzRankOne, LegendRankOne, RankOne }
 
     private static bool IsRankOne(string title, string word)
     => title.Split(' ').Length == 2 && title.EndsWith(" " + word);
@@ -25,6 +25,7 @@ public static class PvpTitles
         {
             "Gladiator" => Tier.Gladiator,
             "Legend" => Tier.Legend,
+            "Elite" => Tier.Elite,
             "Duelist" => Tier.Duelist,
             "Rival" => Tier.Rival,
             "Challenger" => Tier.Challenger,

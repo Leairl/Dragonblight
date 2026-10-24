@@ -10,7 +10,6 @@ interface RatingTier {
   // Tiers follow the current rating (Blizzard doesn't return the season high);
   // rank 1 titles are only decided when the season ends, so those are a prediction.
   label: "Current Title:" | "Predicted Title:";
-  text: string;
 }
 const RankOneColor = "text-orange-500";
 // The best season reward a rating has reached in its bracket: the one with the highest cutoff.
@@ -40,11 +39,11 @@ function bestReward(
 // highest first, so the first threshold a rating meets is the tier it earned
 const RetailTiers: [number, RatingTier][] = [
 
-  [2300, { title: "Elite", label: "Current Title:", text: "text-purple-500" }],
-  [2100, { title: "Duelist", label: "Current Title:", text: "text-blue-500" }],
-  [1800, { title: "Rival", label: "Current Title:", text: "text-green-500" }],
-  [1400, { title: "Challenger", label: "Current Title:", text: "text-white" }],
-  [1000, { title: "Combatant", label: "Current Title:", text: "text-neutral-500" }],
+  [2300, { title: "Elite", label: "Current Title:"}],
+  [2100, { title: "Duelist", label: "Current Title:"}],
+  [1800, { title: "Rival", label: "Current Title:"}],
+  [1400, { title: "Challenger", label: "Current Title:"}],
+  [1000, { title: "Combatant", label: "Current Title:"}],
 ];
 
 // undefined below Combatant, which leaves the rating in the page's own color
@@ -56,9 +55,13 @@ function retailTier(rating: number | undefined): RatingTier | undefined {
     }
   }
 }
-function classicTitleColor(title: string | undefined): string {
+function TitleColors(title: string | undefined): string {
   if (title?.includes(" Gladiator")) return "text-yellow-600";   // rank 1, e.g. "Grievous Gladiator"
+  if (title?.includes(" Legend")) return "text-purple-600";
+  if (title?.includes(" Marshal") || (title?.includes(" Warlord"))) return "text-green-600";
   if (title?.startsWith("Gladiator") || title?.includes("Hero of the Faction")) return "text-purple-500";
+  if (title?.startsWith("Legend")) return "text-purple-500";
+  if (title?.startsWith("Elite")) return "text-purple-500";
   if (title?.startsWith("Duelist")) return "text-blue-500";
   if (title?.startsWith("Rival")) return "text-green-500";
   if (title?.startsWith("Challenger")) return "text-neutral-500";
@@ -73,12 +76,12 @@ function ratingColor(
 ): string {
   const reward = bestReward(rewards, bracketType, rating, specId);
   if (getFlavor() == "retail") {
-    return reward ? RankOneColor : (retailTier(rating)?.text ?? "text-stone-100");
+    return reward ? RankOneColor : (TitleColors(retailTier(rating)?.title) ?? "text-stone-100");
   }
-  return classicTitleColor(reward?.achievement?.name)
+  return TitleColors(reward?.achievement?.name)
 }
 export {
   RetailTiers, retailTier, bestReward, RankOneColor, ratingColor // Tiers follow the current rating (Blizzard doesn't return the season high);
-  , classicTitleColor
+  , TitleColors
 };
 export type { RatingTier };
