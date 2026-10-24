@@ -28,9 +28,9 @@ namespace Dragonblight_Website.Server.Controllers
                 var ladderBrackets = await _warcraftCachedData.GetLadderBrackets(region, flavor);
                 //the account's other characters, as "charactername,server"
                 var altInfo = await _warcraftCachedData.GetAlts(server, characterName, region, flavor);
-                var alts = new List<GetAltsResponse>();
-                foreach (var alt in altInfo)
+                var altInfos = altInfo.Select(async alt =>
                 {
+
                     var altName = alt.Name.ToLower();
                     var altServer = alt.Realm;
                     //class and spec come out of the summary caches the profile pages already fill
@@ -38,7 +38,7 @@ namespace Dragonblight_Website.Server.Controllers
 
                     if (summary == null || summary.Id != alt.Id)
                     {
-                        continue;
+                        return null;
                     }
                     var ratings = new Dictionary<string, int>();
                     var season = await _warcraftCachedData.GetSeason(region, flavor);
@@ -64,7 +64,7 @@ namespace Dragonblight_Website.Server.Controllers
                             });
                         }
                     }
-                    alts.Add(new GetAltsResponse
+                    return new GetAltsResponse
                     {
                         Name = summary?.Name ?? altName,
                         Realm = altServer,
@@ -73,10 +73,13 @@ namespace Dragonblight_Website.Server.Controllers
                         Ratings = ratings,
                         SoloRatings = soloRatings,
                         PreviousNames = alt.PreviousNames
-                    });
-                }
+                    };
+
+                });
+
                 //a character with no alts is an empty list, not a missing character
-                return Ok(alts);
+                var result = (await Task.WhenAll(altInfos)).Where(a => a != null).ToList();
+                return Ok(result);
             }
             catch (Exception ex)
             {

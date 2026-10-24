@@ -3,12 +3,18 @@
     flex-direction: column;
     padding: 12px;
     max-width: 60vw;
+    --color-panel: #292c31;
+}
+.border-card {
+    border: 2px solid black;
 }
 .alt-former {
     font-size: 12px;
     font-style: italic;
     opacity: .6;
+
 }
+
 .alt-solo-row {
     display: flex;
     flex-wrap: wrap;
@@ -16,6 +22,7 @@
     margin-top: 3px;
     font-size: 12px;
 }
+
 .alt-grid {
     display: grid;
     align-items: center;
@@ -34,7 +41,7 @@
     min-width: 0;
 }
 
-.alt-solo-cell .alt-rating{
+.alt-solo-cell .alt-rating {
     display: inline-flex;
     align-items: center;
     white-space: nowrap;
@@ -61,6 +68,7 @@
     margin-right: 4px;
     vertical-align: middle;
 }
+
 .alt-intro {
     font-size: 13px;
     font-style: italic;
@@ -84,6 +92,7 @@
 .alt-grid-header {
     width: 100%;
     min-width: 860px;
+
 }
 
 

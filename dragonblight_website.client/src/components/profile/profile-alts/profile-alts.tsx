@@ -123,7 +123,7 @@ const rewardBracket: Record<string, string> = {
 
   function getAltCard(alt: Dragonblight.GetAltsResponse, index: number) {
     return (
-      <Card className="alt-card" key={"Alt" + index}>
+      <Card className="alt-card border-card" key={"Alt" + index}>
         <div className="alt-grid" style={gridStyle}>
           <div className="alt-cell">
             <Link to={`/profile/${region}/${alt.realm}/${alt.name}`}>
