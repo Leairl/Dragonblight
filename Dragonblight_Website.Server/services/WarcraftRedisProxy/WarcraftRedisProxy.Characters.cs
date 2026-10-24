@@ -17,7 +17,7 @@ partial class WarcraftRedisProxy
             //gets character data from wow api
             //storing into GetCharacter and pulls data with server, characterName, and region
             var GetCharacter = await warcraftClient.GetCharacterPvpBracketStatisticsAsync(server, characterName, pvpBracket, ns, GetRegion(region), GetLocale(region));
-            if (GetCharacter != null)
+            if (GetCharacter != null && GetCharacter.Value != null)
             {
                 return GetCharacter.Value;
             }

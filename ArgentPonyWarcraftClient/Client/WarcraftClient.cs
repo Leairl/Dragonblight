@@ -126,10 +126,10 @@ public partial class WarcraftClient : IWarcraftClient
     private async Task<RequestResult<T>> GetAsync<T>(string requestUri, string accessToken)
     {
         // Add an authentication header with the token. (uses var httpclient from ratelimitedhttpclient)
-        Client.httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-
-        // Retrieve the response.
-        HttpResponseMessage response = await Client.GetAsync(requestUri).ConfigureAwait(false);
+        //new instance for each thread to maintain thread safety
+        var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        HttpResponseMessage response = await Client.SendAsync(request).ConfigureAwait(false);
 
         if (!response.IsSuccessStatusCode)
         {
@@ -149,8 +149,8 @@ public partial class WarcraftClient : IWarcraftClient
             // If not then it is most likely a problem on our end due to an HTTP error.
             string message = $"Response code {(int)response.StatusCode} ({response.ReasonPhrase}) does not indicate success. Request: {requestUri}";
 
-           // throw new HttpRequestException(message);
-           return null;
+            // throw new HttpRequestException(message);
+            return null;
         }
 
         // Deserialize an object of type T from the JSON string.
@@ -185,17 +185,16 @@ public partial class WarcraftClient : IWarcraftClient
         string credentials = $"{ClientId}:{ClientSecret}";
         string host = GetOAuthHost(region);
 
-        //use httpclient from ratelimitedhttpclient
-        Client.httpClient.DefaultRequestHeaders.Accept.Clear(); 
-        Client.httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        Client.httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials)));
-
-        var requestBody = new FormUrlEncodedContent(new[]
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{host}/oauth/token")
         {
+            Content = new FormUrlEncodedContent(new[]
+            {
                 new KeyValuePair<string, string>("grant_type", "client_credentials")
-            });
-
-        HttpResponseMessage responseMessage = await Client.PostAsync($"{host}/oauth/token", requestBody);
+            })
+        };
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        request.Headers.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials)));
+        HttpResponseMessage responseMessage = await Client.SendAsync(request);
         responseMessage.EnsureSuccessStatusCode();
         string response = await responseMessage.Content.ReadAsStringAsync();
         return JsonSerializer.Deserialize<OAuthAccessToken>(response);

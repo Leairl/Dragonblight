@@ -481,7 +481,7 @@ const ProfileEquipment: FC<profileEquipmentProps> = (props) => {
         }
         {
           props.currTab == "talents" && (
-            <Card className="talent-row">
+            <Card className="talent-row border-card">
               {/* the two games draw talents nothing alike: retail has three grid trees that come
                 from the API, MoP Classic a fixed 6x3 pane that ships with the client */}
               {getFlavor() === "retail" ? (
@@ -509,7 +509,7 @@ const ProfileEquipment: FC<profileEquipmentProps> = (props) => {
         }
         {
           props.currTab == "alts" && (
-            <Card className="talent-row">
+            <Card className="talent-row border-card">
               <ProfileAlts></ProfileAlts>
             </Card>
           )
