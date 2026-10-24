@@ -20,20 +20,6 @@ namespace CORSProxy
             _logger = logger;
         }
 
-        [Route("data/news")]
-        public Task news()
-        {
-            try
-            {
-                return this.ProxyAsync("https://www.wowhead.com/mop-classic/blue-tracker?rss", null, httpProxyOptions: proxyOptions);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred while processing the news request.");
-                throw new Exception("An error occurred while processing the news request.");
-            }
-        }
-
         [Route("data/modelviewer/mists/background-classic-181818.png")]
         [Route("data/modelviewer/live/background-classic-181818.png")]
         public FileContentResult image()

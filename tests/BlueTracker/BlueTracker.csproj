@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup><TargetFramework>net10.0</TargetFramework><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../Dragonblight_Website.Server/Controllers/BlueTrackerController.cs" Link="BlueTrackerController.cs" />
+    <Compile Include="../../Dragonblight_Website.Server/services/GameFlavor.cs" Link="GameFlavor.cs" />
+    <Compile Include="../../Dragonblight_Website.Server/services/GameFlavorRequest.cs" Link="GameFlavorRequest.cs" />
+  </ItemGroup>
+</Project>
