@@ -28,6 +28,8 @@ builder.Services.AddSerilog((services, lc) => lc
 
 builder.Services.AddProxies();
 builder.Services.AddControllers();
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient("BlizzardForums", client => { client.Timeout = TimeSpan.FromSeconds(20); client.DefaultRequestHeaders.UserAgent.ParseAdd("Dragonblight/1.0"); });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddWarcraftClients(battlenetClient, battlenetSecret);

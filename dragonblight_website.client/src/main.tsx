@@ -15,6 +15,7 @@ import { ensureFlavorInPath, getFlavor, installFlavorHeader } from './helpers/ga
 import RankingsPage from './components/rankings/rankings.tsx';
 import LoginPage from './components/login/login.tsx';
 import ActivityPage from "./components/activity/activity.tsx";
+import { BlueTracker, BluePostPage } from "./components/news/blue-tracker";
 import News from "./components/news/news.tsx";
 import ClassAnalytics from './components/class-leaderboard-analytics/class-leaderboard-analytic.tsx';
 
@@ -31,6 +32,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <Routes>
         <Route path="/" element={ <div><NavBar></NavBar><HomePage></HomePage></div> }>
           <Route index element={<News/>} />
+          <Route path="blue-tracker" element={<BlueTracker />} />
+          <Route path="blue-tracker/:region/:postId" element={<BluePostPage />} />
           <Route path="profile/:region/:server/:characterName/:urlTab?" Component={ProfilePage} />
           <Route path="rankings/:URLregion/:URLbracket" element={<RankingsPage/>} />
           <Route path="class-stats/:URLregion/:URLbracket" element={<ClassAnalytics/>} />
