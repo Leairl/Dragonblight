@@ -6,7 +6,11 @@
     gap: 12px;
   --color-panel: #292c31;
 }
-
+.not-found .profile-experience {
+    filter: blur(3px);
+    pointer-events: none;
+    user-select: none;
+}
 .experience-season {
     font-size: 16px;
     padding: 2px 0;

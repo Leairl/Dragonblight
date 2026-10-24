@@ -122,7 +122,7 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
 
   return (
     <div className={characterNotFound ? "page-container not-found" : "page-container"}>
-      <div className="w-full">{loading ? getSkeletons() : getRatings()}</div>
+      <div className="w-full">{loading || characterNotFound ? getSkeletons() : getRatings()}</div>
     </div>
   );
 
