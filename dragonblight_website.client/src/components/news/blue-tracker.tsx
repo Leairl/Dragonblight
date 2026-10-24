@@ -2,17 +2,15 @@ import { useEffect, useState } from "react";
 import { Card, SegmentedControl } from "@radix-ui/themes";
 import { Link, useParams, useSearchParams } from "react-router";
 import { getFlavor } from "../../helpers/game-flavor";
+import { ClassColor } from "../../helpers/classColorHelper";
 import "./blue-tracker.css";
 
 interface BluePost {
     id: number; title: string; author: string; authorTitle: string; createdAt: string;
     updatedAt?: string; category: string; excerpt: string; sourceUrl: string; html?: string;
 }
-const classes: Record<string, string> = {
-    "Death Knight": "#c41e3a", "Demon Hunter": "#a330c9", Druid: "#ff7c0a", Evoker: "#33937f",
-    Hunter: "#aad372", Mage: "#3fc7eb", Monk: "#00ff98", Paladin: "#f48cba", Priest: "#ffffff",
-    Rogue: "#fff468", Shaman: "#0070dd", Warlock: "#8788ee", Warrior: "#c69b6d",
-};
+const classNames = Array.from(ClassColor.keys()).filter(name => name !== "" && name !== "hunterpet");
+const classPattern = new RegExp(`\\b(${classNames.join("s?|")}s?)\\b`, "gi");
 const label = () => getFlavor() === "classic" ? "MoP Classic" : "Retail";
 const date = (value: string) => new Date(value).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 
@@ -24,10 +22,10 @@ function formatBluePost(html: string, region: string): string {
     const root = `https://${region}.forums.blizzard.com/en/wow/`;
     const copy = (node: Node, parent: HTMLElement) => {
         if (node.nodeType === Node.TEXT_NODE) {
-            const parts = (node.textContent ?? "").split(/\b(Death Knights?|Demon Hunters?|Druids?|Evokers?|Hunters?|Mages?|Monks?|Paladins?|Priests?|Rogues?|Shamans?|Warlocks?|Warriors?)\b/gi);
+            const parts = (node.textContent ?? "").split(classPattern);
             for (const part of parts) {
-                const name = Object.keys(classes).find(c => c.toLowerCase() === part.toLowerCase() || (c + "s").toLowerCase() === part.toLowerCase());
-                if (name) { const span = document.createElement("span"); span.style.color = classes[name]; span.className = "wow-class"; span.textContent = part; parent.append(span); }
+                const name = classNames.find(c => c.toLowerCase() === part.toLowerCase() || (c + "s").toLowerCase() === part.toLowerCase());
+                if (name) { const span = document.createElement("span"); span.style.color = ClassColor.get(name) ?? ""; span.className = "wow-class"; span.textContent = part; parent.append(span); }
                 else parent.append(document.createTextNode(part));
             }
             return;
@@ -81,7 +79,7 @@ export function BlueTracker({ compact = false }: { compact?: boolean }) {
         {!compact && <input className="blue-search" aria-label="Search blue posts" placeholder="Search recent blue posts…" value={search} onChange={e => setSearch(e.target.value)} />}
         <div aria-live="polite">{error ? <div className="blue-status" role="alert">{error} <button onClick={retry}>Retry</button></div> : !posts ? <p className="blue-status">Loading Blizzard posts…</p> : posts.length === 0 ? <p className="blue-status">No matching {label()} blue posts in the recent forum activity.</p> :
             posts.slice(0, compact ? 8 : 30).map(post => <Link className="blue-row" key={post.id} to={`/blue-tracker/${region}/${post.id}`}>
-                <span className="blue-category" style={{ color: classes[post.category] }}>{post.category}</span><h2>{post.title}</h2>
+                <span className="blue-category" style={{ color: ClassColor.get(post.category) }}>{post.category}</span><h2>{post.title}</h2>
                 {!compact && <p className="blue-excerpt">{post.excerpt}</p>}
                 <div className="blue-meta"><span>{post.author}</span><time dateTime={post.createdAt}>{date(post.createdAt)}</time></div>
             </Link>)}</div>
