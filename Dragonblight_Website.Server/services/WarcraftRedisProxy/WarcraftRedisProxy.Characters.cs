@@ -8,7 +8,7 @@ using YamlDotNet.Core.Tokens;
 partial class WarcraftRedisProxy
 {
     // get character summary in redis
-    public async Task<CharacterPvpBracketStatistics> GetPvpBracketRating(string server, string characterName, string pvpBracket, string region, GameFlavor flavor = GameFlavor.MistsClassic)
+    public async Task<CharacterPvpBracketStatistics> GetPvpBracketRating(string server, string characterName, string pvpBracket, string region, GameFlavor flavor)
     {
         //creates unique character key from their server, character name, and region (this will prevent any duplicates)
         var ns = GetProfileRegion(region, flavor);
@@ -41,7 +41,7 @@ partial class WarcraftRedisProxy
         return result;
     }
     //the character's rendered images from blizzard: "avatar" (a small head shot) and "main-raw" (the full body)
-    public async Task<CharacterMediaSummary?> GetCharMedia(string server, string characterName, string region, GameFlavor flavor = GameFlavor.MistsClassic)
+    public async Task<CharacterMediaSummary?> GetCharMedia(string server, string characterName, string region, GameFlavor flavor)
     {
         var ns = GetProfileRegion(region, flavor);
         return await GetBlizzardDataCached<CharacterMediaSummary?>("GetCharacterMedia" + server + characterName + ns, async () =>
@@ -51,7 +51,7 @@ partial class WarcraftRedisProxy
         }, TimeSpan.FromDays(1));
     }
 
-    public async Task<CharacterStatisticsSummary> GetCharacterStats(string server, string characterName, string region, GameFlavor flavor = GameFlavor.MistsClassic)
+    public async Task<CharacterStatisticsSummary> GetCharacterStats(string server, string characterName, string region, GameFlavor flavor)
     {
         //creates unique character key from their server, character name, and region (this will prevent any duplicates)
         var ns = GetProfileRegion(region, flavor);
@@ -84,7 +84,7 @@ partial class WarcraftRedisProxy
         return result;
     }
 
-    public async Task<CharacterProfileSummary> GetCharSummary(string server, string characterName, string region, GameFlavor flavor = GameFlavor.MistsClassic)
+    public async Task<CharacterProfileSummary> GetCharSummary(string server, string characterName, string region, GameFlavor flavor)
     {
         logger.LogInformation("Getting char summary for" + " " + characterName + " " + server);
         //creates unique character key from their server, character name, and region (this will prevent any duplicates)
@@ -122,7 +122,7 @@ partial class WarcraftRedisProxy
     }
 
     // get character summary in redis for character appearance
-    public async Task<CharacterAppearanceSummary> GetCharAppearance(string server, string characterName, string region, GameFlavor flavor = GameFlavor.MistsClassic)
+    public async Task<CharacterAppearanceSummary> GetCharAppearance(string server, string characterName, string region, GameFlavor flavor)
     {
         var ns = GetProfileRegion(region, flavor);
         var result = await GetBlizzardDataCached<CharacterAppearanceSummary>("GetCharacterAppearance" + server + characterName + ns, async () =>
@@ -156,7 +156,7 @@ partial class WarcraftRedisProxy
         return result;
     }
     // get character summary in redis for character appearance
-    public async Task<CharacterAchievementsSummary> GetCharacterAchievements(string server, string characterName, string region, GameFlavor flavor = GameFlavor.MistsClassic)
+    public async Task<CharacterAchievementsSummary> GetCharacterAchievements(string server, string characterName, string region, GameFlavor flavor)
     {
         //the alt list is keyed by the region the caller asked for, so hold on to it before the line
         //below overwrites region with the blizzard namespace
@@ -195,7 +195,7 @@ partial class WarcraftRedisProxy
         return result;
     }
     // get character summary in redis for character equipment
-    public async Task<CharacterEquipmentSummary> GetCharEquipment(string server, string characterName, string region, GameFlavor flavor = GameFlavor.MistsClassic)
+    public async Task<CharacterEquipmentSummary> GetCharEquipment(string server, string characterName, string region, GameFlavor flavor)
     {
         var ns = GetProfileRegion(region, flavor);
         var result = await GetBlizzardDataCached<CharacterEquipmentSummary>("GetCharacterEquipment" + server + characterName + ns, async () =>
@@ -232,7 +232,7 @@ partial class WarcraftRedisProxy
     //Forgets everything cached for one character, so the profile's next requests go to Blizzard and
     //come back current. Returns false while the character is on cooldown: a refresh turns every one of
     //those requests into a Blizzard call, so a character can only be refreshed every few minutes.
-    public async Task<bool> ClearCharacterCache(string server, string characterName, string region, GameFlavor flavor = GameFlavor.MistsClassic)
+    public async Task<bool> ClearCharacterCache(string server, string characterName, string region, GameFlavor flavor)
     {
         var db = redis.GetDatabase();
         var cooldown = flavor.KeyPrefix() + "RefreshCooldown" + server + characterName + region;

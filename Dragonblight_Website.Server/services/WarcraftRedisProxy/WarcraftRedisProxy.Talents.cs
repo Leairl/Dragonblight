@@ -4,7 +4,7 @@ using ArgentPonyWarcraftClient;
 //A character's talents and spec, and the retail talent trees they are drawn on. All from Blizzard, cached.
 partial class WarcraftRedisProxy
 {
-    public async Task<CharacterSpecializationsSummary> GetPlayerTalents(string server, string characterName, string region, GameFlavor flavor = GameFlavor.MistsClassic)
+    public async Task<CharacterSpecializationsSummary> GetPlayerTalents(string server, string characterName, string region, GameFlavor flavor)
     {
         region = GetProfileRegion(region, flavor);
         return await GetBlizzardDataCached<CharacterSpecializationsSummary>("characterSpecSummary" + characterName + server + region, async () =>
@@ -18,7 +18,7 @@ partial class WarcraftRedisProxy
     //and every hero tree, each node carrying the grid position Wowhead lays them out by.
     //Static game data, so it is cached for a month. A failure returns null and is not cached,
     //so the next request retries instead of serving an empty tree for 30 days.
-    public async Task<TalentTree?> GetTalentTree(int specId, string region, GameFlavor flavor = GameFlavor.Retail)
+    public async Task<TalentTree?> GetTalentTree(int specId, string region, GameFlavor flavor)
     {
         var ns = GetStaticRegion(region, flavor);
         return await GetBlizzardDataCached<TalentTree?>("TalentTree" + specId + ns, async () =>
@@ -50,7 +50,7 @@ partial class WarcraftRedisProxy
         return match.Success ? int.Parse(match.Groups[1].Value) : null;
     }
 
-        public async Task<string> GetCharacterSpecName(string server, string characterName, string region, GameFlavor flavor = GameFlavor.MistsClassic)
+        public async Task<string> GetCharacterSpecName(string server, string characterName, string region, GameFlavor flavor)
     {
         return await GetBlizzardDataCached<string>(flavor.KeyPrefix() + "characterSpecName" + characterName + server + region, async () =>
         {

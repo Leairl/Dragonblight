@@ -11,5 +11,8 @@ public record PlayerActivity
 
      [JsonPropertyName("NewPlayer")]
     public PvpLeaderboardEntryandTime NewPlayer { get; init; }
+    
+    [JsonPropertyName("Spec")]
+    public string Spec { get; set; }
 
 }

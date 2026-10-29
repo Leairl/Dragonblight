@@ -1,58 +1,42 @@
-.DropdownMenuContent {
-  background-color: #292c3171; /* Transparent gray */
-  backdrop-filter: blur(10px); /* Blur effect */
-  padding: 8px;
-  border-radius: 4px;
-  border-style: solid;
-  border-color: #292c31;
-  border-width: 1px;
-  z-index: 100;
-  box-shadow: 0px 10px 15px rgba(0, 0, 0, 0.1);
-  margin-top: 4px; /* Gap between the dropdown and the button */
-}
+.ClassFilter { 
+  display: flex; 
+  flex-direction: 
+  column; gap: 10px; }
 
-.DropdownMenuItem {
-  padding: 4px 8px; /* Reduced padding for shorter items */
-  cursor: pointer;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  transition: background-color 0.2s ease, opacity 0.2s ease;
-  margin-bottom: 4px; /* Gap between items */
-  outline: none; /* Remove focus outline */
-  opacity: 0.5; /* Default opacity for unselected items */
-}
-
-.DropdownMenuItem.selected {
-  opacity: 1; /* Full opacity for selected items */
-  background-color: transparent; /* Remove background color for selected items */
-  color: #000; /* Ensure text color is distinct */
-}
-
-.DropdownMenuItem:hover {
-  background-color: #0070f3; /* Blue highlight for hover state */
-}
-
-.DropdownMenuItem.selected:hover {
-  background-color: #0070f3; /* Blue highlight for hover state */
-}
-
-.CheckboxRoot {
-  width: 20px;
-  height: 20px;
-  margin-right: 8px;
-  border: 1px solid #ffffff;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
+.ClassRow, .SpecRow { 
+  display: flex; 
+  flex-wrap: wrap; 
+  gap: 10px; 
   justify-content: center;
-  pointer-events: none; /* Disable pointer events on the root element */
 }
 
-.CheckboxIndicator {
-  color: white; /* Color for the checkmark */
+.ClassButton, .SpecButton {
+  padding: 0;
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0.4;
+  transition: opacity 0.2s ease, transform 0.1s ease;
 }
+.ClassButton img { width: 36px; height: 36px; display: block; border-radius: 2px; }
+.SpecButton img { width: 28px; height: 28px; display: block; border-radius: 2px; }
+.ClassButton:hover, .SpecButton:hover { opacity: 0.8; }
+.ClassButton.selected, .SpecButton.selected { opacity: 1; }
 
+.AllButton { color: white; padding: 0 10px; height: 40px; }
+
+/* several classes can be open at once, so each class's specs stack under it instead of spreading sideways */
+.MultiClass .ClassSlot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.MultiClass .SpecPopout {
+  position: static;
+  transform: none;
+  margin-bottom: -46px;
+}
 .ClassIcon {
   width: 20px; /* Set a fixed width for the icons */
   height: 20px; /* Set a fixed height for the icons */
@@ -89,4 +73,26 @@
 html body {
     overflow: auto !important;
     margin-right: 0px !important;
+}
+/* the spec icons sit centred under the class they belong to */
+.ClassSlot {
+  position: relative;
+}
+.SpecPopout {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content; /* the slot is one icon wide; without this the specs are squeezed into it */
+  display: flex;
+  gap: 6px;
+  background: #292c31;
+  border-radius: 6px;
+  z-index: 10;
+}
+
+/* room for the spec icons, so they do not cover the "Showing 1 - 50" line */
+.SpecSpace {
+  padding-top: 22px;
+  padding-bottom: 46px;
 }

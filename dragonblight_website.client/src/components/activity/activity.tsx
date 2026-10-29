@@ -23,6 +23,7 @@ import ClassFilter from "../class-filter/class-filter";
 import { InfoCircledIcon } from "@radix-ui/react-icons";
 import Cutoffs from "../cutoffs/cutoffs";
 import { brackets } from "../../helpers/game-flavor";
+import classNames from "classnames";
 
 const Skeletons = [0, 1, 2];
 
@@ -41,6 +42,20 @@ function Activity() {
   const [selectedClasses, setSelectedClasses] = useState<string[]>([
     "All Classes",
   ]);
+    const [selectedSpecs, setSelectedSpecs] = useState<string[]>([]);
+    
+    function ladderFilter(): string[] {
+    const classAndSpecFilter: string[] = [];
+    for (const className of selectedClasses) {
+      const specsForClass = selectedSpecs.filter(spec => spec.startsWith(className + ":"));
+      if (specsForClass.length > 0) {
+        classAndSpecFilter.push(...specsForClass);
+      } else {
+        classAndSpecFilter.push(className);
+      }
+    }
+    return classAndSpecFilter;
+  }
   //getting values that are changeable
   useEffect(() => {
     if (selectedClasses != null && selectedClasses.length > 0) {
@@ -48,10 +63,10 @@ function Activity() {
       if (selectedClasses.includes("All Classes")) {
         LadderData();
       } else {
-        FilteredLadderData(selectedClasses, bracket);
+        FilteredLadderData(ladderFilter(), bracket);
       }
     }
-  }, [bracket, region, page, selectedClasses]);
+  }, [bracket, region, page, selectedClasses, selectedSpecs]);
 
   //when page changes, call useeffect and update the skip amount
   const handlePageChange = (page: number) => {
@@ -77,8 +92,7 @@ function Activity() {
    <Cutoffs region={region} bracket={bracket}></Cutoffs>
       <div className="flex-col">
         <div className="flex-row justify-center flex px-0 py-3 flex-wrap">
-          <ClassFilter onSelect={(sc) => setSelectedClasses(sc)}></ClassFilter>
-          <div className="left50"></div>
+     
           <div className={loading ? "div-disabled" : ""}>
             <SegmentedControl.Root
               className=" w-[250px] grow-0"
@@ -146,6 +160,10 @@ function Activity() {
           </div>
         </div>
       </div>
+<ClassFilter region={region} onChange={(classes, specs) => {
+  setSelectedClasses(classes);
+  setSelectedSpecs(specs);
+}} />
       <div>
           <Pagination
           currentPage={page}

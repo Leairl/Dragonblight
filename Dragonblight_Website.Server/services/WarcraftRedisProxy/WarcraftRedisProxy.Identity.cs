@@ -13,7 +13,7 @@ partial class WarcraftRedisProxy
         return flavor.KeyPrefix() + "identity-" + region.ToLowerInvariant() + "-" + id;
     }
 
-    public async Task<CharacterIdentity?> GetCharacterIdentity(int id, string region, GameFlavor flavor = GameFlavor.MistsClassic)
+    public async Task<CharacterIdentity?> GetCharacterIdentity(int id, string region, GameFlavor flavor)
     {
         return await GetRedisData<CharacterIdentity>(IdentityKey(id, region, flavor));
     }
