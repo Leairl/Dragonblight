@@ -18,7 +18,8 @@ function bestReward(
   rewards: Dragonblight.PvpSeasonRewardWithRank[] | undefined,
   bracketType: string | undefined,
   rating: number | undefined,
-  specId?: number
+  specId?: number,
+  faction?: string
 ): Dragonblight.PvpSeasonRewardWithRank | undefined {
   if (!bracketType) {
     return undefined;
@@ -26,7 +27,9 @@ function bestReward(
   let best: Dragonblight.PvpSeasonRewardWithRank | undefined;
   for (const r of rewards ?? []) {
     const reached = r.bracket?.type?.includes(bracketType) &&
+    // undefined because some brackets don't have a spec or faction
       (specId === undefined || r.specialization?.id === specId) &&
+      (faction === undefined || r.faction?.type === undefined || r.faction.type === faction) &&
       r.rating_cutoff > 0 &&
       (rating ?? 0) >= r.rating_cutoff;
     if (reached && r.rating_cutoff > (best?.rating_cutoff ?? -1)) {
