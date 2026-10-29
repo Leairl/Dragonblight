@@ -60,7 +60,7 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
 
 
   function getRetailTier(bracket: string, current_rating: number, specId?: number): RatingTier | undefined {
-    const rank1 = bestReward(rewards, bracket, current_rating, specId);
+    const rank1 = bestReward(rewards, bracket, current_rating, specId, characterFaction);
     if (rank1 && current_rating >= rank1.rating_cutoff) {
       return {
         // "Venomous Gladiator: Midnight Season 2" -> "Venomous Gladiator"
@@ -101,7 +101,7 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
       const tier = getRetailTier(bracket, current_rating, specId);
       return tier ? `${tier.label} ${tier.title}` : "";
     }
-    const reward = bestReward(rewards, bracket, current_rating, specId);
+    const reward = bestReward(rewards, bracket, current_rating, specId, characterFaction);
     const title = reward?.achievement?.name?.split(":")[0];
     return title ? `Predicted Title: ${title}` : "";
   }

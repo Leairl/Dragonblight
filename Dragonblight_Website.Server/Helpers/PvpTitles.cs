@@ -31,7 +31,7 @@ public static class PvpTitles
             "Challenger" => Tier.Challenger,
             _ when IsRankOne(title, "Gladiator") => Tier.RankOne,
             _ when IsRankOne(title, "Legend") => Tier.LegendRankOne,
-            _ when IsRankOne(title, "Marshal") => Tier.BlitzRankOne,
+            _ when IsRankOne(title, "Marshal") || IsRankOne(title, "Warlord") => Tier.BlitzRankOne,
             _ => null,
         };
         
