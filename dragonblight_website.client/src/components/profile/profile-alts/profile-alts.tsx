@@ -15,15 +15,17 @@ const ProfileAlts: FC = (/*props*/) => {
   const [alts, setAlts] = useState<Dragonblight.GetAltsResponse[]>();
   const [loading, setLoading] = useState<boolean>(true);
   const [rewards, setRewards] = useState<Dragonblight.PvpSeasonRewardWithRank[]>([]);
+  const [sortBracket, setSortBracket] = useState<string | null>(null);
   const { region, server, characterName } = useParams();
-const rewardBracket: Record<string, string> = {
-  "2v2": "ARENA_2v2",
-  "3v3": "ARENA_3v3",
-  "5v5": "ARENA_5v5",
-  rbg: "BATTLEGROUNDS",
-  shuffle: "SHUFFLE",
-  blitz: "BLITZ",
-};
+
+  const rewardBracket: Record<string, string> = {
+    "2v2": "ARENA_2v2",
+    "3v3": "ARENA_3v3",
+    "5v5": "ARENA_5v5",
+    rbg: "BATTLEGROUNDS",
+    shuffle: "SHUFFLE",
+    blitz: "BLITZ",
+  };
 
   //same pattern as the other profile panes: refetch whenever the looked up character changes
   useEffect(() => {
@@ -53,8 +55,28 @@ const rewardBracket: Record<string, string> = {
       .then(setRewards)
       .catch(() => setRewards([]))
   }, [region]);
+
   const soloLadders: string[] = flavorBrackets().filter((b) => b === "shuffle" || b === "blitz");
   const brackets = flavorBrackets().filter((b) => !soloLadders.includes(b));
+
+  function sortRating(alt: Dragonblight.GetAltsResponse, bracket: string): number {
+    if (!soloLadders.includes(bracket)) {
+      return alt.ratings?.[bracket] ?? 0;
+    }
+    const specs = alt.soloRatings?.filter((soloRating) => soloRating.ladder === bracket) ?? [];
+    let best = 0;
+    for (const spec of specs) {
+      best = Math.max(best, spec.rating ?? 0);
+    }
+    return best;
+  }
+  let sortedAlts = alts ?? [];
+  if (sortBracket) {
+    // makes a copy of the alts array and sorts them by max
+    sortedAlts = [...sortedAlts];
+    sortedAlts.sort((alt1, alt2) => sortRating(alt2, sortBracket) - sortRating(alt1, sortBracket));
+  }
+
   const gridStyle = {
     gridTemplateColumns: `minmax(220px, 2fr) repeat(${flavorBrackets().length}, minmax(70px, 1fr))`,
 
@@ -75,25 +97,36 @@ const rewardBracket: Record<string, string> = {
           {alts && alts.length > 0 && (
             <div className="alt-grid alt-grid-header" style={gridStyle}>
               <span>Character</span>
-              {brackets.map((b) => <span key={b}>{b.toUpperCase()}</span>)}
-              {soloLadders.map((l) => <span key={l}>{l.toUpperCase()}</span>)}
+              {/* loops through each bracket and if we click a bracket itll set
+              that bracket to sortBracket which will compare each alts rating until it is
+              ordered by descending.
+              */}
+              {[...brackets, ...soloLadders].map((bracket) => (
+                <button
+                  key={bracket}
+                  className={`alt-sort ${sortBracket === bracket ? "alt-sort-active" : ""}`}
+                  onClick={() => setSortBracket(sortBracket === bracket ? null : bracket)}
+                >
+                  {bracket.toUpperCase()}{sortBracket === bracket ? "▽" : ""}
+                </button>
+              ))}
             </div>
           )}
-          {alts?.map(getAltCard)}
+          {sortedAlts?.map(getAltCard)}
         </div>
       )}
     </div>
   );
   function getRatingCell(bracket: string, rating: number | undefined) {
-     const color = ratingColor(rewards, rewardBracket[bracket], rating);
+    const color = ratingColor(rewards, rewardBracket[bracket], rating);
     return (
       <span className="alt-cell alt-rating" key={bracket}>
-        {rating ? 
-        (
-          <span className={color}>{rating}</span>
-        ) : (
-          <span className="alt-none">–</span>
-        )}
+        {rating ?
+          (
+            <span className={color}>{rating}</span>
+          ) : (
+            <span className="alt-none">–</span>
+          )}
       </span>
     );
   }
@@ -109,12 +142,12 @@ const rewardBracket: Record<string, string> = {
         {/* loops through specs for solo and checks the highest tier for that characters rating in that spec bracket*/}
         {specs.map((s) => {
           const color = ratingColor(rewards, rewardBracket[ladder], s.rating, s.specId);
-        return(
-        <span className="alt-rating" key={s.slug} title={`${s.specName} · ${label}`}>
-          <img className="alt-spec-icon" src={SoloSpecIcon(s)} alt={s.specName} />
-          <span className={color}>{s.rating}</span>
-        </span>
-        );
+          return (
+            <span className="alt-rating" key={s.slug} title={`${s.specName} · ${label}`}>
+              <img className="alt-spec-icon" src={SoloSpecIcon(s)} alt={s.specName} />
+              <span className={color}>{s.rating}</span>
+            </span>
+          );
         })}
       </div>
     );
@@ -150,7 +183,6 @@ const rewardBracket: Record<string, string> = {
             <span className="alt-spec">{alt.spec}</span>
           </div>
           {brackets.map((b) => getRatingCell(b, alt.ratings?.[b]))}
-
           {soloLadders.map((l) => getSoloRatings(alt, l, l === "shuffle" ? "Solo Shuffle" : "Blitz"))}
         </div>
 

@@ -14,6 +14,16 @@
     opacity: .6;
 
 }
+.alt-sort {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: inherit;
+}
+.alt-sort:hover { opacity: 0.8; }
 
 .alt-solo-row {
     display: flex;
