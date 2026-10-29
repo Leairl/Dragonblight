@@ -1,7 +1,7 @@
 import React, { FC, ReactElement, useEffect, useState } from "react";
 import { Dragonblight } from "../../../clients/Dragonblight";
 import { useParams } from "react-router";
-import { Card, Heading, Separator, Skeleton } from "@radix-ui/themes";
+import { Card, Heading, Separator, Skeleton, HoverCard, DataList } from "@radix-ui/themes";
 import "./profile-rating.css";
 import { brackets, getFlavor } from "../../../helpers/game-flavor";
 import { bestReward, ratingColor, RatingTier, RetailTiers } from "../../../helpers/ratingTierHelper";
@@ -152,6 +152,9 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
   }
 
   function getRatingCard(BracketStatistics: Dragonblight.CharacterPvpBracketStatistics | null, index: number): ReactElement {
+    const stats = (BracketStatistics?.specialization?.id != null ? BracketStatistics?.season_round_statistics : undefined)
+      ?? BracketStatistics?.season_match_statistics;
+    const winRate = stats?.played ? `${Math.round(((stats.won ?? 0) / stats.played) * 100)}%` : "-";
     return (
       <div className={"pb-10 rating-card"} key={"GetRating" + index}>
 
@@ -187,29 +190,36 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
               {BracketStatistics?.rating ? BracketStatistics?.rating : "0"}
             </div>
           </div>
-          <div className="flex justify-center text-sm">
-            <span className="text-green-300">
-              {
-                BracketStatistics?.specialization?.id != null
-                  ? BracketStatistics?.season_round_statistics?.won
-                  ?? BracketStatistics?.season_match_statistics?.won
-                  : BracketStatistics?.season_match_statistics?.won
-              }
-            </span>
-            &nbsp;{
-              BracketStatistics?.specialization?.id != null
-                ? BracketStatistics?.season_round_statistics?.played != null
-                  || BracketStatistics?.season_match_statistics?.played != null ? "-" : ""
-                : BracketStatistics?.season_match_statistics?.played != null ? "-" : " "}&nbsp;{" "}
-            <span className="text-red-300">
-              {
-                BracketStatistics?.specialization?.id != null
-                  ? BracketStatistics?.season_round_statistics?.lost
-                  ?? BracketStatistics?.season_match_statistics?.lost
-                  : BracketStatistics?.season_match_statistics?.lost
-              }
-            </span>
-          </div>
+          {BracketStatistics?.rating ? (
+            <HoverCard.Root openDelay={150} closeDelay={100}>
+              <HoverCard.Trigger>
+                {/* the win-loss line opens the popup */}
+                <button className="flex justify-center text-sm cursor-pointer hover:opacity-80">
+                  <span className="text-green-300">{stats?.won ?? 0}</span>
+                  &nbsp;-&nbsp;
+                  <span className="text-red-300">{stats?.lost ?? 0}</span>
+                </button>
+              </HoverCard.Trigger>
+              <HoverCard.Content size="1" side="bottom" align="center">
+                <DataList.Root size="1">
+                  <DataList.Item>
+                    <DataList.Label>Wins</DataList.Label>
+                    <DataList.Value className="text-green-300">{stats?.won ?? 0}</DataList.Value>
+                  </DataList.Item>
+                  <DataList.Item>
+                    <DataList.Label>Losses</DataList.Label>
+                    <DataList.Value className="text-red-300">{stats?.lost ?? 0}</DataList.Value>
+                  </DataList.Item>
+                  <DataList.Item>
+                    <DataList.Label>Win rate</DataList.Label>
+                    <DataList.Value>{winRate}</DataList.Value>
+                  </DataList.Item>
+                </DataList.Root>
+              </HoverCard.Content>
+            </HoverCard.Root>
+          ) : (
+            ""
+          )}
           {/* mt-auto fills all space vertically from the top, pushing the prediction text to the bottom */}
           <span className="text-xs italic mt-auto text-center">
             {getTitleLine(
@@ -243,6 +253,7 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
         }
       })
     }
+
     return (
       <div className="flex-wrap flex flex-col items-end">
         <div className="flex-wrap flex flex-row ">{RatingCards}</div>
