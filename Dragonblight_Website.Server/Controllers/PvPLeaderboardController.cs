@@ -23,6 +23,11 @@ namespace Dragonblight_Website.Server.Controllers
             _warcraftCachedData = warcraftCachedData; //dependency injection to IWarcraftRedisProxy cs file
             _redis = redis;
         }
+
+        [HttpGet("GetPlayableClasses")]
+        public async Task<ActionResult<List<WowClass>>> GetPlayableClasses(string region)
+    => Ok(await _warcraftCachedData.GetPlayableClasses(region, HttpContext.GetGameFlavor()));
+
         [HttpGet("GetSyncStatus")]
         public async Task<ActionResult<decimal>> GetSyncStatus(string region, string bracket)
         {
@@ -48,7 +53,7 @@ namespace Dragonblight_Website.Server.Controllers
         {
             try
             {
-                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries(bracket, region, HttpContext.GetGameFlavor()); 
+                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries(bracket, region, HttpContext.GetGameFlavor());
                 ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
                 return Ok(ladder.Skip(skip).Take(take));
             }
@@ -115,12 +120,12 @@ namespace Dragonblight_Website.Server.Controllers
                     {
                         return new PvpSeasonRewardWithRank
                         {
-                        Bracket = r.Bracket,
-                        Achievement = r.Achievement,
-                        RatingCutoff = r.RatingCutoff,
-                        Faction = r.Faction,
-                        Specialization = r.Specialization,
-                        rank = await GetRankFromCutoffs(r.RatingCutoff, r.Bracket.Type, region, r.Specialization?.Id)
+                            Bracket = r.Bracket,
+                            Achievement = r.Achievement,
+                            RatingCutoff = r.RatingCutoff,
+                            Faction = r.Faction,
+                            Specialization = r.Specialization,
+                            rank = await GetRankFromCutoffs(r.RatingCutoff, r.Bracket.Type, region, r.Specialization?.Id)
                         };
                     });
                     var result = await Task.WhenAll(pvpSeasonRewardWithRank);
@@ -136,18 +141,18 @@ namespace Dragonblight_Website.Server.Controllers
         }
         // generates an instance to compare data with (using record) as opposed to checking the instance of that class
         public record PvpSeasonRewardWithRank : PvpSeasonReward
-            
+
         {
-           [JsonPropertyName("rank")]
+            [JsonPropertyName("rank")]
             public int rank { get; set; }
         }
-       
+
         [HttpGet("GetRankFromCutoffs")]
         public async Task<int> GetRankFromCutoffs(int cutoff, string bracketType, string region, int? specId = null)
         {
             try
             {
-                
+
                 string bracket = bracketType.Replace("ARENA_", "").Replace("BATTLEGROUNDS", "rbg");
                 if (bracketType == "SHUFFLE" || bracketType == "BLITZ")
                 {
@@ -170,6 +175,16 @@ namespace Dragonblight_Website.Server.Controllers
         {
             try
             {
+                //filters by class and sorts by rank after pulling all data from the pvpleaderboard from a specific bracket
+                if (bracket.EndsWith("-overall"))
+                {
+                    var classNames = classes.Select(c => c.Split(':')[0]).ToHashSet();
+                    var ladder = await _warcraftCachedData.GetPvpLeaderSummaries(bracket, region, HttpContext.GetGameFlavor());
+                    return Ok(ladder
+                        .Where(l => l?.charSummary?.CharacterClass?.Name != null && classNames.Contains(l.charSummary.CharacterClass.Name))
+                        .OrderBy(l => l!.PvpEntry.Rank)
+                        .Skip(skip).Take(take));
+                }
                 List<PvpCharacterSummary> result = [];
                 List<PvpLeaderboardEntry?> filteredLadder = [];
                 foreach (var charClass in classes)
@@ -208,11 +223,11 @@ namespace Dragonblight_Website.Server.Controllers
 
             [JsonPropertyName("charSummary")]
             public required CharacterProfileSummary charSummary { get; init; }
-            
+
             [JsonPropertyName("spec")]
             public required string spec { get; init; }
         }
 
     }
-    
+
 }

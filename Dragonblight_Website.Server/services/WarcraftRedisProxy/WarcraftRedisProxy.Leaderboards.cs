@@ -7,7 +7,7 @@ using Dragonblight_Website.Server.Helpers;
 //ladder history is our own record, kept as Redis lists.
 partial class WarcraftRedisProxy
 {
-    public async Task<PvpLeaderboard> GetLeaderboard(string region, string bracket, GameFlavor flavor = GameFlavor.MistsClassic)
+    public async Task<PvpLeaderboard> GetLeaderboard(string region, string bracket, GameFlavor flavor)
     {
         var ns = GetDynamicRegion(region, flavor);
         return await GetBlizzardDataCached<PvpLeaderboard>("getLeaderboard" + bracket + ns, async () =>
@@ -16,7 +16,7 @@ partial class WarcraftRedisProxy
             return currLeaderboard.Value;
         }, TimeSpan.FromHours(3)); //uses getredisproxy generic type of pvpleaderboard to get rbg ladder + region from redis
     }
-    public async Task<PvpLeaderboardsIndex> GetLeaderboardIndex(string region, GameFlavor flavor = GameFlavor.MistsClassic)
+    public async Task<PvpLeaderboardsIndex> GetLeaderboardIndex(string region, GameFlavor flavor)
     {
         var ns = GetDynamicRegion(region, flavor);
         return await GetBlizzardDataCached<PvpLeaderboardsIndex>("getLeaderboardsIndex" + ns, async () =>
@@ -27,7 +27,7 @@ partial class WarcraftRedisProxy
     }
     
     // Gets all ladder brackets and finds all of the specialization data we need for shuffle and blitz.
-    public async Task<List<LadderBracket>> GetLadderBrackets(string region, GameFlavor flavor = GameFlavor.MistsClassic)
+    public async Task<List<LadderBracket>> GetLadderBrackets(string region, GameFlavor flavor)
     {
         var ns = GetDynamicRegion(region, flavor);
         return await GetBlizzardDataCached<List<LadderBracket>>("getLadderBrackets" + ns, async () =>
@@ -59,7 +59,7 @@ partial class WarcraftRedisProxy
             return brackets;
         }, TimeSpan.FromHours(3)); 
     }
-    public async Task<PvpRewardsIndex> GetPvPRewards(string region, GameFlavor flavor = GameFlavor.MistsClassic)
+    public async Task<PvpRewardsIndex> GetPvPRewards(string region, GameFlavor flavor)
     {
 
         var ns = GetDynamicRegion(region, flavor);
@@ -70,7 +70,7 @@ partial class WarcraftRedisProxy
             return ActivePvpRewards.Value;
         }, TimeSpan.FromHours(6)); //uses getredisproxy generic type of pvpleaderboard to get rbg ladder + region from redis
     }
-    public async Task AddToLadderHistory(string key, string region, PvpLeaderboard currLadder, GameFlavor flavor = GameFlavor.MistsClassic) //get rbgLeaderboard in redis
+    public async Task AddToLadderHistory(string key, string region, PvpLeaderboard currLadder, GameFlavor flavor) //get rbgLeaderboard in redis
     {
         var currLadderAndTime = new PvpLeaderboardAndTime
         {
@@ -84,7 +84,7 @@ partial class WarcraftRedisProxy
         await db.ListRightPushAsync(flavor.KeyPrefix() + key + region, JsonSerializer.Serialize(currLadderAndTime));
     }
 
-    public async Task<IEnumerable<PvpLeaderboardAndTime?>> GetLadderHistory(string key, string region, GameFlavor flavor = GameFlavor.MistsClassic)
+    public async Task<IEnumerable<PvpLeaderboardAndTime?>> GetLadderHistory(string key, string region, GameFlavor flavor)
     {
         region = GetDynamicRegion(region, flavor);
         var db = redis.GetDatabase(); //var to redis database
@@ -100,7 +100,7 @@ partial class WarcraftRedisProxy
     }
 
     //seasons differ per flavor, so the namespace is derived here rather than assumed
-    public async Task<int> GetSeason(string region, GameFlavor flavor = GameFlavor.MistsClassic) // get currSeason in redis
+    public async Task<int> GetSeason(string region, GameFlavor flavor) // get currSeason in redis
     {
         var ns = GetDynamicRegion(region, flavor);
         return await GetBlizzardDataCached<int>("GetCurrSeason" + ns, async () =>
@@ -111,7 +111,7 @@ partial class WarcraftRedisProxy
     }
     //when the current season began, so season achievements can be told apart from last season's
     //nullable so a cache miss reads as null and reaches Blizzard; a bare DateTimeOffset would read as year 1
-    public async Task<DateTimeOffset?> GetSeasonStart(string region, GameFlavor flavor = GameFlavor.MistsClassic)
+    public async Task<DateTimeOffset?> GetSeasonStart(string region, GameFlavor flavor)
     {
         var ns = GetDynamicRegion(region, flavor);
         int season = await GetSeason(region, flavor);
@@ -122,7 +122,7 @@ partial class WarcraftRedisProxy
         }, TimeSpan.FromDays(1));
     }
 
-    public async Task ClearLeaderboard(string bracket, string region, GameFlavor flavor = GameFlavor.MistsClassic)
+    public async Task ClearLeaderboard(string bracket, string region, GameFlavor flavor)
     {
         region = GetDynamicRegion(region, flavor);
         string key = "getLeaderboard" + bracket + region;

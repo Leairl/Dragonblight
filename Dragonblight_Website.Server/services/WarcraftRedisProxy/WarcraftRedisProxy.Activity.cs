@@ -5,7 +5,7 @@ using ArgentPonyWarcraftClient;
 //calls Blizzard; the background sync feeds it.
 partial class WarcraftRedisProxy
 {
-    public async Task InsertToPlayerPageActivity(string bracket, string region, PvpLeaderboardEntry player, GameFlavor flavor = GameFlavor.MistsClassic)
+    public async Task InsertToPlayerPageActivity(string bracket, string region, PvpLeaderboardEntry player, GameFlavor flavor)
     {
         var PvpLeaderboardEntryandTime = new PvpLeaderboardEntryandTime
         {
@@ -20,7 +20,7 @@ partial class WarcraftRedisProxy
         var db = redis.GetDatabase();
         await db.ListRightPushAsync(flavor.KeyPrefix() + "actvity" + bracket + region + player.Character.Id, JsonSerializer.Serialize(PvpLeaderboardEntryandTime));
     }
-    public async Task<IEnumerable<PvpLeaderboardEntryandTime?>> GetPlayerPageActivity(string bracket, string region, string characterId, GameFlavor flavor = GameFlavor.MistsClassic)
+    public async Task<IEnumerable<PvpLeaderboardEntryandTime?>> GetPlayerPageActivity(string bracket, string region, string characterId, GameFlavor flavor)
     {
         var db = redis.GetDatabase(); //var to redis database
         string keyAndRegion = flavor.KeyPrefix() + "actvity" + bracket + region + characterId;
@@ -32,7 +32,7 @@ partial class WarcraftRedisProxy
             return JsonSerializer.Deserialize<PvpLeaderboardEntryandTime>(player!.ToString());
         }).ToList();
     }
-    public async Task InsertToBracketActivityPage(string bracket, string region, PvpLeaderboardEntry oldPlayer, PvpLeaderboardEntry newPlayer, GameFlavor flavor = GameFlavor.MistsClassic)
+    public async Task InsertToBracketActivityPage(string bracket, string region, PvpLeaderboardEntry oldPlayer, PvpLeaderboardEntry newPlayer, GameFlavor flavor)
     {
         var OldPvpLeaderboardEntryandTime = new PvpLeaderboardEntryandTime
         {
@@ -66,7 +66,7 @@ partial class WarcraftRedisProxy
     {
         var db = redis.GetDatabase(); //var to redis database
         string keyAndRegion = flavor.KeyPrefix() + "actvity" + bracket + region;
-        var expiredPlayers = await GetBracketActivityPage(bracket, region);
+        var expiredPlayers = await GetBracketActivityPage(bracket, region, flavor);
         int c = 0;
         foreach (var expiredPlayer in expiredPlayers)
         {
@@ -80,7 +80,7 @@ partial class WarcraftRedisProxy
             await db.ListTrimAsync(keyAndRegion, c, -1);
         }
     }
-    public async Task<IEnumerable<PlayerActivity?>> GetBracketActivityPage(string bracket, string region, GameFlavor flavor = GameFlavor.MistsClassic)
+    public async Task<IEnumerable<PlayerActivity?>> GetBracketActivityPage(string bracket, string region, GameFlavor flavor)
     {
         var db = redis.GetDatabase(); //var to redis database
         string keyAndRegion = flavor.KeyPrefix() + "actvity" + bracket + region;
@@ -92,20 +92,27 @@ partial class WarcraftRedisProxy
             return JsonSerializer.Deserialize<PlayerActivity>(player!.ToString());
         }).Where(p => p != null && p.NewPlayer != null && p.OldPlayer != null).ToList();
     }
-    public async Task<IEnumerable<PlayerActivity?>> GetBracketClassFilteredActivityPage(string bracket, string region, string characterClass, GameFlavor flavor = GameFlavor.MistsClassic)
+    public async Task<IEnumerable<PlayerActivity?>> GetBracketClassFilteredActivityPage(string bracket, string region, string characterClass, GameFlavor flavor)
     {
         var db = redis.GetDatabase(); //var to redis database
+        var parts = characterClass.Split(':');
+        var className = parts[0];
+        var specName = parts.Length > 1 ? parts[1] : null;
         string keyAndRegion = flavor.KeyPrefix() + "activity" + bracket + "_" + characterClass + "_" + region;
         var ladder = await db.ListRangeAsync(keyAndRegion);
         //convert player to pvpleaderboardentry (for our filtered list of strings)
+        //and for each entry with a specName / no spec asked for we keep it
+
         return ladder.Where(p => p.HasValue).Select(player =>
         {
             //deserialized out of json to become an object.
             return JsonSerializer.Deserialize<PlayerActivity>(player!.ToString());
-        }).Where(p => p != null && p.NewPlayer != null && p.OldPlayer != null).ToList();
+        }).Where(p => p != null && p.NewPlayer != null && p.OldPlayer != null)
+        .Where(p => specName == null || p!.Spec == specName)
+    .ToList();
     }
 
-    public async Task InsertActivityCacheClassCharacter(string bracket, PvpLeaderboardEntry oldPlayer, PvpLeaderboardEntry newPlayer, CharacterProfileSummary characterClass, string region, GameFlavor flavor = GameFlavor.MistsClassic)
+    public async Task InsertActivityCacheClassCharacter(string bracket, PvpLeaderboardEntry oldPlayer, PvpLeaderboardEntry newPlayer, CharacterProfileSummary characterClass, string specName, string region, GameFlavor flavor)
     //these all return a string, allowing us to connect ed to cachedclasscharacters function
     {
         var OldPvpLeaderboardEntryandTime = new PvpLeaderboardEntryandTime
@@ -131,7 +138,8 @@ partial class WarcraftRedisProxy
         var newPlayerActivity = new PlayerActivity
         {
             OldPlayer = OldPvpLeaderboardEntryandTime,
-            NewPlayer = NewPvpLeaderboardEntryandTime
+            NewPlayer = NewPvpLeaderboardEntryandTime,
+            Spec = specName
         };
         if (oldPlayer == null) { return; }
         if (newPlayer == null) { return; }
@@ -146,11 +154,11 @@ partial class WarcraftRedisProxy
         await db.ListRemoveAsync(key, serializedPlayer);
         await db.ListRightPushAsync(key, serializedPlayer);
     }
-    public async Task BracketClassPlayerExpiration(string bracket, string region, string characterClass, GameFlavor flavor = GameFlavor.MistsClassic)
+    public async Task BracketClassPlayerExpiration(string bracket, string region, string characterClass, GameFlavor flavor)
     {
         var db = redis.GetDatabase(); //var to redis database
         string keyAndRegion = flavor.KeyPrefix() + "activity" + bracket + "_" + characterClass + "_" + region;
-        var expiredPlayers = await GetBracketClassFilteredActivityPage(bracket, region, characterClass);
+        var expiredPlayers = await GetBracketClassFilteredActivityPage(bracket, region, characterClass, flavor);
         int c = 0;
         foreach (var expiredPlayer in expiredPlayers)
         {

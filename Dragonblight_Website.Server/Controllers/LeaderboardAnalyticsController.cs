@@ -20,23 +20,26 @@ namespace Dragonblight_Website.Server.Controllers
             _warcraftCachedData = warcraftCachedData; //dependency injection to IWarcraftRedisProxy cs file
         }
 
-[HttpPost("ClassStatisticsForLeaderboard")]
-        public async Task<ActionResult<IEnumerable<ClassAnalytics>>> GetLeaderboardAnalytics( string region, string bracket)
+        [HttpPost("ClassStatisticsForLeaderboard")]
+        public async Task<ActionResult<IEnumerable<ClassAnalytics>>> GetLeaderboardAnalytics(string region, string bracket)
         // foreach allows us to select multiple classes on our leaderboard
-        
+
         {
-            try{
-            List<string> classes = ["Warrior", "Paladin", "Hunter", "Rogue", "Priest", "Death Knight", "Shaman", "Mage", "Warlock", "Druid", "Monk"];
-            List<ClassAnalytics?> result = [];
-            foreach (var charClass in classes) {
-                var classLeaderboard = await _warcraftCachedData.CachedClassCharacters(region, charClass, bracket, HttpContext.GetGameFlavor());
-                result.Add(new ClassAnalytics {
-                    className = charClass,
-                    PvpEntries = classLeaderboard.ToArray()
-                });   
+            try
+            {
+                var classes = (await _warcraftCachedData.GetPlayableClasses(region, HttpContext.GetGameFlavor())).Select(c => c.Name);
+                List<ClassAnalytics?> result = [];
+                foreach (var charClass in classes)
+                {
+                    var classLeaderboard = await _warcraftCachedData.CachedClassCharacters(region, charClass, bracket, HttpContext.GetGameFlavor());
+                    result.Add(new ClassAnalytics
+                    {
+                        className = charClass,
+                        PvpEntries = classLeaderboard.ToArray()
+                    });
+                }
+                return Ok(result);
             }
-            return Ok(result);
-        }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred while getting class stats.");

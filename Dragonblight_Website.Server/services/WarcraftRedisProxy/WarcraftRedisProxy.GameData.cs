@@ -5,7 +5,7 @@ partial class WarcraftRedisProxy
 {
     //gets an item's icon media, scoped to the game flavor so retail and classic
     //never share a cache entry for the same item id
-    public async Task<ItemMedia?> GetItemIcon(int itemId, string region, GameFlavor flavor = GameFlavor.MistsClassic)
+    public async Task<ItemMedia?> GetItemIcon(int itemId, string region, GameFlavor flavor)
     {
         region = GetStaticRegion(region, flavor);
         return await GetBlizzardDataCached<ItemMedia?>("ItemIcon" + itemId + region, async () =>
@@ -16,7 +16,7 @@ partial class WarcraftRedisProxy
             return getItemIcon.Success ? getItemIcon.Value : null;
         }, TimeSpan.FromDays(30));
     }
-    public async Task<PlayableClass?> GetPlayableClass(int classId, string region, GameFlavor flavor = GameFlavor.Retail)
+    public async Task<PlayableClass?> GetPlayableClass(int classId, string region, GameFlavor flavor)
     {
         var ns = GetStaticRegion(region, flavor);
         return await GetBlizzardDataCached<PlayableClass?>("PlayableClass" + classId + ns, async () =>
@@ -25,8 +25,26 @@ partial class WarcraftRedisProxy
             return playableClass.Success ? playableClass.Value : null;
         }, TimeSpan.FromDays(30));
     }
+    public async Task<PlayableClassesIndex?> PlayableClassesIndex(string region, GameFlavor flavor)
+    {
+        var ns = GetStaticRegion(region, flavor);
+        return await GetBlizzardDataCached<PlayableClassesIndex?>("PlayableClassesIndex" + ns, async () =>
+        {
+            var classesIndex = await warcraftClient.GetPlayableClassesIndexAsync(ns, GetRegion(ns), GetLocale(ns));
+            return classesIndex.Success ? classesIndex.Value : null;
+        }, TimeSpan.FromDays(30));
+    }
+    public async Task<List<WowClass>> GetPlayableClasses(string region, GameFlavor flavor)
+    {
+        var classIndex = await PlayableClassesIndex(region, flavor);
+        var classes = await Task.WhenAll((classIndex?.Classes ?? []).Select(c => GetPlayableClass(c.Id, region, flavor)));
+        return classes.Where(c => c != null)
+            .OrderBy(c => c!.Id)
+            .Select(c => new WowClass { Id = c!.Id, Name = c.Name, Specs = (c.Specializations ?? []).Select(s => s.Name).ToList() })
+            .ToList();
+    }
 
-    public async Task<PlayableSpecialization?> PlayableSpecialization(int specializationId, string region, GameFlavor flavor = GameFlavor.Retail)
+    public async Task<PlayableSpecialization?> PlayableSpecialization(int specializationId, string region, GameFlavor flavor)
     {
         var ns = GetStaticRegion(region, flavor);
         return await GetBlizzardDataCached<PlayableSpecialization?>("PlayableSpecialization" + specializationId + ns, async () =>
@@ -35,8 +53,8 @@ partial class WarcraftRedisProxy
             return specialization.Success ? specialization.Value : null;
         }, TimeSpan.FromDays(30));
     }
-        
-    public async Task<PlayableSpecializationsIndex?> PlayableSpecializationsIndex(string region, GameFlavor flavor = GameFlavor.Retail)
+
+    public async Task<PlayableSpecializationsIndex?> PlayableSpecializationsIndex(string region, GameFlavor flavor)
     {
         var ns = GetStaticRegion(region, flavor);
         return await GetBlizzardDataCached<PlayableSpecializationsIndex?>("PlayableSpecializationsIndex" + ns, async () =>
@@ -48,11 +66,34 @@ partial class WarcraftRedisProxy
     //inventory type names Blizzard returns, mapped to the numbers the model viewer files armor under
     private static readonly Dictionary<string, int> InventoryTypes = new()
     {
-        ["HEAD"] = 1, ["NECK"] = 2, ["SHOULDER"] = 3, ["BODY"] = 4, ["CHEST"] = 5, ["WAIST"] = 6,
-        ["LEGS"] = 7, ["FEET"] = 8, ["WRIST"] = 9, ["HAND"] = 10, ["FINGER"] = 11, ["TRINKET"] = 12,
-        ["WEAPON"] = 13, ["SHIELD"] = 14, ["RANGED"] = 15, ["CLOAK"] = 16, ["TWOHWEAPON"] = 17,
-        ["BAG"] = 18, ["TABARD"] = 19, ["ROBE"] = 20, ["WEAPONMAINHAND"] = 21, ["WEAPONOFFHAND"] = 22,
-        ["HOLDABLE"] = 23, ["AMMO"] = 24, ["THROWN"] = 25, ["RANGEDRIGHT"] = 26, ["QUIVER"] = 27, ["RELIC"] = 28,
+        ["HEAD"] = 1,
+        ["NECK"] = 2,
+        ["SHOULDER"] = 3,
+        ["BODY"] = 4,
+        ["CHEST"] = 5,
+        ["WAIST"] = 6,
+        ["LEGS"] = 7,
+        ["FEET"] = 8,
+        ["WRIST"] = 9,
+        ["HAND"] = 10,
+        ["FINGER"] = 11,
+        ["TRINKET"] = 12,
+        ["WEAPON"] = 13,
+        ["SHIELD"] = 14,
+        ["RANGED"] = 15,
+        ["CLOAK"] = 16,
+        ["TWOHWEAPON"] = 17,
+        ["BAG"] = 18,
+        ["TABARD"] = 19,
+        ["ROBE"] = 20,
+        ["WEAPONMAINHAND"] = 21,
+        ["WEAPONOFFHAND"] = 22,
+        ["HOLDABLE"] = 23,
+        ["AMMO"] = 24,
+        ["THROWN"] = 25,
+        ["RANGEDRIGHT"] = 26,
+        ["QUIVER"] = 27,
+        ["RELIC"] = 28,
     };
 
     //Model viewer display info for an item: item -> appearance -> item_display_info_id.
@@ -81,13 +122,13 @@ partial class WarcraftRedisProxy
         }, TimeSpan.FromDays(30));
     }
 
-    public async Task<RealmsIndex?> GetRealms(string region, GameFlavor flavor = GameFlavor.MistsClassic)
+    public async Task<RealmsIndex?> GetRealms(string region, GameFlavor flavor)
     {
         var ns = GetDynamicRegion(region, flavor);
         return await GetBlizzardDataCached<RealmsIndex?>("Realmindex_" + ns, async () =>
         {
             var getRealmIndex = await warcraftClient.GetRealmsIndexAsync(ns, GetRegion(ns), GetLocale(ns));
-            return getRealmIndex.Success ? getRealmIndex.Value: throw new Exception("Failure to Retrieve Realms");
+            return getRealmIndex.Success ? getRealmIndex.Value : throw new Exception("Failure to Retrieve Realms");
         }, TimeSpan.FromDays(30));
     }
 }

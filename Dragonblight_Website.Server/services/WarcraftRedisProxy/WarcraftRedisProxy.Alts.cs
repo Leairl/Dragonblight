@@ -44,7 +44,7 @@ partial class WarcraftRedisProxy
     }
 
     //a set, so a character that is looked up twice is stored once
-    public async Task InsertAltList(string server, string characterName, string region, CharacterAchievementsSummary achievements, GameFlavor flavor = GameFlavor.MistsClassic)
+    public async Task InsertAltList(string server, string characterName, string region, CharacterAchievementsSummary achievements, GameFlavor flavor)
     {
         var key = AltListKey(achievements, region, flavor);
         var character = achievements?.Character;
@@ -61,7 +61,7 @@ partial class WarcraftRedisProxy
     //much to hold for every character on every ladder, so this one fetches it, files the character
     //under its alt key and throws the payload away. The marker it leaves behind is a few bytes and
     //keeps the same character from being fetched again for a day.
-    public async Task IndexAltList(string server, string characterName, string region, GameFlavor flavor = GameFlavor.MistsClassic)
+    public async Task IndexAltList(string server, string characterName, string region, GameFlavor flavor)
     {
         //the ladder hands over "Awakenx"; blizzard's profile route and every alt list member are lowercase
         server = server.ToLowerInvariant();
@@ -85,7 +85,7 @@ partial class WarcraftRedisProxy
 
     //the account's other characters, as "charactername,server" - one redis read, nothing cached that
     //could fall behind, since the key is rebuilt from the character's own achievements every time
-    public async Task<List<CharacterIdentity>> GetAlts(string server, string characterName, string region, GameFlavor flavor = GameFlavor.MistsClassic)
+    public async Task<List<CharacterIdentity>> GetAlts(string server, string characterName, string region, GameFlavor flavor)
     {
         var achievements = await GetCharacterAchievements(server, characterName, region, flavor);
         var key = AltListKey(achievements, region, flavor);

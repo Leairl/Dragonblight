@@ -85,10 +85,10 @@ partial class WarcraftRedisProxy(WarcraftClient _warcraftClient, IConnectionMult
         return Locale.en_GB;
     }
 
-    public string GetProfileRegion(string region, GameFlavor flavor = GameFlavor.MistsClassic)
+    public string GetProfileRegion(string region, GameFlavor flavor)
         => "profile-" + flavor.NamespaceSegment() + region;
-    public string GetDynamicRegion(string region, GameFlavor flavor = GameFlavor.MistsClassic)
+    public string GetDynamicRegion(string region, GameFlavor flavor)
         => "dynamic-" + flavor.NamespaceSegment() + region;
-    public string GetStaticRegion(string region, GameFlavor flavor = GameFlavor.MistsClassic)
+    public string GetStaticRegion(string region, GameFlavor flavor)
         => "static-" + flavor.NamespaceSegment() + region;
 }

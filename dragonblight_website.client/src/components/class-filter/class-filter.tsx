@@ -4,86 +4,99 @@ import * as Checkbox from '@radix-ui/react-checkbox';
 import { CheckIcon, ChevronDownIcon } from '@radix-ui/react-icons'; // Import the arrow icon
 import { Button } from '@radix-ui/themes';
 import { ClassColor } from '../../helpers/classColorHelper';
+import { Dragonblight } from '../../clients/Dragonblight';
 import './class-filter.css';
+import { getFlavor } from '../../helpers/game-flavor';
 
-// Define World of Warcraft classes including 'All Classes'
-const wowClasses = ['All Classes', 'Warrior', 'Paladin', 'Hunter', 'Rogue', 'Priest', 'Death Knight', 'Shaman', 'Mage', 'Warlock', 'Druid', 'Monk'];
-
-// Import class icons
-const classIcons = wowClasses.reduce((icons, className) => {
-  if (className !== 'All Classes') {
-    icons[className] = `/ProfileClassIcons/${className.replace(' ', '').toLowerCase()}.png`;
-  }
-  return icons;
-}, {} as { [key: string]: string });
-
+export const all_classes = 'All Classes'
+const classIcon = (className: string) =>
+  `/ProfileClassIcons/${className.replace(/ /g, '').toLowerCase()}.png`;
+const specIcon = (className: string, spec: string) =>
+  `/Specs/${spec.toLowerCase()}_${className.toLowerCase()}.png`;
 interface ClassFilterProps {
-  onSelect: (selectedClasses: string[]) => void;
+  region: string;
+  onChange: (classes: string[], specs: string[]) => void;
 }
 
-const ClassFilter : React.FC<ClassFilterProps> = (props) => {
+const ClassFilter: React.FC<ClassFilterProps> = (props) => {
   // Handle state management
-  const [selectedClasses, setSelectedClasses] = useState<string[]>(['All Classes']);
-  const [isOpen, setIsOpen] = useState(false); // State to track if the dropdown is open
+  const [selectedClasses, setSelectedClasses] = useState<string[]>([all_classes]);
+  const [wowClasses, setWowClasses] = useState<Dragonblight.WowClass[]>([]);
+  const [selectedSpecs, setSelectedSpecs] = useState<string[]>([]);
 
   useEffect(() => {
-    if (selectedClasses.length === 0) {
-      setSelectedClasses(['All Classes']);
-    }
-    props.onSelect(selectedClasses);
-  }, [selectedClasses]);
+    const DragonblightClient = new Dragonblight.PvpLeaderboardClient();
+    DragonblightClient.getPlayableClasses(props.region)
+      .then((result) => setWowClasses(result ?? []));
+  }, [getFlavor()]);
+
+  function update(classes: string[], specs: string[]) {
+    setSelectedClasses(classes);
+    setSelectedSpecs(specs);
+    props.onChange(classes, specs);
+  }
 
   const handleSelect = (event: React.MouseEvent, className: string) => {
     event.preventDefault();
-    if (className === 'All Classes') {
-      setSelectedClasses(['All Classes']);
+    let classes: string[];
+    if (className === all_classes) {
+      classes = [all_classes];
     } else {
-      setSelectedClasses(prev => {
-        const newSelectedClasses = prev.includes(className)
-          ? prev.filter(c => c !== className)
-          : [...prev.filter(c => c !== 'All Classes'), className];
-        return newSelectedClasses.length === wowClasses.length - 1 ? ['All Classes'] : newSelectedClasses;
-      });
+      classes = selectedClasses.includes(className)
+        ? selectedClasses.filter(c => c !== className)
+        : [...selectedClasses.filter(c => c !== all_classes), className];
+      if (classes.length === 0 || classes.length === wowClasses.length) classes = [all_classes];
     }
+    //specs of a class that was just deselected no longer apply
+    const specs = selectedSpecs.filter(s => classes.includes(s.split(':')[0]));
+    update(classes, specs);
+  };
+
+  const handleSpecSelect = (className: string, spec: string) => {
+    // if the spec is selected and is already picked then we remove from the list
+    // otherwise if its not in the array already we add to the prev list
+    const key = `${className}:${spec}`;
+    const specs = selectedSpecs.includes(key)
+      ? selectedSpecs.filter(s => s !== key)
+      : [...selectedSpecs, key];
+    update(selectedClasses, specs);
   };
   return (
-    <DropdownMenu.Root open={isOpen} onOpenChange={setIsOpen} modal={false}>
-      <DropdownMenu.Trigger asChild>
-        <Button className="CustomButton" variant="soft" color="gray">
-          {selectedClasses.includes("All Classes") && "All Classes"}
-          {!selectedClasses.includes("All Classes") && "Filtered by"}
-          <ChevronDownIcon className={`DropdownArrow ${isOpen ? 'open' : ''}`} /> {/* Add the arrow icon */}
-        </Button>
-      </DropdownMenu.Trigger>
-      <DropdownMenu.Content className="DropdownMenuContent" sideOffset={5}>
-        {wowClasses.map((className) => (
-          <DropdownMenu.CheckboxItem
-            key={className}
-            className={`DropdownMenuItem ${selectedClasses.includes(className) || selectedClasses.includes('All Classes') ? 'selected' : ''}`}
-            checked={selectedClasses.includes(className) || selectedClasses.includes('All Classes')}
-            onClick={(e) => handleSelect(e, className)}
-            style={{ color: ClassColor.get(className) || "white" }} // Apply class color
-          >
-            <div className="ClassItem">
-              <Checkbox.Root
-                className="CheckboxRoot"
-                checked={selectedClasses.includes(className) || selectedClasses.includes('All Classes')}
-                onClick={(e) => handleSelect(e, className)}
-              >
-                <Checkbox.Indicator className="CheckboxIndicator">
-                  <CheckIcon />
-                </Checkbox.Indicator>
-              </Checkbox.Root>
-              {className !== 'All Classes' && (
-                <img src={classIcons[className]} alt={className} className="ClassIcon" title={className} />
-              )}
-              <span>{className}</span>
-            </div>
-          </DropdownMenu.CheckboxItem>
+
+    <div className="ClassFilter SpecSpace MultiClass">
+      <div className="ClassRow">
+        {wowClasses.map((c) => (
+          //the slot anchors the spec icons under this class
+          <div key={c.id} className="ClassSlot">
+            <button
+              className={`ClassButton ${selectedClasses.includes(c.name) || selectedClasses.includes(all_classes) ? 'selected' : ''}`}
+              onClick={(e) => handleSelect(e, c.name)}
+              title={c.name}
+              style={{ borderColor: 'black' }}
+            >
+              <img src={classIcon(c.name)} alt={c.name} />
+            </button>
+            {selectedClasses.includes(c.name) && (
+              <div className="SpecPopout">
+                {c.specs.map((spec) => (
+                  <button
+                    key={`${c.name}-${spec}`}
+                    className={`SpecButton ${selectedSpecs.includes(`${c.name}:${spec}`) ? 'selected' : ''}`}
+                    onClick={() => handleSpecSelect(c.name, spec)}
+                    title={`${spec} ${c.name}`}
+                    style={{ borderColor: "black" }}
+                  >
+                    <img src={specIcon(c.name, spec)} alt={spec} />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         ))}
-      </DropdownMenu.Content>
-    </DropdownMenu.Root>
+      </div>
+    </div>
   );
+
 };
 
 export default ClassFilter;
