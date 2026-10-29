@@ -133,6 +133,10 @@
 .alt-spec {
     opacity: .7;
 }
+.chevron-icon {
+    display: inline-flex;
+    padding-left: 4px;
+}
 
 @media only screen and (max-width: 800px) {
     .alt-pane {

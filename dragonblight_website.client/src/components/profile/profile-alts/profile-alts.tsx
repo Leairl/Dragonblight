@@ -1,6 +1,6 @@
 import { FC, use, useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
-import { Card, Skeleton } from "@radix-ui/themes";
+import { Card, ChevronDownIcon, Skeleton } from "@radix-ui/themes";
 import { Dragonblight } from "../../../clients/Dragonblight";
 import { ClassColor } from "../../../helpers/classColorHelper";
 import { formerNames, realmDisplayName } from "../../../helpers/realmNameHelper";
@@ -107,7 +107,12 @@ const ProfileAlts: FC = (/*props*/) => {
                   className={`alt-sort ${sortBracket === bracket ? "alt-sort-active" : ""}`}
                   onClick={() => setSortBracket(sortBracket === bracket ? null : bracket)}
                 >
-                  {bracket.toUpperCase()}{sortBracket === bracket ? "▽" : ""}
+                  {bracket.toUpperCase()}{sortBracket === bracket && (
+                    <span className="chevron-icon">
+                    <ChevronDownIcon
+                    aria-hidden />
+                    </span>)}
+
                 </button>
               ))}
             </div>
