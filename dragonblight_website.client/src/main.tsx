@@ -18,6 +18,7 @@ import ActivityPage from "./components/activity/activity.tsx";
 import { BlueTracker, BluePostPage } from "./components/news/blue-tracker";
 import News from "./components/news/news.tsx";
 import ClassAnalytics from './components/class-leaderboard-analytics/class-leaderboard-analytic.tsx';
+import CutoffsPage from "./components/cutoffs-page/cutoffs-page.tsx";
 
 // every /api/ call carries the current flavor
 installFlavorHeader()
@@ -29,24 +30,26 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       {/* the flavor is the first path segment; basename keeps every Link and
           navigate() relative to it, so routes and links stay flavor-free */}
       <BrowserRouter basename={`/${getFlavor()}`}>
-      <Routes>
-        <Route path="/" element={ <div><NavBar></NavBar><HomePage></HomePage></div> }>
-          <Route index element={<News/>} />
-          <Route path="blue-tracker" element={<BlueTracker />} />
-          <Route path="blue-tracker/:region/:postId" element={<BluePostPage />} />
-          <Route path="profile/:region/:server/:characterName/:urlTab?" Component={ProfilePage} />
-          <Route path="rankings/:URLregion/:URLbracket" element={<RankingsPage/>} />
-          <Route path="class-stats/:URLregion/:URLbracket" element={<ClassAnalytics/>} />
-          <Route path="class-stats" element={<ClassAnalytics/>} />
-          <Route path="rankings" element={<RankingsPage/>} />
-          <Route path="register" element={<RegisterPage />} />
-          <Route path="login" element={<LoginPage/>} />
-          <Route path="activity/:URLregion/:URLbracket" element={<ActivityPage/>} />
-          <Route path='activity' element={<ActivityPage/>}></Route>
-          <Route path="*" element={<div/>} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+        <Routes>
+          <Route path="/" element={<div><NavBar></NavBar><HomePage></HomePage></div>}>
+            <Route index element={<News />} />
+            <Route path="blue-tracker" element={<BlueTracker />} />
+            <Route path="blue-tracker/:region/:postId" element={<BluePostPage />} />
+            <Route path="profile/:region/:server/:characterName/:urlTab?" Component={ProfilePage} />
+            <Route path="rankings/:URLregion/:URLbracket" element={<RankingsPage />} />
+            <Route path="class-stats/:URLregion/:URLbracket" element={<ClassAnalytics />} />
+            <Route path="class-stats" element={<ClassAnalytics />} />
+            <Route path="rankings" element={<RankingsPage />} />
+            <Route path="register" element={<RegisterPage />} />
+            <Route path="login" element={<LoginPage />} />
+            <Route path="activity/:URLregion/:URLbracket" element={<ActivityPage />} />
+            <Route path='activity' element={<ActivityPage />}></Route>
+            <Route path="cutoffs/:URLregion" element={<CutoffsPage />} />
+            <Route path="cutoffs" element={<CutoffsPage />} />
+            <Route path="*" element={<div />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
 
     </Theme>
   </React.StrictMode>,
