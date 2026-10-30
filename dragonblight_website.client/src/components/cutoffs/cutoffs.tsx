@@ -3,6 +3,8 @@ import { Dragonblight } from '../../clients/Dragonblight';
 import { Card } from '@radix-ui/themes';
 import { shuffleSpecs, blitzSpecs} from '../../helpers/solo-bracket-specs';
 import { getFlavor } from '../../helpers/game-flavor';
+import { cleanTitle } from "../../helpers/ratingTierHelper";
+
 
 
 interface CutoffProps {
@@ -108,10 +110,8 @@ ordered.map((i) => {
 
     //Blizzard names carry the season ("Gladiator - Season 15", "Obsidian Legend: Dragonflight Season 2")
     //and sometimes a [DNT] marker; the card shows only the title itself
-    const title = i.achievement?.name
-      ?.replace(/\s*[-:]\s*(\w+ )*Season \d+/, '')
-      .replace('[DNT] ', '')
-      .trim();
+    const title = cleanTitle(i.achievement?.name)
+
 
   return (
     <Card className={`${getCardBorder(title) ?? ""} w-[180px] min-w-[180px] p-1 text-center mb-2 mr-2 grow-0`}>

@@ -60,9 +60,9 @@ function retailTier(rating: number | undefined): RatingTier | undefined {
 }
 function TitleColors(title: string | undefined): string {
   if (title?.includes(" Gladiator")) return "text-yellow-600";   // rank 1, e.g. "Grievous Gladiator"
-  if (title?.includes(" Legend")) return "text-purple-600";
-  if (title?.includes(" Marshal") || (title?.includes(" Warlord"))) return "text-green-600";
-  if (title?.startsWith("Gladiator") || title?.includes("Hero of the Faction")) return "text-purple-500";
+  if (title?.includes(" Legend")) return "text-purple-500";
+  if (title?.includes(" Marshal") || (title?.includes(" Warlord"))) return "text-green-500";
+  if (title?.startsWith("Gladiator") || title?.includes("Hero of the ")) return "text-purple-500";
   if (title?.startsWith("Legend")) return "text-purple-500";
   if (title?.startsWith("Elite")) return "text-purple-500";
   if (title?.startsWith("Duelist")) return "text-blue-500";
@@ -70,7 +70,9 @@ function TitleColors(title: string | undefined): string {
   if (title?.startsWith("Challenger")) return "text-neutral-500";
   return "text-stone-100";
 }
-
+function cleanTitle(name: string | undefined): string {
+  return (name ?? "").replace(/\s*[-:]\s*(\w+ )*Season \d+/, "").replace("[DNT] ", "").trim();
+}
 function ratingColor(
   rewards: Dragonblight.PvpSeasonRewardWithRank[] | undefined,
   bracketType: string | undefined,
@@ -85,6 +87,6 @@ function ratingColor(
 }
 export {
   RetailTiers, retailTier, bestReward, RankOneColor, ratingColor // Tiers follow the current rating (Blizzard doesn't return the season high);
-  , TitleColors
+  , TitleColors, cleanTitle
 };
 export type { RatingTier };
