@@ -6,6 +6,7 @@ import { SoloSpecIcon } from "../../helpers/solo-bracket-specs";
 import { TitleColors, cleanTitle } from "../../helpers/ratingTierHelper";
 import "./cutoffs-page.css";
 import { ClassColor } from "../../helpers/classColorHelper";
+import ClassFilter, { all_classes } from "../class-filter/class-filter";
 
 
 //Blizzard's bracket types as the headings read them; a type not listed shows as Blizzard sends it
@@ -32,6 +33,7 @@ const CutoffsPage: FC = () => {
   const [rewards, setRewards] = useState<Dragonblight.PvpSeasonRewardWithRank[]>([]);
   //spec id -> class name, which a rewaard doesn't crry but the spec icon needs
   const [specClass, setSpecClass] = useState<Map<number, string>>(new Map());
+  const [selectedClasses, setSelectedClasses] = useState<string[]>([all_classes]);
 
   useEffect(() => {
     const client = new Dragonblight.PvpLeaderboardClient();
@@ -77,6 +79,10 @@ const CutoffsPage: FC = () => {
   const soloSorted = [...soloSpecs].sort(([a], [b]) =>
     (specClass.get(a) ?? "").localeCompare(specClass.get(b) ?? ""));
   //every spec in a bracket earns the same title, so it is shown once above the table
+  //only the specs of the picked classes; the title pills above still read from every spec
+  const soloShown = selectedClasses.includes(all_classes)
+    ? soloSorted
+    : soloSorted.filter(([specId]) => selectedClasses.includes(specClass.get(specId) ?? ""));
   const shuffleTitle = soloSorted.find(([, s]) => s.shuffle)?.[1].shuffle?.titles[0];
   const blitzTitle = soloSorted.find(([, s]) => s.blitz)?.[1].blitz?.titles.join(" / ");
 
@@ -94,7 +100,8 @@ const CutoffsPage: FC = () => {
     )
   }
   return (
-    <div className="flex flex-col px-4 py-3 min-w-[900px]">
+    <div className="cutoffs-wrap flex flex-col px-4 py-3">
+
       <header className="cutoffs-header">
         <div>
           <h1 className="cutoffs-title">Season Title Cutoffs</h1>
@@ -121,7 +128,7 @@ const CutoffsPage: FC = () => {
             <Table.Body>
               {sortByClassnameAndCutoff([...rows], false).map((row) => (
                 <Table.Row key={`${row.reward.rating_cutoff}-${row.titles[0]}`}>
-                  <Table.Cell className={"title-shadow w-[460px] " + TitleColors(row.titles[0])}>{row.titles.join(" / ")}</Table.Cell>
+                  <Table.Cell className={"title-shadow cutoff-title-cell " + TitleColors(row.titles[0])}>{row.titles.join(" / ")}</Table.Cell>
                   <Table.Cell justify="end">{row.reward.rating_cutoff}</Table.Cell>
                   <Table.Cell justify="end">1 - {row.reward.rank}</Table.Cell>
                 </Table.Row>
@@ -151,18 +158,32 @@ const CutoffsPage: FC = () => {
               </span>
             )}
           </div>
+          <ClassFilter region={region} showSpecs={false} onChange={(classes) => setSelectedClasses(classes)} />
           <Table.Root variant="surface" size="1">
             <Table.Header>
               <Table.Row>
                 <Table.ColumnHeaderCell>Spec</Table.ColumnHeaderCell>
-                <Table.ColumnHeaderCell justify="end" className="shuffle-col group-start">Shuffle Cutoff</Table.ColumnHeaderCell>
-                <Table.ColumnHeaderCell justify="end" className="shuffle-col">Shuffle Ranks</Table.ColumnHeaderCell>
-                <Table.ColumnHeaderCell justify="end" className="blitz-col group-start">Blitz Cutoff</Table.ColumnHeaderCell>
-                <Table.ColumnHeaderCell justify="end" className="blitz-col">Blitz Ranks</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell justify="center" className="shuffle-col group-start">
+                  <span className="label-full">Shuffle Cutoff</span>
+                  <span className="label-short">Shuffle</span>
+                </Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell justify="center" className="shuffle-col">
+                  <span className="label-full">Shuffle Ranks</span>
+                  <span className="label-short">Spots</span>
+                </Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell justify="center" className="blitz-col group-start">
+                  <span className="label-full">Blitz Cutoff</span>
+                  <span className="label-short">Blitz</span>
+                </Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell justify="center" className="blitz-col">
+                  <span className="label-full">Blitz Ranks</span>
+                  <span className="label-short">Spots</span>
+                </Table.ColumnHeaderCell>
+
               </Table.Row>
             </Table.Header>
             <Table.Body>
-              {soloSorted.map(([specId, { shuffle, blitz }]) => {
+              {soloShown.map(([specId, { shuffle, blitz }]) => {
                 //either half carries the spec's name; a spec might only have one
                 const spec = (shuffle ?? blitz)?.reward.specialization;
                 const specClassName = specClass.get(specId) ?? "";
@@ -183,10 +204,10 @@ const CutoffsPage: FC = () => {
                       )}
                       {spec?.name} {specClassName}
                     </Table.Cell>
-                    <Table.Cell justify="end" className="shuffle-col group-start">{shuffle?.reward.rating_cutoff ?? "–"}</Table.Cell>
-                    <Table.Cell justify="end" className="shuffle-col">{shuffle ? `1 - ${shuffle.reward.rank}` : ""}</Table.Cell>
-                    <Table.Cell justify="end" className="blitz-col group-start">{blitz?.reward.rating_cutoff ?? "–"}</Table.Cell>
-                    <Table.Cell justify="end" className="blitz-col">{blitz ? `1 - ${blitz.reward.rank}` : ""}</Table.Cell>
+                    <Table.Cell justify="center" className="shuffle-col group-start">{shuffle?.reward.rating_cutoff ?? "–"}</Table.Cell>
+                    <Table.Cell justify="center" className="shuffle-col ranks-col">{shuffle ? `1 - ${shuffle.reward.rank}` : ""}</Table.Cell>
+                    <Table.Cell justify="center" className="blitz-col group-start">{blitz?.reward.rating_cutoff ?? "–"}</Table.Cell>
+                    <Table.Cell justify="center" className="blitz-col ranks-col">{blitz ? `1 - ${blitz.reward.rank}` : ""}</Table.Cell>
                   </Table.Row>
                 );
               })}

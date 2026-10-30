@@ -16,6 +16,7 @@ const specIcon = (className: string, spec: string) =>
 interface ClassFilterProps {
   region: string;
   onChange: (classes: string[], specs: string[]) => void;
+  showSpecs?: boolean;
 }
 
 const ClassFilter: React.FC<ClassFilterProps> = (props) => {
@@ -62,8 +63,7 @@ const ClassFilter: React.FC<ClassFilterProps> = (props) => {
     update(selectedClasses, specs);
   };
   return (
-
-    <div className="ClassFilter SpecSpace MultiClass">
+    <div className={props.showSpecs === false ? "ClassFilter" : "ClassFilter SpecSpace MultiClass"}>
       <div className="ClassRow">
         {wowClasses.map((c) => (
           //the slot anchors the spec icons under this class
@@ -76,7 +76,7 @@ const ClassFilter: React.FC<ClassFilterProps> = (props) => {
             >
               <img src={classIcon(c.name)} alt={c.name} />
             </button>
-            {selectedClasses.includes(c.name) && (
+            {props.showSpecs !== false && selectedClasses.includes(c.name) && (
               <div className="SpecPopout">
                 {c.specs.map((spec) => (
                   <button
