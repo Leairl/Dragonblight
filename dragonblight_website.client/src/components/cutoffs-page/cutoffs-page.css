@@ -51,6 +51,35 @@
   width: 60px;
   font-size: 14px;
 }
+/* 900px wide on desktop, but never wider than the screen */
+.cutoffs-wrap {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.cutoff-title-cell { width: 460px; }
+
+.label-short { display: none; }
+
+/* tablets and phones: same breakpoint as rankings/activity */
+@media only screen and (max-width: 950px) {
+  .cutoff-title-cell { width: auto; }
+  /* pills stack instead of each demanding 240px side by side */
+  .title-pill { min-width: 0; flex-basis: 100%; }
+}
+
+/* phones: same breakpoint as the profile and nav */
+@media only screen and (max-width: 800px) {
+  .cutoffs-title { font-size: 22px; }
+  .cutoffs-wrap { padding-left: 8px; padding-right: 8px; }
+}
+
+/* small phones: shorter headers so every column fits */
+@media only screen and (max-width: 600px) {
+  .label-full { display: none; }
+  .label-short { display: inline; }
+}
+
 
 .cutoffs-footnote { font-size: 12px; color: var(--cutoff-muted); }
 
