@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
+using YamlDotNet.Core.Tokens;
 
 namespace Dragonblight_Website.Server.Controllers
 {
@@ -23,6 +24,13 @@ namespace Dragonblight_Website.Server.Controllers
             {
                 //flavor comes from the X-Game-Flavor header like every other endpoint
                 var flavor = HttpContext.GetGameFlavor();
+                var key = _warcraftCachedData.ExternalVersionedKey(flavor.KeyPrefix() + "FullAltString" + server.ToLower() + characterName.ToLower() + region);
+                var cachedKey = await _warcraftCachedData.GetRedisData<List<GetAltsResponse>>(key);
+                if (cachedKey != null && cachedKey.Count != 0)
+                {
+                    return Ok(cachedKey);
+                }
+                var season = await _warcraftCachedData.GetSeason(region, flavor);
                 server = server.ToLower();
                 characterName = characterName.ToLower();
                 var ladderBrackets = await _warcraftCachedData.GetLadderBrackets(region, flavor);
@@ -40,20 +48,17 @@ namespace Dragonblight_Website.Server.Controllers
                     {
                         return null;
                     }
-                    var ratings = new Dictionary<string, int>();
-                    var season = await _warcraftCachedData.GetSeason(region, flavor);
-                    foreach (var bracket in flavor.Brackets())
+                    var ratingTasks = flavor.Brackets().Select(async bracket =>
                     {
-                        ratings[bracket] = await BracketRating(altServer, altName, bracket, region, flavor, season);
-                    }
+                        return (bracket, await BracketRating(altServer, altName, bracket, region, flavor, season));
+                    }).ToList();
                     var specBrackets = ladderBrackets.Where(b => b.SpecName != null && b.ClassName == summary.CharacterClass?.Name);
-                    var soloRatings = new List<SoloRating>();
-                    foreach (var specBracket in specBrackets)
+                    var specBracketTasks = specBrackets.Select(async specBracket =>
                     {
                         var rating = await BracketRating(altServer, altName, specBracket.Slug, region, flavor, season);
                         if (rating > 0)
                         {
-                            soloRatings.Add(new SoloRating
+                            return new SoloRating
                             {
                                 slug = specBracket.Slug,
                                 ladder = specBracket.Ladder,
@@ -61,15 +66,20 @@ namespace Dragonblight_Website.Server.Controllers
                                 specName = specBracket.SpecName ?? "",
                                 specId = specBracket.SpecId ?? 0,
                                 rating = rating
-                            });
+                            };
                         }
-                    }
+                        else
+                        {
+                            return null;
+                        }
+                    }).ToList();
+                    var soloRatings = (await Task.WhenAll(specBracketTasks)).OfType<SoloRating>().ToList();
+                    var ratings = (await Task.WhenAll(ratingTasks)).ToDictionary();
                     return new GetAltsResponse
                     {
                         Name = summary?.Name ?? altName,
                         Realm = altServer,
                         Classchar = summary?.CharacterClass?.Name,
-                        Spec = await _warcraftCachedData.GetCharacterSpecName(altServer, altName, region, flavor),
                         Ratings = ratings,
                         SoloRatings = soloRatings,
                         PreviousNames = alt.PreviousNames
@@ -79,6 +89,7 @@ namespace Dragonblight_Website.Server.Controllers
 
                 //a character with no alts is an empty list, not a missing character
                 var result = (await Task.WhenAll(altInfos)).Where(a => a != null).ToList();
+                await _warcraftCachedData.SaveToRedis(key, result, TimeSpan.FromDays(1));
                 return Ok(result);
             }
             catch (Exception ex)

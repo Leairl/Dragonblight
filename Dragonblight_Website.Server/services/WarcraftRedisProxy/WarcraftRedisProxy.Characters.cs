@@ -250,6 +250,8 @@ partial class WarcraftRedisProxy
             VersionedKey("GetCharacterStats" + server + characterName + profileRegion),
             VersionedKey("characterSpecSummary" + characterName + server + profileRegion),
             VersionedKey(flavor.KeyPrefix() + "characterSpecName" + characterName + server + region),
+            VersionedKey(flavor.KeyPrefix() + "FullAltString" + server + characterName + region)
+
         };
         //one rating key per bracket played, and Shuffle and Blitz add one per spec, so these are found
         //by pattern rather than listed

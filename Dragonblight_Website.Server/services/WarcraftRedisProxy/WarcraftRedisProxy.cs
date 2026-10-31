@@ -30,7 +30,7 @@ partial class WarcraftRedisProxy(WarcraftClient _warcraftClient, IConnectionMult
 
     //the key a cache entry actually lives under
     public static string VersionedKey(string key) => SchemaVersion + key;
-
+    public string ExternalVersionedKey(string key) => VersionedKey(key);
     public async Task<T?> GetRedisData<T>(string key)
     {  //async call to return data (of generic type), second type is to define the type.
         var db = redis.GetDatabase(); //var to redis database
