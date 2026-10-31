@@ -198,12 +198,18 @@ namespace Dragonblight_Website.Server.Controllers
                 {
                     var ProfileSummaryEntries = await _warcraftCachedData.GetCharSummary(ladderEntry.Character.Realm.Slug, ladderEntry.Character.Name, region, HttpContext.GetGameFlavor());
                     var specName = await _warcraftCachedData.GetCharacterSpecName(ladderEntry.Character.Realm.Slug, ladderEntry.Character.Name, region, HttpContext.GetGameFlavor());
+                    var spec = specName;
+                    var savedSpec = (ladderEntry as ClassLadderEntry)?.Spec;
+                    if (!string.IsNullOrEmpty(savedSpec))
+                    {
+                        spec = savedSpec;
+                    }
                     return new PvpCharacterSummary
                     {
                         // 3 properties pulled from class below (rbgEntry is pulling all leaderboad data & ProfileSummaryEntry is pulling CharacterSummary data)
                         PvpEntry = ladderEntry,
                         charSummary = ProfileSummaryEntries,
-                        spec = specName
+                        spec = spec
                     };
                 });
                 result = result.Concat(await Task.WhenAll(LadderLeaderboardEntries)).ToList();

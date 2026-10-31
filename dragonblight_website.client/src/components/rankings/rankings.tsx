@@ -421,10 +421,11 @@ function Rankings() {
                               }
                               return `/Specs/${characterEntry.spec?.toLowerCase()}_${characterEntry.charSummary?.character_class?.name?.toLowerCase()}.png`;
                             }
-                            if (characterEntry.charSummary?.active_spec?.name == null || characterEntry.charSummary?.active_spec?.name == "" || characterEntry.charSummary?.name == null) {
+                            const specName = characterEntry.spec || characterEntry.charSummary?.active_spec?.name;
+                            if (!specName || characterEntry.charSummary?.name == null) {
                               return `/unknown.png`;
                             }
-                            return `/Specs/${characterEntry.charSummary?.active_spec?.name?.toLowerCase()}_${characterEntry.charSummary?.character_class?.name?.toLowerCase()}.png`;
+                            return `/Specs/${specName.toLowerCase()}_${characterEntry.charSummary?.character_class?.name?.toLowerCase()}.png`;
                           })()}
                         />
                         <Avatar.Fallback />
