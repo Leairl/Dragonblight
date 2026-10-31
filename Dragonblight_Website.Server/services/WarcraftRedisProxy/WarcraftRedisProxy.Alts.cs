@@ -55,6 +55,7 @@ partial class WarcraftRedisProxy
         await RecordCharacter(character.Id, character.Name, character.Realm.Slug, region, flavor);
         var db = redis.GetDatabase();
         await db.SetAddAsync(key, character.Id.ToString());
+        await db.StringSetAsync(VersionedKey("AltKey" + server + characterName + region + flavor.KeyPrefix()), key, TimeSpan.FromDays(1));
     }
 
     //the ladder sync route in: the achievements payload is over a megabyte per character, far too
@@ -83,18 +84,29 @@ partial class WarcraftRedisProxy
         await db.StringSetAsync(marker, "1", TimeSpan.FromDays(1));
     }
 
-    //the account's other characters, as "charactername,server" - one redis read, nothing cached that
-    //could fall behind, since the key is rebuilt from the character's own achievements every time
+//the account's other characters - the alt key comes from the copy InsertAltList saved, and only
+//falls back to the achievements payload when that has expired; it can be up to a day behind
     public async Task<List<CharacterIdentity>> GetAlts(string server, string characterName, string region, GameFlavor flavor)
     {
-        var achievements = await GetCharacterAchievements(server, characterName, region, flavor);
-        var key = AltListKey(achievements, region, flavor);
+        var db = redis.GetDatabase();
+        var altKey = await db.StringGetAsync(VersionedKey("AltKey" + server + characterName + region + flavor.KeyPrefix()));
+        string? key = "";
+        if (altKey.HasValue)
+        {
+            key = altKey.ToString();
+        }
+        else
+        {
+            key = null;
+        }
+
         if (key == null)
         {
+            var achievements = await GetCharacterAchievements(server, characterName, region, flavor);
+            key = AltListKey(achievements, region, flavor);
             return new List<CharacterIdentity>();
         }
-        var db = redis.GetDatabase();
-        var self = achievements?.Character?.Id ?? 0;
+        var self = (await GetCharSummary(server, characterName, region, flavor))?.Id ?? 0;
         var entries = await db.SetMembersAsync(key);
         var alts = new List<CharacterIdentity>();
 

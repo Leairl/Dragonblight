@@ -15,18 +15,15 @@ interface ProfileRatingProps {
   characterNotFound?: boolean;
   characterClass: string | undefined;
   characterFaction: string | undefined;
-
+  rewards: Dragonblight.PvpSeasonRewardWithRank[] | [];
 }
 
-const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound, characterClass, characterFaction }) => {
+const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound, characterClass, characterFaction, rewards}) => {
   // pulls dictionary of keys from pvp bracket
   const [characterRatings, setcharacterRatings] = useState<
     Dragonblight.CharacterPvpBracketStatistics[]
   >(); //calls schema from argentponywarcraft client
   const [loading, setLoading] = useState<boolean>();
-  const [rewards, setRewards] = useState<
-    Dragonblight.PvpSeasonRewardWithRank[]
-  >();
   const [seasonStart, setSeasonStart] = useState<Date | null>();
   const { region, server, characterName } = useParams();
   const [soloMode, setSoloMode] = useState<"shuffle" | "blitz">("shuffle");
@@ -39,7 +36,6 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
         .then(setSeasonStart)
         .catch(() => setSeasonStart(null));
     }
-    setRewards(await DragonblightClient.getPvPRewards(region));
     setLoading(false);
   }
 
