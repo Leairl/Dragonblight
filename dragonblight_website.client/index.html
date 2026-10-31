@@ -1,35 +1,43 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <script>
-      // Resolved here rather than in React: tooltips.js reads whTooltips as soon as
-      // it loads, which is before the app mounts. Mirrors getFlavor() in helpers/game-flavor.ts.
-      var whFlavor = window.location.pathname.split("/")[1] === "retail" ? "retail" : "classic";
-      const whTooltips = {colorLinks: true, iconizeLinks: true, renameLinks: false, iconSize: "large", domain: whFlavor === "retail" ? "www" : "mop-classic" };
-    </script>
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js"
-      integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
-      <script>
-        // Retail and MoP Classic use separate Wowhead model viewer builds and asset trees.
-        // document.write keeps this a blocking, in-order load exactly like the static tag it replaces.
-        var viewerBase = whFlavor === "retail" ? "/data/modelviewer/live/" : "/data/modelviewer/mists/";
-        var viewerScript = whFlavor === "retail"
-          ? "/data/modelviewer/live/viewer/viewer.min.js"
-          : "/data/modelviewer/mists/deployment/viewer/c3f890f/viewer.min.js";
-        document.write('<script src="' + viewerScript + '"><\/script>');
-        window.CONTENT_PATH = viewerBase;
-      </script>
-      <script src="https://wow.zamimg.com/js/tooltips.js"></script>
 
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/fav.webp" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dragonblight</title>
-  </head>
-  <body>
+<head>
+  <script>
+    // Resolved here rather than in React: tooltips.js reads whTooltips as soon as
+    // it loads, which is before the app mounts. Mirrors getFlavor() in helpers/game-flavor.ts.
+    var whFlavor = window.location.pathname.split("/")[1] === "retail" ? "retail" : "classic";
+    const whTooltips = { colorLinks: true, iconizeLinks: true, renameLinks: false, iconSize: "large", domain: whFlavor === "retail" ? "www" : "mop-classic" };
+  </script>
+  <script src="https://code.jquery.com/jquery-3.5.1.min.js"
+    integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
+  <script>
+    // Retail and MoP Classic use separate Wowhead model viewer builds and asset trees.
+    // document.write keeps this a blocking, in-order load exactly like the static tag it replaces.
+    var viewerBase = whFlavor === "retail" ? "/data/modelviewer/live/" : "/data/modelviewer/mists/";
+    var viewerScript = whFlavor === "retail"
+      ? "/data/modelviewer/live/viewer/viewer.min.js"
+      : "/data/modelviewer/mists/deployment/viewer/c3f890f/viewer.min.js";
+    document.write('<script src="' + viewerScript + '"><\/script>');
+    window.CONTENT_PATH = viewerBase;
+  </script>
+  <script src="https://wow.zamimg.com/js/tooltips.js"></script>
 
-    <div id="root"></div>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/fav.webp" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dragonblight</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@1,800&family=Inter:wght@500;600&display=swap"
+    rel="stylesheet" />
 
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+</head>
+
+<body>
+
+  <div id="root"></div>
+
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
 </html>

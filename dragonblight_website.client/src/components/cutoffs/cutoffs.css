@@ -1,0 +1,90 @@
+.cutoff-cards {
+  --cutoff-card-bg: #00000027;
+  --cutoff-text: #f6ede2;
+  --cutoff-muted: #c9bdb1;
+  --cutoff-label: #8f857c;
+  --cutoff-molten: #ff5a1f;
+  --cutoff-ember-dim: #3a2018;
+
+  display: grid;
+  /* up to 5 equal columns; wraps to fewer below ~900px, and a single retail card doesn't stretch */
+  grid-template-columns: repeat(auto-fit, minmax(190px, 230px));
+    width: min(1240px, 100vw - 32px);
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+  justify-content: center;
+  gap: 10px;
+  min-height: 64px;
+  padding: 0 16px;
+}
+
+.cutoff-strip {
+  contain: inline-size;
+}
+
+/* black frame: the outer plate shows 2px around the inner one, chamfered top-left and bottom-right */
+.cutoff-card {
+  background: #5c5c5c42;
+  padding: 2px;
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+}
+.cutoff-card-inner {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--cutoff-card-bg);
+  clip-path: polygon(9px 0, 100% 0, 100% calc(100% - 13px), calc(100% - 13px) 100%, 0 100%, 0 13px);
+}
+
+.cutoff-tier,
+.cutoff-rating {
+  font-family: "Poppins", sans-serif;
+  font-style: italic;
+  font-weight: 800;
+}
+.cutoff-tier {
+  font-size: 12px;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.cutoff-rating {
+  font-size: 30px;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  color: var(--cutoff-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.cutoff-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.cutoff-label {
+  font-family: "Inter", sans-serif;
+  font-weight: 600;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cutoff-label);
+}
+.cutoff-top {
+  font-family: "Inter", sans-serif;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--cutoff-muted);
+}
+
+/* bottom line: molten with a glow on the top tier, a dim ember on the rest */
+.cutoff-line {
+  height: 2px;
+  margin-top: auto;
+  background: var(--cutoff-ember-dim);
+}
+.cutoff-line--top {
+  background: var(--cutoff-molten);
+  box-shadow: 0 0 10px 1px rgba(255, 90, 31, 0.75);
+}
