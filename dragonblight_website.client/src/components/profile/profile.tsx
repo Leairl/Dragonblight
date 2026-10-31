@@ -34,6 +34,7 @@ const Profile: FC = () => {
   const [err, setErr] = useState<string>();
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [refreshMessage, setRefreshMessage] = useState<string>("");
+  const [rewards, setRewards] = useState<Dragonblight.PvpSeasonRewardWithRank[]>([]);
 
   //drops everything the server has cached for this character, then reloads the page: each part of
   //the profile loads its own data, so a reload is what fetches all of it again from Blizzard
@@ -61,6 +62,7 @@ const Profile: FC = () => {
     }
     const CharacterClient = new Dragonblight.ProfileClient();
     const CharacterAchievementClient = new Dragonblight.AchievementClient();
+    const PvpLeaderboardClient = new Dragonblight.PvpLeaderboardClient();
     const slug = server?.replace(" ", "-")
 
     //profile data displayed before equipment sequentially
@@ -70,6 +72,9 @@ const Profile: FC = () => {
     setPreviousNames(undefined);
     setCharacterImage(undefined);
     setErr("");
+    PvpLeaderboardClient.getPvPRewards(region)
+      .then((r) => setRewards(r))
+      .catch(() => setRewards([]));
     CharacterClient.getCharacterImage(slug, characterName, region)
       .then((imgSrc) => setCharacterImage(imgSrc || undefined))
       .catch(() => setCharacterImage(undefined));
@@ -209,12 +214,13 @@ const Profile: FC = () => {
             showModelViewer={showModelViewer}
             loading={loading}
             characterNotFound={characterNotFound}
+            rewards={rewards}
           ></ProfileEquipment>
           {/* makes the exp / rating row maintain accurate column size with profile card*/}
           <div className='flex flex-row w-0 min-w-full'>
             <ProfileExperience characterNotFound={characterNotFound}></ProfileExperience>
             <div className='flex-1'>
-              <ProfileRating achievements={achievementsSummary} characterNotFound={characterNotFound} characterClass={characterSummary?.character_class?.name} characterFaction={characterSummary?.faction?.type}></ProfileRating>
+              <ProfileRating achievements={achievementsSummary} characterNotFound={characterNotFound} characterClass={characterSummary?.character_class?.name} characterFaction={characterSummary?.faction?.type} rewards={rewards}></ProfileRating>
 
             </div>
           </div>

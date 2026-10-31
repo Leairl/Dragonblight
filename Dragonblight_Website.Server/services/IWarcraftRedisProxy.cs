@@ -2,6 +2,9 @@ using ArgentPonyWarcraftClient;
 
 public interface IWarcraftRedisProxy
 {
+    public string ExternalVersionedKey(string key);
+    Task<T?> GetRedisData<T>(string key);
+    Task SaveToRedis<T>(string key, T value, TimeSpan? expiration);
     Task<CharacterMediaSummary?> GetCharMedia(string server, string characterName, string region, GameFlavor flavor);
     Task RecordCharacter(int id, string name, string realm, string region, GameFlavor flavor);
     Task<CharacterIdentity?> GetCharacterIdentity(int id, string region, GameFlavor flavor);

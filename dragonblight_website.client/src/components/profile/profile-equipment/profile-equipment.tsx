@@ -32,6 +32,7 @@ interface profileEquipmentProps {
   showModelViewer: boolean;
   loading: boolean;
   characterNotFound: boolean;
+  rewards: Dragonblight.PvpSeasonRewardWithRank[] | [];
 }
 
 const mogslots: number[] = [
@@ -510,7 +511,7 @@ const ProfileEquipment: FC<profileEquipmentProps> = (props) => {
         {
           props.currTab == "alts" && (
             <Card className="talent-row border-card">
-              <ProfileAlts></ProfileAlts>
+              <ProfileAlts rewards={props.rewards}></ProfileAlts>
             </Card>
           )
         }
