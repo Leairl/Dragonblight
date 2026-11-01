@@ -14,6 +14,7 @@ import CompareStats from "./compare-stats";
 import { secondaryStatsAttr } from "../../helpers/wowhead-item-stats";
 import { diffEquipment, EquipmentDiff, SideDiff, SlotDiff } from "./equipment-diff";
 import CompareSearch from "./compare-search";
+import CompareGlyphs from "./compare-glyphs";
 import CompareTalents from "./compare-talents";
 import "./compare.css";
 declare const $WowheadPower: { refreshLinks: () => void };
@@ -74,7 +75,10 @@ const ProfileCompare: FC = () => {
   //reliably. A ?tab=stats link followed into MoP opens on equipment.
   const statsTab = getFlavor() == "retail";
   const tabParam = params.get("tab");
-  const tab = tabParam == "talents" || (tabParam == "stats" && statsTab) ? tabParam : "equipment";
+  //Glyphs are the other way round: Blizzard's retail data has none. A ?tab=glyphs link followed
+  //into retail opens on equipment too.
+  const glyphsTab = !statsTab;
+  const tab = tabParam == "talents" || (tabParam == "stats" && statsTab) || (tabParam == "glyphs" && glyphsTab) ? tabParam : "equipment";
   const [ilvlMode] = useItemLevelMode();
   //MoP Classic has no PvP item level - its switch is hidden - so it never counts as PvP mode
   const pvp = getFlavor() == "retail" && ilvlMode == "pvp";
@@ -171,6 +175,7 @@ const ProfileCompare: FC = () => {
           <SegmentedControl.Root value={tab} onValueChange={(v) => setParam("tab", v == "equipment" ? undefined : v)}>
             <SegmentedControl.Item value="equipment">Equipment</SegmentedControl.Item>
             <SegmentedControl.Item value="talents">Talents</SegmentedControl.Item>
+            {glyphsTab && <SegmentedControl.Item value="glyphs">Glyphs</SegmentedControl.Item>}
             {statsTab && <SegmentedControl.Item value="stats">Stats</SegmentedControl.Item>}
           </SegmentedControl.Root>
         </div>
@@ -178,6 +183,14 @@ const ProfileCompare: FC = () => {
 
       {tab == "talents" && bothLoaded && !classMismatch && (
         <CompareTalents
+          left={{ region: region!, server: server!, name: characterName!, className: leftClass?.name, displayName: left.summary?.name }}
+          right={{ region: region2!, server: server2!, name: characterName2!, className: rightClass?.name, displayName: right.summary?.name }}
+          specId={specParam}
+          onSpecChange={(id) => setParam("spec", String(id))}
+        />
+      )}
+      {tab == "glyphs" && bothLoaded && !classMismatch && (
+        <CompareGlyphs
           left={{ region: region!, server: server!, name: characterName!, className: leftClass?.name, displayName: left.summary?.name }}
           right={{ region: region2!, server: server2!, name: characterName2!, className: rightClass?.name, displayName: right.summary?.name }}
           specId={specParam}
@@ -196,7 +209,7 @@ const ProfileCompare: FC = () => {
           rightPvpLevels={right.pvpLevels}
         />
       )}
-      {(tab == "talents" || tab == "stats") && region2 && !bothLoaded && left.status != "notFound" && right.status != "notFound" && (
+      {(tab == "talents" || tab == "glyphs" || tab == "stats") && region2 && !bothLoaded && left.status != "notFound" && right.status != "notFound" && (
         <Card className="compare-diff border-card p-4">
           <Skeleton width="100%" height="320px" />
         </Card>

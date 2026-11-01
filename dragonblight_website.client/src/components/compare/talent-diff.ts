@@ -1,4 +1,5 @@
 import { Dragonblight } from "../../clients/Dragonblight";
+import Glyphs from "../../data/glyph";
 import Talents from "../../data/talent";
 
 //Talent compare, kept free of React so it reads (and can be tested) on its own.
@@ -226,14 +227,36 @@ export function heroTreeOf(tree: Dragonblight.TalentTree, picks: Pick[] | undefi
   return best;
 }
 
-// --- PvP talents ----------------------------------------------------------------------------
+// --- interchangeable slots ------------------------------------------------------------------
 
-export interface PvpPick {
+export interface SlotPick {
   id: number;
   name?: string;
   spellId?: number;
   changed: boolean;
 }
+
+export interface SlotDiff {
+  left: SlotPick[];
+  right: SlotPick[];
+}
+
+//PvP talents and glyphs work in any slot, so the same picks in a different order are not a change
+function diffSlots(l: Omit<SlotPick, "changed">[], r: Omit<SlotPick, "changed">[]): SlotDiff {
+  const lIds = new Set(l.map((p) => p.id));
+  const rIds = new Set(r.map((p) => p.id));
+  return {
+    left: l.map((p) => ({ ...p, changed: !rIds.has(p.id) })),
+    right: r.map((p) => ({ ...p, changed: !lIds.has(p.id) })),
+  };
+}
+
+//a pick swapped for another is one difference, not two
+export function slotChangeCount(diff: SlotDiff): number {
+  return Math.max(diff.left.filter((p) => p.changed).length, diff.right.filter((p) => p.changed).length);
+}
+
+// --- PvP talents ----------------------------------------------------------------------------
 
 function pvpPicks(spec: Spec | undefined) {
   return (spec?.pvp_talent_slots ?? [])
@@ -244,16 +267,8 @@ function pvpPicks(spec: Spec | undefined) {
     .map((s) => ({ id: s!.talent!.id, name: s!.talent!.name, spellId: s!.spell_tooltip?.spell?.id }));
 }
 
-//PvP talent slots are interchangeable, so the same talents in different slots are not a change
-export function diffPvp(left: Spec | undefined, right: Spec | undefined) {
-  const l = pvpPicks(left);
-  const r = pvpPicks(right);
-  const lIds = new Set(l.map((p) => p.id));
-  const rIds = new Set(r.map((p) => p.id));
-  return {
-    left: l.map((p): PvpPick => ({ ...p, changed: !rIds.has(p.id) })),
-    right: r.map((p): PvpPick => ({ ...p, changed: !lIds.has(p.id) })),
-  };
+export function diffPvp(left: Spec | undefined, right: Spec | undefined): SlotDiff {
+  return diffSlots(pvpPicks(left), pvpPicks(right));
 }
 
 // --- MoP Classic ----------------------------------------------------------------------------
@@ -285,4 +300,26 @@ export function diffClassic(left: Spec | undefined, right: Spec | undefined): Cl
     const r = right?.talents?.find((t) => classicTier(t) == tier);
     return { tier, level, left: l, right: r, changed: (l?.talent?.id ?? 0) != (r?.talent?.id ?? 0) };
   });
+}
+
+const GLYPH_BY_ID = new Map(Glyphs.map((g) => [g.ID, g]));
+const MINOR_GLYPH = 1;
+
+//A specialization group holds a spec's glyphs but does not name the spec: groups and specializations
+//line up by position. Sorted by name so the glyphs both characters have sit side by side, since
+//Blizzard lists them in no particular order. A glyph missing from the table counts as major, so it
+//is still shown.
+function glyphPicks(summary: Summary | undefined, specId: number | undefined, minor: boolean) {
+  const index = summary?.specializations?.findIndex((s) => s.specialization?.id == specId) ?? -1;
+  return (summary?.specialization_groups?.[index]?.glyphs ?? [])
+    .filter((g) => (GLYPH_BY_ID.get(g.id)?.Field_3_4_0_43659_001 == MINOR_GLYPH) == minor)
+    .map((g) => ({ id: g.id, name: g.name, spellId: GLYPH_BY_ID.get(g.id)?.SpellID }))
+    .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
+}
+
+export function diffGlyphs(left: Summary | undefined, right: Summary | undefined, specId: number | undefined) {
+  return {
+    major: diffSlots(glyphPicks(left, specId, false), glyphPicks(right, specId, false)),
+    minor: diffSlots(glyphPicks(left, specId, true), glyphPicks(right, specId, true)),
+  };
 }

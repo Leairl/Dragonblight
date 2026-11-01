@@ -1,8 +1,10 @@
 import { FC, useEffect, useState } from "react";
-import { Button, Callout, Card, Select, SegmentedControl, Skeleton, Text } from "@radix-ui/themes";
-import { InfoCircledIcon, CopyIcon, CheckIcon } from "@radix-ui/react-icons";
+import { Button, Card, Select, Skeleton, Text } from "@radix-ui/themes";
+import { CopyIcon, CheckIcon } from "@radix-ui/react-icons";
 import { Dragonblight } from "../../clients/Dragonblight";
 import { getFlavor, wowheadUrl } from "../../helpers/game-flavor";
+import { CompareNotice, SideHeader, SlotRow, SpecPicker, TalentLink } from "./compare-shared";
+import { CompareSide, useTalentSummaries } from "./talent-data";
 import {
   commonSpecs,
   defaultLoadout,
@@ -14,7 +16,7 @@ import {
   capstoneNodeId,
   heroTreeOf,
   NodeDiff,
-  PvpPick,
+  slotChangeCount,
   spellIdOf,
   splitTree,
   TreeDiff,
@@ -27,14 +29,6 @@ declare const $WowheadPower: { refreshLinks: () => void };
 const CELL = TALENT_CELL;
 const ICON = TALENT_ICON;
 
-export interface CompareSide {
-  region: string;
-  server: string;
-  name: string;
-  className?: string;
-  displayName?: string;
-}
-
 interface CompareTalentsProps {
   left: CompareSide;
   right: CompareSide;
@@ -43,21 +37,8 @@ interface CompareTalentsProps {
   onSpecChange: (specId: number) => void;
 }
 
-//Talent summaries and trees are kept for the visit, so flipping between the equipment and
-//talents tabs does not fetch them again.
-const summaries = new Map<string, Promise<Dragonblight.CharacterSpecializationsSummary>>();
+//Talent trees are kept for the visit, so flipping between tabs does not fetch them again.
 const trees = new Map<string, Promise<Dragonblight.TalentTree>>();
-
-function loadSummary(region: string, server: string, name: string) {
-  const key = `${region}/${server}/${name}`;
-  let p = summaries.get(key);
-  if (!p) {
-    p = new Dragonblight.TalentClient().getCharacterTalents(server.replace(" ", "-"), name, region);
-    p.catch(() => summaries.delete(key));
-    summaries.set(key, p);
-  }
-  return p;
-}
 
 function loadTree(specId: number, region: string) {
   const key = `${specId}/${region}`;
@@ -78,26 +59,13 @@ interface Loaded<T> {
 
 const CompareTalents: FC<CompareTalentsProps> = (props) => {
   const isRetail = getFlavor() === "retail";
-  const { region: lRegion, server: lServer, name: lName } = props.left;
-  const { region: rRegion, server: rServer, name: rName } = props.right;
-  const pairKey = `${lRegion}/${lServer}/${lName}|${rRegion}/${rServer}/${rName}`;
-  const [talents, setTalents] = useState<Loaded<[Dragonblight.CharacterSpecializationsSummary, Dragonblight.CharacterSpecializationsSummary]>>({ key: "" });
+  const lRegion = props.left.region;
+  const { leftSummary, rightSummary, loading: summariesLoading, failed } = useTalentSummaries(props.left, props.right);
   const [tree, setTree] = useState<Loaded<Dragonblight.TalentTree>>({ key: "" });
   //loadouts picked by hand, for the spec they were picked in
   const [picked, setPicked] = useState<{ spec?: number; left?: number; right?: number }>({});
   const [copied, setCopied] = useState<string>();
 
-  useEffect(() => {
-    let cancelled = false;
-    Promise.all([loadSummary(lRegion, lServer, lName), loadSummary(rRegion, rServer, rName)])
-      .then((v) => !cancelled && setTalents({ key: pairKey, value: v }))
-      .catch(() => !cancelled && setTalents({ key: pairKey, failed: true }));
-    return () => {
-      cancelled = true;
-    };
-  }, [pairKey, lRegion, lServer, lName, rRegion, rServer, rName]);
-
-  const [leftSummary, rightSummary] = talents.key == pairKey ? talents.value ?? [] : [];
   const options = commonSpecs(leftSummary, rightSummary);
   const specId = options.some((o) => o.id == props.specId) ? props.specId : defaultSpec(options);
   const leftSpec = findSpec(leftSummary, specId);
@@ -148,13 +116,13 @@ const CompareTalents: FC<CompareTalentsProps> = (props) => {
   const pvp = diffPvp(leftSpec, rightSpec);
   const classic = isRetail ? undefined : diffClassic(leftSpec, rightSpec);
 
-  const loading = talents.key != pairKey || (isRetail && specId != undefined && tree.key != treeKey);
+  const loading = summariesLoading || (isRetail && specId != undefined && tree.key != treeKey);
 
   useEffect(() => {
     if (!loading) $WowheadPower.refreshLinks();
   });
 
-  if (talents.key == pairKey && talents.failed) {
+  if (failed) {
     return message("Talents could not be loaded. Try again in a moment.");
   }
   if (!loading && options.length == 0) {
@@ -171,8 +139,8 @@ const CompareTalents: FC<CompareTalentsProps> = (props) => {
       retail.specDiff.changes.length +
       (retail.heroDiff?.changes.length ?? 0) +
       (retail.sameHero ? 0 : 1) +
-      pvpChangeCount()
-    : (classic?.filter((t) => t.changed).length ?? 0) + pvpChangeCount();
+      slotChangeCount(pvp)
+    : (classic?.filter((t) => t.changed).length ?? 0) + slotChangeCount(pvp);
   const spec = options.find((o) => o.id == specId);
 
   return (
@@ -181,16 +149,7 @@ const CompareTalents: FC<CompareTalentsProps> = (props) => {
         {loading ? (
           <Skeleton width="320px" height="24px" />
         ) : (
-          <SegmentedControl.Root size="1" value={String(specId)} onValueChange={(v) => props.onSpecChange(Number(v))}>
-            {options.map((o) => (
-              <SegmentedControl.Item key={o.id} value={String(o.id)}>
-                <span className="flex items-center gap-1">
-                  <img src={`/Specs/${o.name.toLowerCase()}_${props.left.className?.toLowerCase()}.png`} width="16" height="16" />
-                  {o.name}
-                </span>
-              </SegmentedControl.Item>
-            ))}
-          </SegmentedControl.Root>
+          <SpecPicker options={options} specId={specId} className={props.left.className} onChange={props.onSpecChange} />
         )}
         <div className="grow" />
         {!loading && (
@@ -201,7 +160,7 @@ const CompareTalents: FC<CompareTalentsProps> = (props) => {
       </div>
 
       {!loading && spec && (
-        <div className="talent-sides">
+        <div className={isRetail ? "talent-sides" : "talent-sides talent-sides-slotted"}>
           {sideBar("del", props.left, leftSpec, leftLoadoutIndex, spec.leftActive, leftSummary, (i) =>
             setPicked({ spec: specId, left: i, right: rightLoadoutIndex })
           )}
@@ -258,24 +217,11 @@ const CompareTalents: FC<CompareTalentsProps> = (props) => {
     </Card>
   );
 
-  function pvpChangeCount() {
-    //a talent swapped for another is one difference, not two
-    return Math.max(pvp.right.filter((p) => p.changed).length, pvp.left.filter((p) => p.changed).length);
-  }
-
   function message(text: string) {
-    return (
-      <Callout.Root color="gray">
-        <Callout.Icon>
-          <InfoCircledIcon />
-        </Callout.Icon>
-        <Callout.Text>{text}</Callout.Text>
-      </Callout.Root>
-    );
+    return <CompareNotice text={text} />;
   }
 
-  //who is on this side, which of their saved loadouts is shown, and a note when the spec being
-  //compared is not the one they logged out as
+  //who is on this side, and which of their saved loadouts is shown
   function sideBar(
     kind: "del" | "add",
     side: CompareSide,
@@ -288,18 +234,7 @@ const CompareTalents: FC<CompareTalentsProps> = (props) => {
     const loadouts = spec?.loadouts ?? [];
     const code = loadouts[index]?.talent_loadout_code;
     return (
-      <div className={`talent-side ${kind}`}>
-        <span className="diff-marker">{kind == "del" ? "−" : "+"}</span>
-        <div className="min-w-0 grow">
-          <Text size="2" weight="bold" className="block truncate">
-            {side.displayName ?? side.name}
-          </Text>
-          {!isActiveSpec && (
-            <Text size="1" color="gray" className="block">
-              Logged out as {summary?.active_specialization?.name}, showing their {spec?.specialization?.name}
-            </Text>
-          )}
-        </div>
+      <SideHeader kind={kind} side={side} spec={spec} isActiveSpec={isActiveSpec} summary={summary}>
         {loadouts.length > 1 && (
           <Select.Root size="1" value={String(index)} onValueChange={(v) => onPick(Number(v))}>
             <Select.Trigger variant="soft" color="gray" />
@@ -328,7 +263,7 @@ const CompareTalents: FC<CompareTalentsProps> = (props) => {
             {copied == kind ? <CheckIcon /> : <CopyIcon />}
           </Button>
         )}
-      </div>
+      </SideHeader>
     );
   }
 
@@ -438,11 +373,7 @@ const CompareTalents: FC<CompareTalentsProps> = (props) => {
   }
 
   function talentLink(spellId: number | undefined, name: string | undefined) {
-    return (
-      <a key={spellId} className="talent-change-link" href={wowheadUrl(`spell=${spellId}`)} data-wh-rename-link="false">
-        {name}
-      </a>
-    );
+    return <TalentLink key={spellId} spellId={spellId} name={name} />;
   }
 
   //Points on each side and the difference, for a talent that takes more than one: "4/4 → 0/4 −4".
@@ -505,40 +436,18 @@ const CompareTalents: FC<CompareTalentsProps> = (props) => {
     );
   }
 
-  //PvP talents as a split row, like an equipment slot; slots are interchangeable
   function pvpSection() {
     if (pvp.left.length == 0 && pvp.right.length == 0) return null;
-    const changed = pvp.left.some((p) => p.changed) || pvp.right.some((p) => p.changed);
     return (
       <>
         <div className="talent-section-head talent-section-head-bar">
           <Text size="2" weight="bold">PvP talents</Text>
           <Text size="1" color="gray">
-            {changed ? "" : "no differences"}
+            {slotChangeCount(pvp) == 0 ? "no differences" : ""}
           </Text>
         </div>
-        <div className={changed ? "diff-row changed" : "diff-row"}>
-          <div className="diff-slot">PvP</div>
-          {pvpCell(pvp.left, changed, "del")}
-          {pvpCell(pvp.right, changed, "add")}
-        </div>
+        <SlotRow label="PvP" diff={pvp} />
       </>
-    );
-  }
-
-  function pvpCell(picks: PvpPick[], changed: boolean, kind: "del" | "add") {
-    return (
-      <div className={`diff-cell ${changed ? kind : ""}`}>
-        <span className="diff-marker">{changed ? (kind == "del" ? "−" : "+") : ""}</span>
-        <div className="talent-pvp-list">
-          {picks.length == 0 && <span className="diff-missing">None selected</span>}
-          {picks.map((p) => (
-            <span key={p.id} className={p.changed ? "hl" : ""}>
-              {talentLink(p.spellId, p.name)}
-            </span>
-          ))}
-        </div>
-      </div>
     );
   }
 
