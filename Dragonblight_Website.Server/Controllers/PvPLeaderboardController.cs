@@ -153,19 +153,39 @@ namespace Dragonblight_Website.Server.Controllers
             try
             {
 
-                string bracket = bracketType.Replace("ARENA_", "").Replace("BATTLEGROUNDS", "rbg");
-                if (bracketType == "SHUFFLE" || bracketType == "BLITZ")
-                {
-                    var getPlayableSpec = await _warcraftCachedData.PlayableSpecialization(specId ?? 0, region, HttpContext.GetGameFlavor());
-                    bracket = LadderNames.ForSpec(LadderNames.BracketName(bracketType), getPlayableSpec?.PlayableClass?.Name, getPlayableSpec?.Name);
-
-                }
+                var bracket = await _warcraftCachedData.RewardLadder(bracketType, region, specId, HttpContext.GetGameFlavor());
                 return (await _warcraftCachedData.GetLeaderboard(region, bracket, HttpContext.GetGameFlavor())).Entries.Last(p => p.Rating >= cutoff).Rank;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while fetching the rank from cutoffs.");
                 return 0;
+            }
+        }
+        [HttpGet("GetEstimatedCutoffs")]
+        public async Task<ActionResult<List<EstimatedCutoff>>> GetEstimatedCutoffs(string region)
+        {
+            try
+            {
+                return Ok(await _warcraftCachedData.GetEstimatedCutoffs(region, HttpContext.GetGameFlavor()));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the estimated cutoffs.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+        [HttpGet("GetEstimateDetail")]
+        public async Task<ActionResult<EstimateDetail>> GetEstimateDetail(string region, string bracket, int achievementId)
+        {
+            try
+            {
+                return Ok(await _warcraftCachedData.GetEstimateDetail(bracket, achievementId, region, HttpContext.GetGameFlavor()));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the estimate detail.");
+                return StatusCode(500, "An error occurred while processing your request.");
             }
         }
 
@@ -223,11 +243,11 @@ namespace Dragonblight_Website.Server.Controllers
             }
         }
         [HttpGet("GetLeaderboardAlts")]
-        public async Task<List<CharacterIdentity>>GetLeaderboardAlts(string characterName, string server, string region)
+        public async Task<List<CharacterIdentity>> GetLeaderboardAlts(string characterName, string server, string region)
         {
             return await _warcraftCachedData.GetAlts(server, characterName, region, HttpContext.GetGameFlavor());
         }
-        
+
         public class PvpCharacterSummary
         {
             [JsonPropertyName("pvpEntry")]

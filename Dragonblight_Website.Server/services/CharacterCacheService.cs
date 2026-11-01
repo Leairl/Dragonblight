@@ -95,6 +95,14 @@ partial class CharacterCacheService(IWarcraftRedisProxy warcraftRedisProxy, ILog
         //a ladder under one batch never enters the loop, so finishing is what marks it complete
         await redis.GetDatabase().StringSetAsync(SyncStatusKey(bracket, region, flavor), "1");
         await warcraftRedisProxy.BracketPlayerExpiration(bracket, region, flavor);
+        try
+        {
+            await warcraftRedisProxy.UpdateEstimatedCutoffs(bracket, region, newarray, flavor);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error estimating cutoffs for " + bracket);
+        }
         warcraftRedisProxy.overrideClient = null;
     }
     public async Task CacheLadder(string region, string bracket, PvpLeaderboard OldLeaderboard, PvpLeaderboard NewLeaderboard, GameFlavor flavor)
