@@ -101,16 +101,14 @@
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--cutoff-text, #f6ede2);
   background: #ffffff10;
-  border: 1px solid #ffffff24;
+  border: 1px solid currentColor;
   border-radius: 4px;
   padding: 3px 8px;
   cursor: pointer;
 }
 .cutoff-estimate-button:hover {
-  background: #ff5a1f33;
-  border-color: #ff5a1f;
+  background: #ffffff24;
 }
 .estimate-close {
   margin-top: 12px;

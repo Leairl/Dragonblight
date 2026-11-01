@@ -3,6 +3,7 @@ import { Dialog, Table } from "@radix-ui/themes";
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, TooltipProps, XAxis, YAxis } from "recharts";
 import { Dragonblight } from "../../clients/Dragonblight";
 import { realmDisplayName } from "../../helpers/realmNameHelper";
+import { TitleColors } from "../../helpers/ratingTierHelper";
 
 interface EstimateDialogProps {
   region: string;
@@ -77,9 +78,9 @@ const EstimateDialog: FC<EstimateDialogProps> = (props) => {
 
   return (
     <Dialog.Root onOpenChange={onOpenChange}>
-      <Dialog.Trigger>
-        <button className="cutoff-estimate-button">Est.</button>
-      </Dialog.Trigger>
+<Dialog.Trigger>
+  <button className={"cutoff-estimate-button " + TitleColors(props.title)}>Est.</button>
+</Dialog.Trigger>
       <Dialog.Content maxWidth="760px">
         <Dialog.Title>{props.title}</Dialog.Title>
         <Dialog.Description size="2" color="gray">

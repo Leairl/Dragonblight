@@ -62,6 +62,7 @@ partial class WarcraftRedisProxy
     }
 
     //inserts the battle.net account for each character, so alts can be counted under the same account
+    // reads from the AltKey redis keys, which are set during the ladder sync
     private async Task<Dictionary<int, string>> GetAccountKeys(List<PvpLeaderboardEntry> entries, string region, GameFlavor flavor)
     {
         var db = redis.GetDatabase();
@@ -72,6 +73,7 @@ partial class WarcraftRedisProxy
         var accounts = new Dictionary<int, string>();
         for (var i = 0; i < entries.Count; i++)
         {
+            //value of the altkey is the hash of the battle.net account to find mains and alts under
             var account = "char" + entries[i].Character.Id;
             if (values[i].HasValue)
             {
@@ -157,22 +159,20 @@ partial class WarcraftRedisProxy
         //list of character in the previous estimate and the new one, to see which alts entered or left, and which accounts changed holders
         var nowIds = estimate.Inside.Select(i => i.CharacterId).ToHashSet();
         var beforeIds = previous.Inside.Select(i => i.CharacterId).ToHashSet();
+        //set of main characters inside the cutoff, to see which accounts entered or left. One id per account, alts are ignored
         var nowHolders = estimate.Inside.Where(i => !i.IsAlt).ToDictionary(i => i.Account, i => i.CharacterId);
         var beforeHolders = previous.Inside.Where(i => !i.IsAlt).ToDictionary(i => i.Account, i => i.CharacterId);
 
-        //an alt that was inside left
         estimate.AltsLeft = previous.Inside.Count(i => i.IsAlt && !nowIds.Contains(i.CharacterId));
-        //a new alt of an account already inside
         estimate.AltsEntered = estimate.Inside.Count(i => i.IsAlt && !beforeIds.Contains(i.CharacterId));
-        //a new account pushed the last one out
         estimate.AccountsEntered = nowHolders.Keys.Count(a => !beforeHolders.ContainsKey(a));
-        //an account dropped below the line
         estimate.AccountsLeft = beforeHolders.Keys.Count(a => !nowHolders.ContainsKey(a));
-        //the account stayed inside, but a different character holds its spot now
+        //holderreplaced looks at the current sync and says on this entry does it have the same b.net hash, if so save to before. 
+        //if before has a different id it just moved one alt to a main
         estimate.HoldersReplaced = nowHolders.Count(h => beforeHolders.TryGetValue(h.Key, out var before) && before != h.Value);
     }
 
-    //one point per sync, newest last; 300 points is about 25 days of 2-hour syncs
+    // shows 300 syncs on the timeline graph at a maximum and expires after 30 days.
     private async Task AddEstimateHistory(EstimatedCutoff estimate, string region, GameFlavor flavor)
     {
         var db = redis.GetDatabase();
@@ -191,7 +191,7 @@ partial class WarcraftRedisProxy
         await db.KeyExpireAsync(key, TimeSpan.FromDays(30));
     }
 
-    //the latest estimate with its inside rows, and the history behind it
+    //historykey holds data for each sync and each point is the data from that bracket at a specific timestamp
     public async Task<EstimateDetail> GetEstimateDetail(string bracket, int achievementId, string region, GameFlavor flavor)
     {
         var detail = new EstimateDetail();
@@ -218,19 +218,22 @@ partial class WarcraftRedisProxy
         var cutoffsDone = new HashSet<int>();
         foreach (var reward in rewards?.Rewards ?? [])
         {
+            // only titles we want
             if (!IsEstimatedTitle(reward, flavor))
             {
                 continue;
             }
+            // makes sure we are only doing the estimate for that bracket
             if (await RewardLadder(reward.Bracket.Type, region, reward.Specialization?.Id, flavor) != bracket)
             {
                 continue;
             }
-            //Blitz lists its title once per faction with the same cutoff; the first one covers both
+            //blitz has two cutoffs for each faction, so we only do one estimate
             if (!cutoffsDone.Add(reward.RatingCutoff))
             {
                 continue;
             }
+            //makes sure we use the same account dictionary for all rewards
             if (accounts == null)
             {
                 accounts = await GetAccountKeys(entries, region, flavor);
