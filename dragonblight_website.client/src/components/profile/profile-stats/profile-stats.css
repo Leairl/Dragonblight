@@ -47,3 +47,14 @@
   align-items: center;
   justify-content: center;
 }
+/* marks the stat cards as PvP estimates */
+.pvp-estimate-tag {
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #f8c43a;
+  background: rgba(248, 196, 58, 0.12);
+  cursor: help;
+}

@@ -20,25 +20,56 @@ import "../profile.css";
 import "./profile-stats.css";
 import classNames from "classnames";
 import { getFlavor } from "../../../helpers/game-flavor";
+import { useItemLevelMode } from "../../../helpers/itemLevelMode";
+import { averagePvpItemLevel } from "../../../helpers/pvpItemLevel";
+import { getPvpGearGain, PvpGearGain, pvpSheet } from "../../../helpers/pvpStats";
 
 //allows subset calls of profile from profile.tsx
 interface ProfileStatsProps {
   characterProfileSummary: Dragonblight.CharacterProfileSummary | undefined;
   characterEquipmentSummary: Dragonblight.CharacterEquipmentSummary | undefined;
+  // each item's PvP item level, for the item level in PvP mode
+  pvpLevels: Map<Dragonblight.EquippedItem, number>;
   loading: boolean;
   characterNotFound?: boolean;
 }
 
 const ProfileStats: FC<ProfileStatsProps> = (props) => {
-  const [characterStats, setcharacterStats] = useState<
+  // the sheet as Blizzard reports it, which is the character outside PvP
+  const [sheetStats, setcharacterStats] = useState<
     Dragonblight.CharacterStatisticsSummary
   >();
+  // what the character's gear gains in PvP, for the PvP sheet; tagged with the equipment it was
+  // worked out for, so a slow answer for a character already left behind is not used
+  const [pvpGain, setPvpGain] = useState<{ equipment: Dragonblight.CharacterEquipmentSummary; gain: PvpGearGain }>();
   const [loading, setLoading] = useState<boolean>(true);
 
   // The two games have different stats, not just different numbers: retail dropped Spirit, Hit,
   // Expertise, Resilience and reforging, and applies one crit and one haste to everything rather
   // than separate melee, ranged and spell values.
   const retail = getFlavor() === "retail";
+  const [ilvlMode] = useItemLevelMode();
+  // MoP Classic has no PvP item level, so it always shows Blizzard's
+  const pvpItemLevel = retail && ilvlMode === "pvp";
+  useEffect(() => {
+    const equipment = props.characterEquipmentSummary;
+    if (!retail || equipment == undefined || props.pvpLevels.size === 0) { return; }
+    let cancelled = false;
+    getPvpGearGain(equipment, props.pvpLevels).then((gain) => {
+      if (!cancelled) { setPvpGain({ equipment, gain }); }
+    });
+    return () => { cancelled = true; };
+  }, [props.characterEquipmentSummary, props.pvpLevels, retail]);
+  // In PvP mode every card shows the sheet as it would read in PvP, an estimate built from the
+  // gear's PvP item levels (see pvpStats.ts); until that is ready, the sheet outside PvP.
+  // the gain has to exist and be for the gear on screen - while the profile loads, both the gain
+  // and the gear are undefined, and comparing them alone would wrongly call that a match
+  const gainForThisGear = pvpGain != undefined && props.characterEquipmentSummary != undefined
+    && pvpGain.equipment === props.characterEquipmentSummary ? pvpGain.gain : undefined;
+  const pvpEstimate = pvpItemLevel && sheetStats != undefined && gainForThisGear != undefined;
+  const characterStats = pvpEstimate
+    ? pvpSheet(sheetStats!, props.characterEquipmentSummary, gainForThisGear!)
+    : sheetStats;
 
   const { region, server, characterName } = useParams();
   const CardStyles: string[] = [
@@ -132,6 +163,11 @@ const ProfileStats: FC<ProfileStatsProps> = (props) => {
           <Heading mb="2" size="2">
             {" "}
             General{" "}
+            {pvpEstimate && (
+              <Tooltip content="Stats as they would read in Arenas, Battlegrounds and War Mode, worked out from the gear's PvP item levels. Blizzard only reports the sheet outside PvP, so these are estimates.">
+                <span className="pvp-estimate-tag">PvP estimate</span>
+              </Tooltip>
+            )}
           </Heading>
           <DataList.Root size="1">
             <DataList.Item>
@@ -142,10 +178,12 @@ const ProfileStats: FC<ProfileStatsProps> = (props) => {
               </DataList.Value>
             </DataList.Item>
             <DataList.Item>
-              <DataList.Label minWidth="90px"> Item Level </DataList.Label>
+              <DataList.Label minWidth="90px"> {pvpItemLevel ? "PvP Item Level" : "Item Level"} </DataList.Label>
               <DataList.Value className="">
                 {" "}
-                {props.characterProfileSummary?.average_item_level}
+                {pvpItemLevel
+                  ? averagePvpItemLevel(props.characterEquipmentSummary, props.pvpLevels)
+                  : props.characterProfileSummary?.average_item_level}
               </DataList.Value>
             </DataList.Item>
           </DataList.Root>
@@ -309,16 +347,19 @@ const ProfileStats: FC<ProfileStatsProps> = (props) => {
                   <DataList.Label minWidth="90px"> Damage </DataList.Label>
                   <DataList.Value className="">
                     {" "}
-                    {Math.round(
-                      characterStats?.main_hand_damage_min ?? 0
-                    )} - {Math.round(characterStats?.main_hand_damage_max ?? 0)}{" "}
+                    {/* weapon damage is not estimated for PvP */}
+                    {Number.isFinite(characterStats?.main_hand_damage_min ?? 0)
+                      ? `${Math.round(characterStats?.main_hand_damage_min ?? 0)} - ${Math.round(characterStats?.main_hand_damage_max ?? 0)}`
+                      : "—"}{" "}
                   </DataList.Value>
                 </DataList.Item>
                 <DataList.Item>
                   <DataList.Label minWidth="90px"> DPS </DataList.Label>
                   <DataList.Value className="">
                     {" "}
-                    {(characterStats?.main_hand_dps ?? 0).toFixed(1)}{" "}
+                    {Number.isFinite(characterStats?.main_hand_dps ?? 0)
+                      ? (characterStats?.main_hand_dps ?? 0).toFixed(1)
+                      : "—"}{" "}
                   </DataList.Value>
                 </DataList.Item>
                 <DataList.Item>

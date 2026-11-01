@@ -174,6 +174,13 @@ public record EquippedItem
     public int? ModifiedAppearanceId { get; init; }
 
     /// <summary>
+    /// Gets the item's unique-equip limit, e.g. "Unique-Equipped: Embellished (2)" on an
+    /// embellished item - which is how an embellishment is told apart from the item's own effects.
+    /// </summary>
+    [JsonPropertyName("limit_category")]
+    public string LimitCategory { get; init; }
+
+    /// <summary>
     /// Gets the item sockets.
     /// </summary>
     [JsonPropertyName("sockets")]

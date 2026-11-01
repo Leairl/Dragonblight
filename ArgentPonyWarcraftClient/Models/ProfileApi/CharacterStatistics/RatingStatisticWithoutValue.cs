@@ -12,6 +12,13 @@ public record RatingStatisticWithoutValue
     public int Rating { get; init; }
 
     /// <summary>
+    /// Gets the rating. Retail reports it under this name; "rating" is what older responses, and
+    /// MoP Classic, use.
+    /// </summary>
+    [JsonPropertyName("rating_normalized")]
+    public int? RatingNormalized { get; init; }
+
+    /// <summary>
     /// Gets the rating bonus.
     /// </summary>
     [JsonPropertyName("rating_bonus")]
