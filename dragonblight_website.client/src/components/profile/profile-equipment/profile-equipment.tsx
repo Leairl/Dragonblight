@@ -18,6 +18,9 @@ import { formerNames, realmDisplayName } from "../../../helpers/realmNameHelper"
 import { InfoCircledIcon } from "@radix-ui/react-icons";
 import { getFlavor, wowheadUrl } from "../../../helpers/game-flavor";
 import { installTierSetSpecFilter } from "../../../helpers/wowhead-tier-set";
+import { findSlotItem, getEmbellishments } from "../../../helpers/equipmentHelper";
+import { useItemLevelMode } from "../../../helpers/itemLevelMode";
+import { secondaryStatsAttr } from "../../../helpers/wowhead-item-stats";
 
 interface profileEquipmentProps {
   characterProfileSummary: Dragonblight.CharacterProfileSummary | undefined;
@@ -33,6 +36,8 @@ interface profileEquipmentProps {
   loading: boolean;
   characterNotFound: boolean;
   rewards: Dragonblight.PvpSeasonRewardWithRank[] | [];
+  // each equipped item's PvP item level, which tooltips are drawn at in PvP mode
+  pvpLevels: Map<Dragonblight.EquippedItem, number>;
 }
 
 const mogslots: number[] = [
@@ -188,6 +193,7 @@ const ProfileEquipment: FC<profileEquipmentProps> = (props) => {
   const buildNumber = useRef(0);
   const [seasonal, setSeasonal] = useState<Dragonblight.SeasonalAchievement[]>([]);
   const [tiers, setTiers] = useState<Dragonblight.TierAchievements[]>([]);
+  const [ilvlMode] = useItemLevelMode();
 
 
 
@@ -715,14 +721,17 @@ const ProfileEquipment: FC<profileEquipmentProps> = (props) => {
                   : "slot-icon-background"
               }
               style={{ backgroundImage: `url(${getBackgroundIcon(s)})` }}
+              key={`icon-${ilvlMode}`}
               href={wowheadUrl(`item=${getItem(
                 props.characterEquipmentSummary,
                 s
               )}`)}
               rel={itemTooltipParams(s)}
+              data-db-stats={secondaryStatsAttr(findSlotItem(props.characterEquipmentSummary, s))}
             ></a>
             <div className="item-details ">
               <a
+                key={`name-${ilvlMode}`}
                 className={
                   i + skip > 8 ? "align-right-name item-name" : "item-name"
                 }
@@ -731,6 +740,7 @@ const ProfileEquipment: FC<profileEquipmentProps> = (props) => {
                   s
                 )}`)}
                 data-wowhead={itemTooltipParams(s)}
+                data-db-stats={secondaryStatsAttr(findSlotItem(props.characterEquipmentSummary, s))}
               >
                 {getItemName(s)}
               </a>
@@ -751,7 +761,11 @@ const ProfileEquipment: FC<profileEquipmentProps> = (props) => {
               {/* one icon per socket. Wowhead's script draws the gem and its tooltip from the
                   link, the same way it does for gear; an empty socket is shown as a hole, since
                   it is a stat the character is not getting. */}
-              {getGemSockets(s).length > 0 && (
+              {/* Gems and embellishments share the third line, gems nearest the icon. Each item gets
+                  at most three lines - name, enchant, this one - which is what fits beside its
+                  icon; a fourth made the row taller than the icon and pushed the rows below it
+                  out of line. */}
+              {(getGemSockets(s).length > 0 || getEmbellishments(findSlotItem(props.characterEquipmentSummary, s)).length > 0) && (
                 <div className={i + skip > 8 ? "item-gems align-right-gems" : "item-gems"}>
                   {getGemSockets(s).map((gem, socketIndex) =>
                     gem.itemId != undefined ? (
@@ -769,6 +783,16 @@ const ProfileEquipment: FC<profileEquipmentProps> = (props) => {
                       ></span>
                     )
                   )}
+                  {getEmbellishments(findSlotItem(props.characterEquipmentSummary, s)).map((e) => (
+                    <a
+                      key={"emb" + s + e.spellId}
+                      className="item-embellish"
+                      href={wowheadUrl(`spell=${e.spellId}`)}
+                      data-wh-rename-link="false"
+                    >
+                      {e.name}
+                    </a>
+                  ))}
                 </div>
               )}
             </div>
@@ -891,8 +915,17 @@ const ProfileEquipment: FC<profileEquipmentProps> = (props) => {
       `&pcs=${getPcs(s)}` +
       `&transmog=${getTransmog(props.characterEquipmentSummary, s, true)}` +
       `&bonus=${item?.bonus_list?.join(":") ?? ""}` +
-      `&ilvl=${item?.level?.value ?? ""}`
+      `&ilvl=${shownLevel(s) ?? ""}`
     );
+  }
+
+  // the item level a slot's tooltip is drawn at: its PvP item level in PvP mode, its own otherwise.
+  // MoP Classic reports no item level per item, so there this is undefined and Wowhead draws the
+  // item at its base level, as it always has.
+  function shownLevel(s: number): number | undefined {
+    const item = findSlotItem(props.characterEquipmentSummary, s);
+    if (item == undefined) { return undefined; }
+    return ilvlMode === "pvp" ? props.pvpLevels.get(item) ?? item.level?.value : item.level?.value;
   }
 
   //the equipped pieces of an item's set, which is how Wowhead knows which set bonuses are active

@@ -24,7 +24,7 @@ export function flavorHref(path: string): string {
 // belongs to one flavor, so switching leaves its page; retail has no 5v5 ladder.
 function destination(flavor: GameFlavor, path: string): string {
   if (path.startsWith("/blue-tracker/")) return "/blue-tracker";
-  if (path.startsWith("/profile")) return "/rankings";
+  if (path.startsWith("/profile") || path.startsWith("/compare")) return "/rankings";
   if (flavor === "retail" && path.endsWith("/5v5")) return path.replace("/5v5", "/3v3");
   return path;
 }

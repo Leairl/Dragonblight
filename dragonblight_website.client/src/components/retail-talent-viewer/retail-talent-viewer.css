@@ -1,53 +1,114 @@
 /* Retail talent trees: nodes are placed absolutely from the grid positions Blizzard gives them,
    with the connector lines drawn behind them in the same coordinate space. */
 
+.retailTalentToolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--gray-a5);
+}
+
+/* Panels stretch to the tallest tree, so every heading sits on the same line; the tree inside
+   is centred in what is left, which keeps the short hero tree level with the others' middle,
+   where the in-game screen puts it. */
 .retailTalentTrees {
     display: flex;
     flex-wrap: wrap;
     gap: 1.5rem;
     justify-content: center;
-    /* the hero tree is half the height of the other two, and sits level with their middle
-       in game rather than hanging from the top */
-    align-items: center;
+    align-items: stretch;
     padding: 0.75rem;
+}
+
+.retailTalentPanel {
+    display: flex;
+    flex-direction: column;
+}
+
+.retailTalentPanelHead {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 0.5rem;
+    padding-bottom: 0.35rem;
+    margin-bottom: 0.75rem;
+    border-bottom: 1px solid var(--gray-a5);
+}
+
+.retailTalentPanelBody {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .retailTalentGrid {
     position: relative;
 }
 
-.retailTalentLines {
+/* Connections between talents: arrows from a talent to the one it unlocks, gold once both are
+   taken, as the in-game talent screen draws them. See talent-arrows.tsx. */
+.talentArrows {
     position: absolute;
     left: 0;
     top: 0;
     overflow: visible;
+    pointer-events: none;
 }
 
-.retailTalentLine {
-    stroke: #3a3a3a;
+.talentArrow {
     stroke-width: 2;
+    stroke-linecap: round;
 }
-
-/* a line between two talents the character actually took */
-.retailTalentLine.taken {
-    stroke: rgba(39, 150, 255, 0.7);
+.talentArrow.untaken {
+    stroke: #4a4a4a;
+}
+.talentArrowHead.untaken {
+    fill: #4a4a4a;
+}
+.talentArrow.taken {
+    stroke: #f8c43a;
+    stroke-width: 3;
+    filter: drop-shadow(0 0 2px rgba(248, 196, 58, 0.6));
+}
+.talentArrowHead.taken {
+    fill: #f8c43a;
+}
+/* compare page: a path only one of the two characters took */
+.talentArrow.del {
+    stroke: var(--red-9);
     stroke-width: 3;
 }
+.talentArrowHead.del {
+    fill: var(--red-9);
+}
+.talentArrow.add {
+    stroke: var(--green-9);
+    stroke-width: 3;
+}
+.talentArrowHead.add {
+    fill: var(--green-9);
+}
 
+/* the solid backing keeps a node opaque however it is dimmed, so nothing behind it shows through */
 .retailTalentNode {
     position: absolute;
     width: 32px;
     height: 32px;
+    border-radius: 3px;
+    background-color: #0b0b0b;
 }
 
-/* untaken talents stay visible but drain out, the way Wowhead dims them */
-.retailTalentNode[data-taken="false"] {
-    filter: grayscale(100%);
-    opacity: 0.45;
+/* untaken talents are darkened rather than faded: transparency would let the arrows behind
+   them show through the icon */
+.retailTalentNode[data-taken="false"] .retailTalentIcon {
+    filter: grayscale(100%) brightness(0.45);
 }
 
+/* a taken talent gets the gold frame the in-game screen gives it */
 .retailTalentNode[data-taken="true"] .retailTalentIcon > .iconlarge > ins {
-    box-shadow: 0 0 6px 2px rgba(39, 150, 255, 0.7);
+    box-shadow: 0 0 0 2px #f8c43a, 0 0 6px 2px rgba(248, 196, 58, 0.55);
 }
 
 /* Wowhead's script replaces the empty anchor with its own icon markup, so the sizes below
@@ -104,4 +165,13 @@
 
 .retailTalentNode[data-taken="true"] .retailTalentRank {
     color: rgba(177, 218, 241, 0.9);
+}
+
+/* marks the spec the character logged out as, in the spec picker */
+.retailTalentCurrentDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #f8c43a;
+    margin-left: 2px;
 }
