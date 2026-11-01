@@ -92,3 +92,45 @@
   background: var(--cutoff-molten);
   box-shadow: 0 0 10px 1px rgba(255, 90, 31, 0.75);
 }
+
+/* Estimated button on the card and Close in the popup */
+.cutoff-estimate-button {
+  align-self: flex-start;
+  font-family: "Inter", sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: #ffffff10;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+.cutoff-estimate-button:hover {
+  background: #ffffff24;
+}
+.estimate-close {
+  margin-top: 12px;
+}
+
+.estimate-chart {
+  margin: 16px 0;
+}
+.estimate-tooltip {
+  background: #1d1f23;
+  border: 1px solid #ffffff24;
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: #f6ede2;
+}
+.estimate-tooltip-time {
+  color: #8f857c;
+  margin-bottom: 4px;
+}
+
+/* alts don't take a spot, so they read quieter than the mains */
+.estimate-table .estimate-alt {
+  color: #8f857c;
+}

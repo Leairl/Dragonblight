@@ -11,6 +11,7 @@ using StackExchange.Redis;
 //  .Activity              - rating changes between ladder syncs (Redis only)
 //  .CachedLists           - looked-up characters and per-class ladder lists (Redis only)
 //  .Alts                  - grouping characters by battle.net account
+//  .Estimates             - live cutoff estimates for the percentage titles, and their history
 //  .GameData              - items and realms
 partial class WarcraftRedisProxy(WarcraftClient _warcraftClient, IConnectionMultiplexer redis, ILogger<WarcraftRedisProxy> logger) : IWarcraftRedisProxy
 {

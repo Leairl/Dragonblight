@@ -24,6 +24,7 @@ import { InfoCircledIcon } from "@radix-ui/react-icons";
 import Cutoffs from "../cutoffs/cutoffs";
 import { brackets } from "../../helpers/game-flavor";
 import classNames from "classnames";
+import { realmName } from "../../helpers/realmNameHelper";
 
 const Skeletons = [0, 1, 2];
 
@@ -437,12 +438,7 @@ function Activity() {
                         }}
                         className="desktopOnly"
                       >
-                        {characterEntry.currPvpEntry.character?.realm?.slug
-                          ?.charAt(0)
-                          .toUpperCase() +
-                          (characterEntry.currPvpEntry.character?.realm?.slug?.slice(
-                            1
-                          ) ?? "")}
+                        {realmName(characterEntry.charSummary?.realm ?? characterEntry.currPvpEntry.character?.realm)}
                       </Table.Cell>
                       <Table.Cell
                         onClick={() => {
@@ -650,12 +646,7 @@ function Activity() {
                                       Server
                                     </DataList.Label>
                                     <DataList.Value className="justify-end">
-                                      {characterEntry.currPvpEntry.character?.realm?.slug
-                                        ?.charAt(0)
-                                        .toUpperCase() +
-                                        (characterEntry.currPvpEntry.character?.realm?.slug?.slice(
-                                          1
-                                        ) ?? "")}
+                                      {realmName(characterEntry.charSummary?.realm ?? characterEntry.currPvpEntry.character?.realm)}
                                     </DataList.Value>
                                   </DataList.Item>
                                   <DataList.Item>

@@ -25,6 +25,7 @@ import Cutoffs from "../cutoffs/cutoffs";
 import { brackets } from "../../helpers/game-flavor";
 import { SoloSpec, defaultBlitzSpec, isBlitzBracket, setShuffleSpecs, setBlitzSpecs, defaultShuffleSpec, isShuffleBracket, shuffleSpecs, blitzSpecs, SoloSpecIcon } from "../../helpers/solo-bracket-specs";
 import SoloSpecFilter from "../solo-spec-filter/solo-spec-filter";
+import { realmName } from "../../helpers/realmNameHelper";
 import { server } from "typescript";
 
 const Skeletons = [0, 1, 2];
@@ -474,12 +475,7 @@ function Rankings() {
                     }}
                     className="desktopOnly"
                   >
-                    {characterEntry.pvpEntry.character?.realm?.slug
-                      ?.charAt(0)
-                      .toUpperCase() +
-                      (characterEntry.pvpEntry.character?.realm?.slug?.slice(
-                        1
-                      ) ?? "")}
+                    {realmName(characterEntry.charSummary?.realm ?? characterEntry.pvpEntry.character?.realm)}
                   </Table.Cell>
                   <Table.Cell
                     onClick={() => {
@@ -604,12 +600,7 @@ function Rankings() {
                                   Server
                                 </DataList.Label>
                                 <DataList.Value className="justify-end">
-                                  {characterEntry.pvpEntry.character?.realm?.slug
-                                    ?.charAt(0)
-                                    .toUpperCase() +
-                                    (characterEntry.pvpEntry.character?.realm?.slug?.slice(
-                                      1
-                                    ) ?? "")}
+                                  {realmName(characterEntry.charSummary?.realm ?? characterEntry.pvpEntry.character?.realm)}
                                 </DataList.Value>
                               </DataList.Item>
                               <DataList.Item>

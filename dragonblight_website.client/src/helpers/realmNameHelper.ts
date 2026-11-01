@@ -9,6 +9,14 @@ function realmDisplayName(slug: string | undefined): string {
     .join(" ");
 }
 
+//Blizzard's own name ("Zul'jin", "Area 52") when the response carries one, the capitalized slug otherwise
+function realmName(realm: { name?: string; slug?: string } | undefined): string {
+  if (realm?.name) {
+    return realm.name;
+  }
+  return realmDisplayName(realm?.slug);
+}
+
 function realmSlug(name: string | undefined): string {
   return (name ?? "").toLowerCase().replace("'", "").replace(" ", "-");
 }
@@ -28,4 +36,4 @@ function formerNames(
   return "Formerly " + names.join(", ");
 }
 
-export { realmDisplayName, realmSlug, formerNames};
+export { realmDisplayName, realmName, realmSlug, formerNames};

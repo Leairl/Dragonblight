@@ -1123,6 +1123,88 @@ export class PvpLeaderboardClient {
         return Promise.resolve<number>(null as any);
     }
 
+    getEstimatedCutoffs(region: string | undefined): Promise<EstimatedCutoff[]> {
+        let url_ = this.baseUrl + "/api/PvpLeaderboard/GetEstimatedCutoffs?";
+        if (region === null)
+            throw new globalThis.Error("The parameter 'region' cannot be null.");
+        else if (region !== undefined)
+            url_ += "region=" + encodeURIComponent("" + region) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetEstimatedCutoffs(_response);
+        });
+    }
+
+    protected processGetEstimatedCutoffs(response: Response): Promise<EstimatedCutoff[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as EstimatedCutoff[];
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<EstimatedCutoff[]>(null as any);
+    }
+
+    getEstimateDetail(region: string | undefined, bracket: string | undefined, achievementId: number | undefined): Promise<EstimateDetail> {
+        let url_ = this.baseUrl + "/api/PvpLeaderboard/GetEstimateDetail?";
+        if (region === null)
+            throw new globalThis.Error("The parameter 'region' cannot be null.");
+        else if (region !== undefined)
+            url_ += "region=" + encodeURIComponent("" + region) + "&";
+        if (bracket === null)
+            throw new globalThis.Error("The parameter 'bracket' cannot be null.");
+        else if (bracket !== undefined)
+            url_ += "bracket=" + encodeURIComponent("" + bracket) + "&";
+        if (achievementId === null)
+            throw new globalThis.Error("The parameter 'achievementId' cannot be null.");
+        else if (achievementId !== undefined)
+            url_ += "achievementId=" + encodeURIComponent("" + achievementId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetEstimateDetail(_response);
+        });
+    }
+
+    protected processGetEstimateDetail(response: Response): Promise<EstimateDetail> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as EstimateDetail;
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<EstimateDetail>(null as any);
+    }
+
     getLadderFiltered(skip: number | undefined, take: number | undefined, region: string | undefined, classes: string[], bracket: string | undefined): Promise<PvpCharacterSummary[]> {
         let url_ = this.baseUrl + "/api/PvpLeaderboard/GetLadderFiltered?";
         if (skip === null)
@@ -2211,6 +2293,50 @@ export interface PvpSeasonRewardWithRank extends PvpSeasonReward {
 export interface Bracket {
     id: number;
     type?: string | undefined;
+}
+
+export interface EstimatedCutoff {
+    title: string;
+    bracket: string;
+    achievementId: number;
+    ratingCutoff: number;
+    spots: number;
+    estimatedRating: number;
+    estimatedRank: number;
+    altsInside: number;
+    previousRank?: number | undefined;
+    previousRating?: number | undefined;
+    altsLeft: number;
+    altsEntered: number;
+    accountsEntered: number;
+    accountsLeft: number;
+    holdersReplaced: number;
+    inside: EstimateInsideEntry[];
+}
+
+export interface EstimateInsideEntry {
+    characterId: number;
+    account: string;
+    isAlt: boolean;
+    name: string;
+    realm: string;
+    rank: number;
+    rating: number;
+    mainName: string;
+}
+
+export interface EstimateDetail {
+    estimate?: EstimatedCutoff | undefined;
+    history: EstimateHistoryPoint[];
+}
+
+export interface EstimateHistoryPoint {
+    time: Date;
+    estimatedRating: number;
+    estimatedRank: number;
+    ratingCutoff: number;
+    spots: number;
+    altsInside: number;
 }
 
 export interface CharacterIdentity {

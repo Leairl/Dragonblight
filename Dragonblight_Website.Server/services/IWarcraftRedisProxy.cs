@@ -58,6 +58,10 @@ public interface IWarcraftRedisProxy
     Task<RealmsIndex?> GetRealms(string region, GameFlavor flavor);
     Task ReplacePvpCharacterSummary(int index, PvpCharacterSummary summary, string bracket, string region, GameFlavor flavor);
     Task<List<WowClass>> GetPlayableClasses(string region, GameFlavor flavor);
+    Task<string> RewardLadder(string bracketType, string region, int? specId, GameFlavor flavor);
+    Task UpdateEstimatedCutoffs(string bracket, string region, PvpLeaderboardEntry[] ladder, GameFlavor flavor);
+    Task<List<EstimatedCutoff>> GetEstimatedCutoffs(string region, GameFlavor flavor);
+    Task<EstimateDetail> GetEstimateDetail(string bracket, int achievementId, string region, GameFlavor flavor);
 
 }
 

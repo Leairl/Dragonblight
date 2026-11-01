@@ -55,7 +55,7 @@ partial class WarcraftRedisProxy
         await RecordCharacter(character.Id, character.Name, character.Realm.Slug, region, flavor);
         var db = redis.GetDatabase();
         await db.SetAddAsync(key, character.Id.ToString());
-        await db.StringSetAsync(VersionedKey("AltKey" + server + characterName + region + flavor.KeyPrefix()), key, TimeSpan.FromDays(1));
+        await db.StringSetAsync(VersionedKey("AltKey" + server + characterName + region + flavor.KeyPrefix()), key, TimeSpan.FromDays(2));
     }
 
     //the ladder sync route in: the achievements payload is over a megabyte per character, far too
