@@ -59,7 +59,7 @@ function retailTier(rating: number | undefined): RatingTier | undefined {
   }
 }
 function TitleColors(title: string | undefined): string {
-  if (title?.includes(" Gladiator")) return "text-yellow-600";   // rank 1, e.g. "Grievous Gladiator"
+  if (title?.includes(" Gladiator")) return "text-orange-500";   // rank 1, e.g. "Grievous Gladiator"
   if (title?.includes(" Legend")) return "text-purple-500";
   if (title?.includes(" Marshal") || (title?.includes(" Warlord"))) return "text-green-500";
   if (title?.startsWith("Gladiator") || title?.includes("Hero of the ")) return "text-purple-500";
