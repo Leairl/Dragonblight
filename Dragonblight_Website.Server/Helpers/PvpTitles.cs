@@ -11,7 +11,7 @@ public static class PvpTitles
     public static (Tier tier, string season)? SeasonalTitles(string? name)
     {
         var seasonSplit = (name ?? "").Split(": ", 2);
-        if (seasonSplit.Length != 2)
+        if (seasonSplit.Length != 2 || seasonSplit[0] == "Challenge Warlord")
         {
             return null;
         }

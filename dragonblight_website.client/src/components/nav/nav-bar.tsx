@@ -62,6 +62,20 @@ function NavBar() {
               </NavigationMenu.Trigger>
             </Link>
           </NavigationMenu.Item>
+                    <NavigationMenu.Item>
+            <Link to="/cutoffs">
+              <NavigationMenu.Trigger className="group flex select-none items-center gap-[2px] rounded-[4px] text-[15px] font-medium leading-none outline-hidden">
+                <div className="flex flex-col blue-bottom-border w-20 items-center cls-1">
+                  <img
+                    src={`/Nav/cutoffs-page.svg`}
+                    height="35px"
+                    width="35px"
+                  ></img>
+                  <span className="mb-1 mt-1 text-xs font-segoeFont">Cutoffs</span>
+                </div>
+              </NavigationMenu.Trigger>
+            </Link>
+          </NavigationMenu.Item>
           <NavigationMenu.Item>
             <Link to="/class-stats/us/3v3">
               <NavigationMenu.Trigger className="group flex select-none items-center gap-[2px] rounded-[4px] text-[15px] font-medium leading-none outline-hidden">
