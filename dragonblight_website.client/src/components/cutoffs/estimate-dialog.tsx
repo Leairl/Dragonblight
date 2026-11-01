@@ -47,9 +47,9 @@ function EstimateTooltip({ active, payload }: TooltipProps<number, string>) {
   return (
     <div className="estimate-tooltip">
       <div className="estimate-tooltip-time">{point.time}</div>
-      <div>Estimated <b>{point.estimated}</b> · Top {point.rank}</div>
-      <div>Blizzard cutoff {point.cutoff}</div>
-      <div>{point.spots} spots + {point.alts} alts</div>
+      <div>Estimated: <b>{point.estimated}</b> - Top {point.rank} </div>
+      <div>Blizzard Cutoff: {point.cutoff}</div>
+      <div>{point.spots} Spots + {point.alts} Alts</div>
     </div>
   );
 }
@@ -78,7 +78,7 @@ const EstimateDialog: FC<EstimateDialogProps> = (props) => {
   return (
     <Dialog.Root onOpenChange={onOpenChange}>
       <Dialog.Trigger>
-        <button className="cutoff-estimate-button">Estimated</button>
+        <button className="cutoff-estimate-button">Est.</button>
       </Dialog.Trigger>
       <Dialog.Content maxWidth="760px">
         <Dialog.Title>{props.title}</Dialog.Title>
@@ -94,8 +94,8 @@ const EstimateDialog: FC<EstimateDialogProps> = (props) => {
               <YAxis domain={["dataMin - 10", "dataMax + 10"]} stroke="#8f857c" fontSize={11} tickLine={false} width={44} />
               <Tooltip content={<EstimateTooltip />} />
               <Legend />
-              <Line name="Estimated" dataKey="estimated" stroke="#ff5a1f" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 5 }} isAnimationActive={false} />
-              <Line name="Blizzard cutoff" dataKey="cutoff" type="stepAfter" stroke="#8f857c" strokeWidth={2} strokeDasharray="4 4" dot={false} isAnimationActive={false} />
+              <Line name="Estimated" dataKey="estimated" stroke="rgb(250, 158, 53)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 5 }} isAnimationActive={false} />
+              <Line name="Blizzard cutoff" dataKey="cutoff" type="stepAfter" stroke="#5d87d6" strokeWidth={2} strokeDasharray="4 4" dot={false} isAnimationActive={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -106,7 +106,7 @@ const EstimateDialog: FC<EstimateDialogProps> = (props) => {
               <Table.ColumnHeaderCell>Rank</Table.ColumnHeaderCell>
               <Table.ColumnHeaderCell>Character</Table.ColumnHeaderCell>
               <Table.ColumnHeaderCell>Realm</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell justify="end">Rating</Table.ColumnHeaderCell>
+              <Table.ColumnHeaderCell>Rating</Table.ColumnHeaderCell>
               <Table.ColumnHeaderCell>Spot</Table.ColumnHeaderCell>
             </Table.Row>
           </Table.Header>
@@ -116,7 +116,7 @@ const EstimateDialog: FC<EstimateDialogProps> = (props) => {
                 <Table.Cell>{entry.rank}</Table.Cell>
                 <Table.Cell>{entry.name}</Table.Cell>
                 <Table.Cell>{realmDisplayName(entry.realm)}</Table.Cell>
-                <Table.Cell justify="end">{entry.rating}</Table.Cell>
+                <Table.Cell>{entry.rating}</Table.Cell>
                 <Table.Cell>{roleText(entry)}</Table.Cell>
               </Table.Row>
             ))}
