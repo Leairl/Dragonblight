@@ -9,7 +9,9 @@ import { getFlavor } from '../../helpers/game-flavor';
 import { Flex, Text, SegmentedControl, Switch, Callout, Button } from '@radix-ui/themes';
 import "./profile.css"
 import { useCookies } from 'react-cookie';
-import { InfoCircledIcon, ReloadIcon } from "@radix-ui/react-icons";
+import { InfoCircledIcon, ReloadIcon, ColumnsIcon } from "@radix-ui/react-icons";
+import { getPvpItemLevels } from '../../helpers/pvpItemLevel';
+import ItemLevelToggle from '../item-level-toggle/item-level-toggle';
 
 
 const Profile: FC = () => {
@@ -35,6 +37,8 @@ const Profile: FC = () => {
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [refreshMessage, setRefreshMessage] = useState<string>("");
   const [rewards, setRewards] = useState<Dragonblight.PvpSeasonRewardWithRank[]>([]);
+  // each equipped item's PvP item level, for the PvE / PvP item level switch
+  const [pvpLevels, setPvpLevels] = useState<Map<Dragonblight.EquippedItem, number>>(new Map());
 
   //drops everything the server has cached for this character, then reloads the page: each part of
   //the profile loads its own data, so a reload is what fetches all of it again from Blizzard
@@ -90,6 +94,7 @@ const Profile: FC = () => {
       setPreviousNames(data.previousNames);
       CharacterClient.getEquipment(slug, characterName, region).then((dataEquip) => {
         setCharacterEquipmentSummary(dataEquip);
+        getPvpItemLevels(dataEquip).then(setPvpLevels).catch(() => setPvpLevels(new Map()));
         CharacterAchievementClient.getCharacterAchievements(slug, characterName, region).then((data) => {
           setAchievementsSummary(data);
         })
@@ -180,7 +185,13 @@ const Profile: FC = () => {
               </SegmentedControl.Root>
             </div>
             <div className='flex grow'></div>
+            <div className="self-center"><ItemLevelToggle /></div>
             {refreshMessage && <span className="self-center text-sm text-red-300">{refreshMessage}</span>}
+            <Button className="self-center" variant="soft" color="gray" size="1"
+              disabled={loading || characterNotFound}
+              onClick={() => navigate(`/compare/${region}/${server}/${characterName}`)}>
+              <ColumnsIcon /> Compare
+            </Button>
             <Button className="self-center" variant="soft" color="gray" size="1"
               disabled={refreshing || loading} onClick={RefreshCharacter}>
               <ReloadIcon className={refreshing ? "animate-spin" : ""} /> Refresh
@@ -212,6 +223,7 @@ const Profile: FC = () => {
             previousNames={previousNames}
             characterImage={characterImage}
             showModelViewer={showModelViewer}
+            pvpLevels={pvpLevels}
             loading={loading}
             characterNotFound={characterNotFound}
             rewards={rewards}
@@ -225,7 +237,7 @@ const Profile: FC = () => {
             </div>
           </div>
         </div>
-        <ProfileStats characterProfileSummary={characterSummary} characterEquipmentSummary={characterEquipmentSummary} loading={loading} characterNotFound={characterNotFound}></ProfileStats>
+        <ProfileStats characterProfileSummary={characterSummary} characterEquipmentSummary={characterEquipmentSummary} pvpLevels={pvpLevels} loading={loading} characterNotFound={characterNotFound}></ProfileStats>
       </div>
     </div>
   ))

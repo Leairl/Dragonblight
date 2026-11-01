@@ -12,6 +12,7 @@ import NavBar from './components/nav/nav-bar.tsx'
 import { Theme } from '@radix-ui/themes'
 import './index.css'
 import { ensureFlavorInPath, getFlavor, installFlavorHeader } from './helpers/game-flavor.ts'
+import { installItemStatFix } from './helpers/wowhead-item-stats.ts'
 import RankingsPage from './components/rankings/rankings.tsx';
 import LoginPage from './components/login/login.tsx';
 import ActivityPage from "./components/activity/activity.tsx";
@@ -19,9 +20,12 @@ import { BlueTracker, BluePostPage } from "./components/news/blue-tracker";
 import News from "./components/news/news.tsx";
 import ClassAnalytics from './components/class-leaderboard-analytics/class-leaderboard-analytic.tsx';
 import CutoffsPage from "./components/cutoffs-page/cutoffs-page.tsx";
+import ProfileCompare from "./components/compare/compare.tsx";
 
 // every /api/ call carries the current flavor
 installFlavorHeader()
+// item tooltips show the secondary stats Blizzard reports, not Wowhead's defaults
+installItemStatFix()
 ensureFlavorInPath()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -36,6 +40,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route path="blue-tracker" element={<BlueTracker />} />
             <Route path="blue-tracker/:region/:postId" element={<BluePostPage />} />
             <Route path="profile/:region/:server/:characterName/:urlTab?" Component={ProfilePage} />
+            <Route path="compare/:region/:server/:characterName" element={<ProfileCompare />} />
+            <Route path="compare/:region/:server/:characterName/:region2/:server2/:characterName2" element={<ProfileCompare />} />
             <Route path="rankings/:URLregion/:URLbracket" element={<RankingsPage />} />
             <Route path="class-stats/:URLregion/:URLbracket" element={<ClassAnalytics />} />
             <Route path="class-stats" element={<ClassAnalytics />} />

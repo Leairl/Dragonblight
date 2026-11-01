@@ -1,0 +1,626 @@
+/* Character compare: a split diff, left character as the "before" (red, −) and right as the
+   "after" (green, +), the way GitHub shows a changed file side by side. */
+.compare-page {
+  width: 70vw;
+  max-width: 1200px;
+  display: flex;
+  flex-direction: column;
+}
+
+.compare-page .div-disabled {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.compare-headers {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.compare-char-card {
+  min-width: 0;
+  overflow: visible;
+}
+.compare-char-left {
+  box-shadow: inset 3px 0 0 var(--red-9);
+}
+.compare-char-right {
+  box-shadow: inset 3px 0 0 var(--green-9);
+}
+
+.diff-marker-badge {
+  font-weight: 700;
+  font-size: 1.1rem;
+  width: 1.25rem;
+  text-align: center;
+  flex-shrink: 0;
+}
+.diff-marker-badge.del {
+  color: var(--red-11);
+}
+.diff-marker-badge.add {
+  color: var(--green-11);
+}
+
+.compare-diff {
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.diff-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.6rem 0.9rem;
+  border-bottom: 1px solid var(--gray-a5);
+  background: var(--gray-a2);
+}
+.diff-stat {
+  margin-left: 0.75rem;
+  color: var(--gray-11);
+}
+
+.diff-row {
+  display: grid;
+  grid-template-columns: 84px 1fr 1fr;
+  border-bottom: 1px solid var(--gray-a4);
+}
+.diff-row:last-child {
+  border-bottom: none;
+}
+
+.diff-slot {
+  font-size: 0.75rem;
+  color: var(--gray-10);
+  padding: 0.6rem 0.5rem;
+  border-right: 1px solid var(--gray-a4);
+  background: var(--gray-a2);
+  text-align: right;
+}
+
+.diff-cell {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem 0.4rem 0;
+  min-width: 0;
+}
+.diff-cell + .diff-cell {
+  border-left: 1px solid var(--gray-a4);
+}
+.diff-cell.del {
+  background: var(--red-a2);
+}
+.diff-cell.add {
+  background: var(--green-a2);
+}
+
+.diff-marker {
+  width: 1.25rem;
+  flex-shrink: 0;
+  text-align: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--gray-9);
+  align-self: center;
+}
+.diff-cell.del .diff-marker {
+  color: var(--red-11);
+}
+.diff-cell.add .diff-marker {
+  color: var(--green-11);
+}
+
+/* Wowhead's script fills the icon link with its own markup, so the sizes target what it inserts */
+.diff-icon {
+  display: block;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 4px;
+  background: var(--gray-a3);
+}
+.diff-icon > .iconlarge {
+  display: block;
+  width: 36px;
+  height: 36px;
+}
+.diff-icon > .iconlarge > ins {
+  width: 36px;
+  height: 36px;
+  left: 0;
+  top: 0;
+  border-radius: 4px;
+  background-size: 100% 100%;
+}
+.diff-icon > .iconlarge > del {
+  display: none;
+}
+
+.diff-details {
+  min-width: 0;
+  flex: 1;
+}
+
+.diff-name-line {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  min-width: 0;
+}
+.diff-item-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-decoration: none;
+  font-size: 0.875rem;
+  min-width: 0;
+}
+.diff-item-name > .iconlarge {
+  display: none;
+}
+.diff-ilvl {
+  font-size: 0.75rem;
+  color: var(--gray-11);
+  flex-shrink: 0;
+}
+.diff-delta {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.diff-delta.up {
+  color: var(--green-11);
+  background: var(--green-a4);
+}
+.diff-delta.down {
+  color: var(--red-11);
+  background: var(--red-a4);
+}
+
+.diff-enchant {
+  display: inline-block;
+  max-width: 100%;
+  font-size: 0.75rem;
+  color: #1eff00;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.diff-missing {
+  font-style: italic;
+  color: var(--gray-9);
+}
+.diff-empty-slot {
+  align-self: center;
+  font-size: 0.8rem;
+}
+
+/* the part of a changed line that actually changed, like GitHub's word-level highlight */
+.diff-cell .hl {
+  border-radius: 3px;
+  padding: 0 0.2rem;
+  margin-left: -0.2rem;
+}
+.diff-cell.del .hl {
+  background: var(--red-a5);
+}
+.diff-cell.add .hl {
+  background: var(--green-a5);
+}
+/* Item names, enchants and embellishments are coloured text - purple or orange by quality, green,
+   gold - and a red or green fill behind them made them hard to read. They are marked with a bar
+   underneath instead, which leaves the text on the row's own dark background. */
+.diff-cell .diff-item-name.hl,
+.diff-cell .diff-enchant.hl,
+.diff-cell .diff-embellish.hl {
+  background: none;
+  border-radius: 0;
+  padding: 0 0 1px;
+  margin-left: 0;
+}
+.diff-cell.del .diff-item-name.hl,
+.diff-cell.del .diff-enchant.hl,
+.diff-cell.del .diff-embellish.hl {
+  box-shadow: inset 0 -2px 0 var(--red-9);
+}
+.diff-cell.add .diff-item-name.hl,
+.diff-cell.add .diff-enchant.hl,
+.diff-cell.add .diff-embellish.hl {
+  box-shadow: inset 0 -2px 0 var(--green-9);
+}
+
+.diff-gems {
+  display: flex;
+  gap: 4px;
+  /* clears the line above: a changed gem's outline reaches 3px past the icon, which otherwise
+     ran into an enchant's or embellishment's highlight bar */
+  padding-top: 6px;
+  padding-left: 3px;
+}
+.compare-page .gem-icon {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 2px;
+}
+.compare-page .gem-icon > .iconlarge {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+.compare-page .gem-icon > .iconlarge > ins {
+  width: 18px;
+  height: 18px;
+  left: 0;
+  top: 0;
+  border-radius: 2px;
+  background-size: 100% 100%;
+}
+.compare-page .gem-icon > .iconlarge > del {
+  display: none;
+}
+.compare-page .gem-empty {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border: 1px dashed #6b6b6b;
+  border-radius: 2px;
+  background-color: rgba(0, 0, 0, 0.35);
+}
+.diff-cell.del .gem-hl {
+  outline: 2px solid var(--red-9);
+  outline-offset: 1px;
+}
+.diff-cell.add .gem-hl {
+  outline: 2px solid var(--green-9);
+  outline-offset: 1px;
+}
+
+/* a folded run of unchanged slots */
+.diff-fold {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.75rem;
+  color: var(--blue-11);
+  background: var(--blue-a2);
+  border-bottom: 1px solid var(--gray-a4);
+  cursor: pointer;
+}
+.diff-fold:hover {
+  background: var(--blue-a4);
+}
+
+.diff-identical {
+  padding: 1rem;
+  text-align: center;
+  color: var(--gray-11);
+  border-bottom: 1px solid var(--gray-a4);
+}
+
+@media only screen and (max-width: 800px) {
+  .compare-page {
+    width: 95vw;
+  }
+  .compare-headers {
+    grid-template-columns: 1fr;
+  }
+  .compare-swap {
+    justify-self: center;
+  }
+  /* the slot label sits above the two sides, which stack */
+  .diff-row {
+    grid-template-columns: 1fr;
+  }
+  .diff-slot {
+    text-align: left;
+    border-right: none;
+    padding: 0.3rem 0.6rem;
+  }
+  .diff-cell + .diff-cell {
+    border-left: none;
+    border-top: 1px solid var(--gray-a4);
+  }
+}
+
+/* ---- tabs ---- */
+.compare-tabs {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+}
+
+/* ---- talents ---- */
+.talent-sides {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 1px solid var(--gray-a5);
+}
+/* above .diff-row rows: the same columns, with an empty cell over the slot labels. Retail's talent
+   trees have no columns to line up with, so its header spans the full width. */
+.talent-sides.talent-sides-slotted {
+  grid-template-columns: 84px 1fr 1fr;
+}
+.talent-sides.talent-sides-slotted::before {
+  content: "";
+  border-right: 1px solid var(--gray-a4);
+  background: var(--gray-a2);
+}
+.talent-side {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem 0.5rem 0;
+  min-width: 0;
+}
+.talent-side + .talent-side {
+  border-left: 1px solid var(--gray-a4);
+}
+.talent-side.del {
+  background: var(--red-a2);
+}
+.talent-side.add {
+  background: var(--green-a2);
+}
+.talent-side.del .diff-marker {
+  color: var(--red-11);
+}
+.talent-side.add .diff-marker {
+  color: var(--green-11);
+}
+
+.talent-section {
+  border-bottom: 1px solid var(--gray-a4);
+}
+.talent-section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.5rem 0.9rem;
+}
+.talent-section-head-bar {
+  border-bottom: 1px solid var(--gray-a4);
+  background: var(--gray-a2);
+}
+.talent-section-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  padding: 0.25rem 0.9rem 1rem;
+  align-items: flex-start;
+}
+
+.talent-diff-grid {
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* a node neither character took: darkened, never faded, so the arrows stay behind it */
+.talent-diff-node[data-state="none"] .retailTalentIcon {
+  filter: grayscale(100%) brightness(0.45);
+}
+/* both took it the same way: the in-game gold frame */
+.talent-diff-node[data-state="same"] .retailTalentIcon > .iconlarge > ins {
+  box-shadow: 0 0 0 2px #f8c43a, 0 0 6px 2px rgba(248, 196, 58, 0.5);
+}
+.talent-diff-node[data-state="del"] .retailTalentIcon > .iconlarge > ins {
+  box-shadow: 0 0 0 2px var(--red-9), 0 0 8px 2px var(--red-9);
+}
+.talent-diff-node[data-state="add"] .retailTalentIcon > .iconlarge > ins {
+  box-shadow: 0 0 0 2px var(--green-9), 0 0 8px 2px var(--green-9);
+}
+/* both took the node but differently - blue, since gold already means "taken" in the trees */
+.talent-diff-node[data-state="mod"] .retailTalentIcon > .iconlarge > ins {
+  box-shadow: 0 0 0 2px var(--blue-9), 0 0 8px 2px var(--blue-9);
+}
+.talent-diff-node[data-state="same"] .retailTalentRank,
+.talent-diff-node[data-state="mod"] .retailTalentRank {
+  color: rgba(177, 218, 241, 0.9);
+}
+
+/* the change list beside each tree, one line per talent like a unified diff */
+.talent-changes {
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  flex: 1;
+  border: 1px solid var(--gray-a4);
+  border-radius: 4px;
+  overflow: hidden;
+  align-self: stretch;
+  max-height: 520px;
+  overflow-y: auto;
+}
+.talent-change {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.5rem 0.2rem 0;
+  font-size: 0.8rem;
+  border-bottom: 1px solid var(--gray-a3);
+  min-width: 0;
+}
+.talent-change:last-child {
+  border-bottom: none;
+}
+.talent-change.del {
+  background: var(--red-a2);
+}
+.talent-change.add {
+  background: var(--green-a2);
+}
+.talent-change.mod {
+  background: var(--blue-a2);
+}
+.talent-change.del .diff-marker {
+  color: var(--red-11);
+}
+.talent-change.add .diff-marker {
+  color: var(--green-11);
+}
+.talent-change.mod .diff-marker {
+  color: var(--blue-11);
+}
+.talent-change-del {
+  background: var(--red-a4);
+  border-radius: 3px;
+  padding: 0 0.2rem;
+}
+.talent-change-add {
+  background: var(--green-a4);
+  border-radius: 3px;
+  padding: 0 0.2rem;
+}
+.talent-change-arrow {
+  color: var(--gray-10);
+}
+.talent-change-rank {
+  display: inline-flex;
+  gap: 0.25rem;
+  margin-left: auto;
+  font-size: 0.75rem;
+}
+
+/* talent names: Wowhead's script adds an icon to each link, kept small and inline */
+.talent-change-link {
+  color: var(--gray-12);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-flex;
+  align-items: center;
+}
+.talent-change-link > .iconlarge {
+  display: inline-block;
+  position: relative;
+  width: 18px;
+  height: 18px;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+.talent-change-link > .iconlarge > ins {
+  width: 18px;
+  height: 18px;
+  left: 0;
+  top: 0;
+  border-radius: 2px;
+  background-size: 100% 100%;
+}
+.talent-change-link > .iconlarge > del {
+  display: none;
+}
+
+.talent-hero-swap {
+  display: inline-flex;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+.talent-hero-swap .del {
+  color: var(--red-11);
+  background: var(--red-a3);
+  border-radius: 3px;
+  padding: 0 0.3rem;
+}
+.talent-hero-swap .add {
+  color: var(--green-11);
+  background: var(--green-a3);
+  border-radius: 3px;
+  padding: 0 0.3rem;
+}
+.talent-hero-pair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  padding: 0.25rem 0.9rem 1rem;
+}
+
+.talent-pvp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.8rem;
+  min-width: 0;
+}
+
+@media only screen and (max-width: 800px) {
+  .talent-sides,
+  .talent-sides.talent-sides-slotted {
+    grid-template-columns: 1fr;
+  }
+  .talent-sides.talent-sides-slotted::before {
+    display: none;
+  }
+  .talent-side + .talent-side {
+    border-left: none;
+    border-top: 1px solid var(--gray-a4);
+  }
+  .talent-section-body {
+    overflow-x: auto;
+  }
+}
+
+/* the signed difference after a rank change, like the item level delta on the equipment tab */
+.talent-change-delta {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+}
+.talent-change-delta.up {
+  color: var(--green-11);
+  background: var(--green-a4);
+}
+.talent-change-delta.down {
+  color: var(--red-11);
+  background: var(--red-a4);
+}
+
+/* an embellishment's name, under the enchant: the game's tooltip colours it like an equip effect */
+.diff-embellish {
+  display: block;
+  /* as wide as its text, so a highlight bar underlines the name rather than the whole cell */
+  width: fit-content;
+  max-width: 100%;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.diff-embellish a {
+  color: #e6b356;
+  text-decoration: none;
+}
+.diff-embellish a + a::before {
+  content: ", ";
+  color: var(--gray-10);
+}
+.diff-embellish .iconlarge {
+  display: none;
+}
+
+/* ---- stats ---- */
+.stat-cell {
+  align-items: center;
+}
+.stat-value {
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+/* the rating behind a percentage */
+.stat-rating {
+  font-size: 0.7rem;
+  color: var(--gray-10);
+  font-variant-numeric: tabular-nums;
+}
+.stat-rating::before {
+  content: "rating ";
+}

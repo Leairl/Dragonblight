@@ -1,11 +1,11 @@
 .cutoff-cards {
-  --cutoff-card-bg: #00000027;
+
   --cutoff-text: #f6ede2;
   --cutoff-muted: #c9bdb1;
   --cutoff-label: #8f857c;
   --cutoff-molten: #ff5a1f;
   --cutoff-ember-dim: #3a2018;
-
+  --cutoff-card-bg: #26282b;
   display: grid;
   /* up to 5 equal columns; wraps to fewer below ~900px, and a single retail card doesn't stretch */
   grid-template-columns: repeat(auto-fit, minmax(190px, 230px));
@@ -19,13 +19,14 @@
   padding: 0 16px;
 }
 
+
 .cutoff-strip {
   contain: inline-size;
 }
 
 /* black frame: the outer plate shows 2px around the inner one, chamfered top-left and bottom-right */
 .cutoff-card {
-  background: #5c5c5c42;
+  background: var(--card-frame, #111111);
   padding: 2px;
   clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
 }
@@ -44,7 +45,11 @@
   font-family: "Poppins", sans-serif;
   font-style: italic;
   font-weight: 800;
+  
 }
+  .txt-shadow {
+    text-shadow: 1px 1px 4px #000000;
+  }
 .cutoff-tier {
   font-size: 12px;
   letter-spacing: -0.01em;
@@ -54,7 +59,6 @@
   font-size: 30px;
   line-height: 0.95;
   letter-spacing: -0.02em;
-  color: var(--cutoff-text);
   font-variant-numeric: tabular-nums;
 }
 

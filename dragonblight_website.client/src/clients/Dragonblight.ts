@@ -2042,6 +2042,7 @@ export interface EquippedItem {
     is_corrupted?: boolean | undefined;
     name_description?: NameDescription | undefined;
     modified_appearance_id?: number | undefined;
+    limit_category?: string | undefined;
     sockets?: Socket[] | undefined;
     enchantments?: Enchantment[] | undefined;
     weapon?: Weapon | undefined;
@@ -2424,6 +2425,7 @@ export interface PowerTypeReference {
 
 export interface RatingStatisticWithoutValue {
     rating: number;
+    rating_normalized?: number | undefined;
     rating_bonus: number;
 }
 
@@ -2434,6 +2436,7 @@ export interface PrimaryStatistic {
 
 export interface RatingStatistic {
     rating: number;
+    rating_normalized?: number | undefined;
     rating_bonus: number;
     value: number;
 }

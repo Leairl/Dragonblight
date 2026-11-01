@@ -3,7 +3,7 @@ import { Dragonblight } from '../../clients/Dragonblight';
 import { Card } from '@radix-ui/themes';
 import { shuffleSpecs, blitzSpecs } from '../../helpers/solo-bracket-specs';
 import { getFlavor } from '../../helpers/game-flavor';
-import { cleanTitle } from "../../helpers/ratingTierHelper";
+import { cleanTitle, TitleColors } from "../../helpers/ratingTierHelper";
 import "./cutoffs.css";
 import EstimateDialog from "./estimate-dialog";
 
@@ -27,7 +27,9 @@ const rankOneWords = ["Gladiator", "Legend", "Marshal", "Warlord"];
 //the tier name's color; a two-word title ending in Glad/Legend/Marshal/Warlord is rank 1
 function tierColor(title: string): string {
     const words = title.split(" ");
-    if (words.length === 2 && rankOneWords.includes(words[1])) return "#ff8a3d";
+    if (title.includes(" Gladiator")) return "#ff8a3d";
+    if (title.includes(" Legend")) return "#c07cff";
+    if (title.includes(" Marshal") || title.includes(" Warlord")) return "#4ee07a";
     if (title.startsWith("Gladiator") || title.startsWith("Hero of the")) return "#c07cff";
     if (title.startsWith("Duelist")) return "#5aa8ff";
     if (title.startsWith("Rival")) return "#4ee07a";
@@ -117,23 +119,23 @@ const Cutoffs: React.FC<CutoffProps> = (props) => {
                         //outer plate is the black frame; the inner one is clipped 1px smaller so the frame shows on the chamfers
                         <div key={`${i.achievement?.id}-${i.specialization?.id}-${i.faction?.type}`} className="cutoff-card">
                             <div className="cutoff-card-inner">
-                                <span className="cutoff-tier" style={{ color: tierColor(title) }}>{title}</span>
+                                <span className="cutoff-tier txt-shadow" style={{ color: tierColor(title) }}>{title}</span>
                                 {/* every spec has its own Solo Shuffle rewards, so without the spec those cards look identical */}
                                 {i.specialization?.name && <span className="cutoff-label">{i.specialization.name}</span>}
-                                <span className="cutoff-rating">{i.rating_cutoff}</span>
+                                <span className={"cutoff-rating txt-shadow " + TitleColors(title)}>{i.rating_cutoff}
+                                    {estimate && (
+                                        <>
+                                            <span className="float-right">
+                                                <EstimateDialog region={props.region} title={title} estimate={estimate} />
+                                            </span>
+                                        </>
+                                    )}
+                                </span>
+
                                 <div className="cutoff-meta">
-                                    <span className="cutoff-label">Cutoff</span>
+                                    <span className="cutoff-label">Spots</span>
                                     <span className="cutoff-top">Top {i.rank}</span>
                                 </div>
-                                {estimate && (
-                                    <>
-                                        <div className="cutoff-meta" title={`${estimate.spots} spots + ${estimate.altsInside} alts · ${movementText(estimate)}`}>
-                                            <span className="cutoff-label">Est. now</span>
-                                            <span className="cutoff-top">{estimate.estimatedRating} · Top {estimate.estimatedRank}</span>
-                                        </div>
-                                        <EstimateDialog region={props.region} title={title} estimate={estimate} />
-                                    </>
-                                )}
                             </div>
                         </div>
                     );
