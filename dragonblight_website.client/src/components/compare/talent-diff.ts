@@ -1,4 +1,5 @@
 import { Dragonblight } from "../../clients/Dragonblight";
+import Talents from "../../data/talent";
 
 //Talent compare, kept free of React so it reads (and can be tested) on its own.
 //
@@ -268,10 +269,20 @@ export interface ClassicTierDiff {
   changed: boolean;
 }
 
+//The tier a talent sits on, from the client's talent table. A pick's own tier_index can't be
+//trusted on MoP: it is 0 on every pick and the picks come in no tier order, so matching on it finds
+//only whichever is listed first. Each spell in the table belongs to one tier of one class, so the
+//spell alone is enough to place a pick.
+const TIER_BY_SPELL = new Map(Talents.map((t) => [t.SpellID, t.TierID]));
+
+function classicTier(t: Dragonblight.TalentSelection): number {
+  return TIER_BY_SPELL.get(t.spell_tooltip?.spell?.id ?? 0) ?? t.tier_index;
+}
+
 export function diffClassic(left: Spec | undefined, right: Spec | undefined): ClassicTierDiff[] {
   return CLASSIC_TIER_LEVELS.map((level, tier) => {
-    const l = left?.talents?.find((t) => t.tier_index == tier);
-    const r = right?.talents?.find((t) => t.tier_index == tier);
+    const l = left?.talents?.find((t) => classicTier(t) == tier);
+    const r = right?.talents?.find((t) => classicTier(t) == tier);
     return { tier, level, left: l, right: r, changed: (l?.talent?.id ?? 0) != (r?.talent?.id ?? 0) };
   });
 }
