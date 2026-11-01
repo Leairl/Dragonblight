@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as Avatar from "@radix-ui/react-avatar";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useNavigate } from "react-router";
@@ -42,9 +42,58 @@ function Activity() {
   const [selectedClasses, setSelectedClasses] = useState<string[]>([
     "All Classes",
   ]);
-    const [selectedSpecs, setSelectedSpecs] = useState<string[]>([]);
-    
-    function ladderFilter(): string[] {
+  const [selectedSpecs, setSelectedSpecs] = useState<string[]>([]);
+  const [hoveredAlts, setHoveredAlts] = useState<Dragonblight.CharacterIdentity[]>([]);
+  const [hoveredPlayer, setHoveredPlayer] = useState<Dragonblight.ActivityCharacterSummary | null>(null);
+  const timeoutRef = useRef(0);
+
+  function increasedGames(entry: Dragonblight.ActivityCharacterSummary) {
+    const won = (entry.currPvpEntry?.season_match_statistics?.won ?? 0) - (entry.prevPvpEntry?.season_match_statistics?.won ?? 0);
+    const lost = (entry.currPvpEntry?.season_match_statistics?.lost ?? 0) - (entry.prevPvpEntry?.season_match_statistics?.lost ?? 0);
+    return { won, lost };
+  }
+
+  function queuedTogether(entry: Dragonblight.ActivityCharacterSummary) {
+    if (hoveredPlayer == null) {
+      return false;
+    }
+    const hovered = increasedGames(hoveredPlayer);
+    if (hovered.won + hovered.lost < 4 || hoveredPlayer.charSummary.id == entry.charSummary.id) {
+      return false;
+    }
+    const gained = increasedGames(entry);
+    return gained.won == hovered.won && gained.lost == hovered.lost;
+  }
+
+  function rowClass(entry: Dragonblight.ActivityCharacterSummary): string {
+    const className = "h-[23px] align-middle hover:bg-gray-200/20 cursor-pointer";
+    if (queuedTogether(entry)) {
+      return className + " bg-emerald-500/20"
+    }
+    else {
+      if (hoveredAlts.some(alt => alt.name == entry.charSummary.name && alt.realm == entry.charSummary.realm?.slug)) {
+        return className + " bg-gray-500/20"
+      }
+    }
+    return className;
+  }
+
+  function hoveredPlayerAndLeaderboardAlts(entry: Dragonblight.ActivityCharacterSummary) {
+    setHoveredPlayer(entry);
+    findLeaderboardAlts(entry.charSummary.name ?? "", entry.charSummary.realm?.slug ?? "")
+  }
+  const findLeaderboardAlts = async (characterName: string, realm: string) => {
+    timeoutRef.current = setTimeout(async () => {
+      const DragonblightClient = new Dragonblight.PvpLeaderboardClient();
+      setHoveredAlts(await DragonblightClient.getLeaderboardAlts(characterName, realm, region));
+    }, 150)
+  };
+  const handleMouseLeave = () => {
+    setHoveredAlts([]);
+    setHoveredPlayer(null);
+    clearTimeout(timeoutRef.current);
+  }
+  function ladderFilter(): string[] {
     const classAndSpecFilter: string[] = [];
     for (const className of selectedClasses) {
       const specsForClass = selectedSpecs.filter(spec => spec.startsWith(className + ":"));
@@ -89,10 +138,10 @@ function Activity() {
 
   return (
     <div>
-   <Cutoffs region={region} bracket={bracket}></Cutoffs>
+      <Cutoffs region={region} bracket={bracket}></Cutoffs>
       <div className="flex-col">
         <div className="flex-row justify-center flex px-0 py-3 flex-wrap">
-     
+
           <div className={loading ? "div-disabled" : ""}>
             <SegmentedControl.Root
               className=" w-[250px] grow-0"
@@ -160,12 +209,12 @@ function Activity() {
           </div>
         </div>
       </div>
-<ClassFilter region={region} onChange={(classes, specs) => {
-  setSelectedClasses(classes);
-  setSelectedSpecs(specs);
-}} />
+      <ClassFilter region={region} onChange={(classes, specs) => {
+        setSelectedClasses(classes);
+        setSelectedSpecs(specs);
+      }} />
       <div>
-          <Pagination
+        <Pagination
           currentPage={page}
           totalPages={100}
           edgePageCount={1}
@@ -174,12 +223,12 @@ function Activity() {
           className=" pb-3"
           truncableText="&nbsp;...&nbsp;"
           truncableClassName=""
-          
+
         >
           <nav className="flex justify-end grow-0">
-          <span className="font-bold flex float-left grow text-sm items-center">
-          Showing {page * 50 + 1} - {(page + 1) * 50} Characters
-      </span>
+            <span className="font-bold flex float-left grow text-sm items-center">
+              Showing {page * 50 + 1} - {(page + 1) * 50} Characters
+            </span>
             <ul className="flex items-center">
               <Pagination.PrevButton className="bg-[#292c31] mx-1 h-[28px] w-[28px] py-2 px-2.5 inline-flex justify-center items-center gap-x-1.5 text-xs first:rounded-s-lg last:rounded-e-lg border border-gray-200 text-gray-800 hover:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:border-neutral-700 dark:text-white dark:hover:bg-white/10 ">
                 <svg
@@ -222,7 +271,7 @@ function Activity() {
             </ul>
           </nav>
         </Pagination>
-        </div>
+      </div>
       <Container className="desktopWidth flex justify-center">
         <Flex direction="column" gap="5" maxWidth="950px">
           <Card className="p-0">
@@ -282,9 +331,10 @@ function Activity() {
                 {ladderData?.map((characterEntry, i) => {
                   return (
                     <Table.Row
-                      className="h-[23px] align-middle hover:bg-blue-300/30 cursor-pointer"
-                      key={"activityRow" + i}
-                    >
+                      onMouseEnter={() => hoveredPlayerAndLeaderboardAlts(characterEntry)}
+                      className={rowClass(characterEntry)}
+                      key={"rankingsRow" + i}
+                      onMouseLeave={() => handleMouseLeave()}>
                       <Table.Cell
                         onClick={() => {
                           if (characterEntry.charSummary == null) {
@@ -299,13 +349,13 @@ function Activity() {
                         <span
                           className={
                             characterEntry.currPvpEntry.rank >=
-                            characterEntry.prevPvpEntry.rank
+                              characterEntry.prevPvpEntry.rank
                               ? "text-red-300"
                               : "text-green-300"
                           }
                         >
                           {characterEntry.currPvpEntry.rank >
-                          characterEntry.prevPvpEntry.rank
+                            characterEntry.prevPvpEntry.rank
                             ? "+"
                             : ""}
                           {characterEntry.currPvpEntry.rank -
@@ -331,12 +381,11 @@ function Activity() {
                                 }
                                 return `/RaceIcons/${characterEntry.charSummary?.race?.name
                                   ?.toLowerCase()
-                                  .replace(" ", "")}${
-                                  characterEntry.charSummary?.gender?.name ==
-                                  "Female"
+                                  .replace(" ", "")}${characterEntry.charSummary?.gender?.name ==
+                                    "Female"
                                     ? "-f"
                                     : "-m"
-                                }.png`;
+                                  }.png`;
                               })()}
                             />
                             <Avatar.Fallback />
@@ -355,16 +404,16 @@ function Activity() {
                             <Avatar.Fallback />
                           </Avatar.Root>
                           <Avatar.Root className="h-[23px] w-[23px] mr-1">
-                          <Avatar.Image
-                            src={(() => {
-                              if (characterEntry.charSummary?.active_spec?.name == null || characterEntry.charSummary?.active_spec?.name == "") {
-                                return `/unknown.png`;
-                              }
-                              return `/Specs/${characterEntry.charSummary?.active_spec?.name?.toLowerCase()}_${characterEntry.charSummary?.character_class?.name?.toLowerCase()}.png`;
-                            })()}
-                          />
-                          <Avatar.Fallback />
-                        </Avatar.Root>
+                            <Avatar.Image
+                              src={(() => {
+                                if (characterEntry.charSummary?.active_spec?.name == null || characterEntry.charSummary?.active_spec?.name == "") {
+                                  return `/unknown.png`;
+                                }
+                                return `/Specs/${characterEntry.charSummary?.active_spec?.name?.toLowerCase()}_${characterEntry.charSummary?.character_class?.name?.toLowerCase()}.png`;
+                              })()}
+                            />
+                            <Avatar.Fallback />
+                          </Avatar.Root>
                           <span
                             style={{
                               color: `${ClassColor.get(
@@ -410,13 +459,13 @@ function Activity() {
                         <span
                           className={
                             characterEntry.currPvpEntry.rating >=
-                            characterEntry.prevPvpEntry.rating
+                              characterEntry.prevPvpEntry.rating
                               ? "text-green-300"
                               : "text-red-300"
                           }
                         >
                           {characterEntry.currPvpEntry.rating >=
-                          characterEntry.prevPvpEntry.rating
+                            characterEntry.prevPvpEntry.rating
                             ? "+"
                             : ""}
                           {characterEntry.currPvpEntry.rating -
@@ -512,13 +561,13 @@ function Activity() {
                                         <span
                                           className={
                                             characterEntry.currPvpEntry.rank >=
-                                            characterEntry.prevPvpEntry.rank
+                                              characterEntry.prevPvpEntry.rank
                                               ? "text-red-300"
                                               : "text-green-300"
                                           }
                                         >
                                           {characterEntry.currPvpEntry.rank >
-                                          characterEntry.prevPvpEntry.rank
+                                            characterEntry.prevPvpEntry.rank
                                             ? "+"
                                             : ""}
                                           {characterEntry.currPvpEntry.rank -
@@ -539,13 +588,13 @@ function Activity() {
                                           className={
                                             characterEntry.currPvpEntry
                                               .rating >=
-                                            characterEntry.prevPvpEntry.rating
+                                              characterEntry.prevPvpEntry.rating
                                               ? "text-green-300"
                                               : "text-red-300"
                                           }
                                         >
                                           {characterEntry.currPvpEntry.rating >=
-                                          characterEntry.prevPvpEntry.rating
+                                            characterEntry.prevPvpEntry.rating
                                             ? "+"
                                             : ""}
                                           {characterEntry.currPvpEntry.rating -
@@ -657,13 +706,13 @@ function Activity() {
               </Table.Body>
             </Table.Root>
             {ladderData?.length == 0 && !loading && (
-                  <Callout.Root color="red">
-                    <Callout.Icon>
-                      <InfoCircledIcon />
-                    </Callout.Icon>
-                    <Callout.Text>No Ladder Activity</Callout.Text>
-                  </Callout.Root>
-                )}
+              <Callout.Root color="red">
+                <Callout.Icon>
+                  <InfoCircledIcon />
+                </Callout.Icon>
+                <Callout.Text>No Ladder Activity</Callout.Text>
+              </Callout.Root>
+            )}
           </Card>
         </Flex>
         <Pagination
@@ -745,14 +794,14 @@ function Activity() {
   async function LadderData() {
     const DragonblightClient = new Dragonblight.ActivityClient();
     setLadderData([]);
-      setLadderData(
-        await DragonblightClient.getLadderHistory(
-          bracket,
-          region,
-          page * 50,
-          50
-        )
-      );
+    setLadderData(
+      await DragonblightClient.getLadderHistory(
+        bracket,
+        region,
+        page * 50,
+        50
+      )
+    );
     setLoading(false);
   }
 }

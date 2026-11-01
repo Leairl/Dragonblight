@@ -1175,6 +1175,51 @@ export class PvpLeaderboardClient {
         }
         return Promise.resolve<PvpCharacterSummary[]>(null as any);
     }
+
+    getLeaderboardAlts(characterName: string | undefined, server: string | undefined, region: string | undefined): Promise<CharacterIdentity[]> {
+        let url_ = this.baseUrl + "/api/PvpLeaderboard/GetLeaderboardAlts?";
+        if (characterName === null)
+            throw new globalThis.Error("The parameter 'characterName' cannot be null.");
+        else if (characterName !== undefined)
+            url_ += "characterName=" + encodeURIComponent("" + characterName) + "&";
+        if (server === null)
+            throw new globalThis.Error("The parameter 'server' cannot be null.");
+        else if (server !== undefined)
+            url_ += "server=" + encodeURIComponent("" + server) + "&";
+        if (region === null)
+            throw new globalThis.Error("The parameter 'region' cannot be null.");
+        else if (region !== undefined)
+            url_ += "region=" + encodeURIComponent("" + region) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetLeaderboardAlts(_response);
+        });
+    }
+
+    protected processGetLeaderboardAlts(response: Response): Promise<CharacterIdentity[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as CharacterIdentity[];
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<CharacterIdentity[]>(null as any);
+    }
 }
 
 export class PvpStatClient {
@@ -2165,6 +2210,13 @@ export interface PvpSeasonRewardWithRank extends PvpSeasonReward {
 export interface Bracket {
     id: number;
     type?: string | undefined;
+}
+
+export interface CharacterIdentity {
+    id: number;
+    name: string;
+    realm: string;
+    previous_names: PreviousCharacterName[];
 }
 
 export interface CharacterPvpBracketStatistics {
