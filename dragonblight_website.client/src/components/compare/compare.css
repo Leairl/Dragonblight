@@ -344,6 +344,16 @@
   grid-template-columns: 1fr 1fr;
   border-bottom: 1px solid var(--gray-a5);
 }
+/* above .diff-row rows: the same columns, with an empty cell over the slot labels. Retail's talent
+   trees have no columns to line up with, so its header spans the full width. */
+.talent-sides.talent-sides-slotted {
+  grid-template-columns: 84px 1fr 1fr;
+}
+.talent-sides.talent-sides-slotted::before {
+  content: "";
+  border-right: 1px solid var(--gray-a4);
+  background: var(--gray-a2);
+}
 .talent-side {
   display: flex;
   align-items: center;
@@ -542,8 +552,12 @@
 }
 
 @media only screen and (max-width: 800px) {
-  .talent-sides {
+  .talent-sides,
+  .talent-sides.talent-sides-slotted {
     grid-template-columns: 1fr;
+  }
+  .talent-sides.talent-sides-slotted::before {
+    display: none;
   }
   .talent-side + .talent-side {
     border-left: none;
