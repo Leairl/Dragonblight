@@ -222,6 +222,12 @@ namespace Dragonblight_Website.Server.Controllers
                 return StatusCode(500, "An error occurred while processing your request.");
             }
         }
+        [HttpGet("GetLeaderboardAlts")]
+        public async Task<List<CharacterIdentity>>GetLeaderboardAlts(string characterName, string server, string region)
+        {
+            return await _warcraftCachedData.GetAlts(server, characterName, region, HttpContext.GetGameFlavor());
+        }
+        
         public class PvpCharacterSummary
         {
             [JsonPropertyName("pvpEntry")]

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as Avatar from "@radix-ui/react-avatar";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useNavigate } from "react-router"
@@ -25,6 +25,7 @@ import Cutoffs from "../cutoffs/cutoffs";
 import { brackets } from "../../helpers/game-flavor";
 import { SoloSpec, defaultBlitzSpec, isBlitzBracket, setShuffleSpecs, setBlitzSpecs, defaultShuffleSpec, isShuffleBracket, shuffleSpecs, blitzSpecs, SoloSpecIcon } from "../../helpers/solo-bracket-specs";
 import SoloSpecFilter from "../solo-spec-filter/solo-spec-filter";
+import { server } from "typescript";
 
 const Skeletons = [0, 1, 2];
 
@@ -42,10 +43,28 @@ function Rankings() {
   const [selectedClasses, setSelectedClasses] = useState<string[]>(["All Classes"]);
   const [soloClass, setSoloClass] = useState<string | null>(null);
   const [selectedSpecs, setSelectedSpecs] = useState<string[]>([]);
-
   const [syncStatus, setSyncStatus] = useState<number>(0);
   const [ladders, setLadders] = useState<Dragonblight.LadderBracket[]>([]);
+  const [hoveredAlts, setHoveredAlts] = useState<Dragonblight.CharacterIdentity[]>([]);
+  const timeoutRef = useRef(0);
 
+  const findLeaderboardAlts = async (characterName: string, realm: string) => {
+    timeoutRef.current = setTimeout(async () => {
+      const DragonblightClient = new Dragonblight.PvpLeaderboardClient();
+      setHoveredAlts(await DragonblightClient.getLeaderboardAlts(characterName, realm, region));
+    }, 150)
+  };
+  const handleMouseLeave = () => {
+    setHoveredAlts([]);
+    clearTimeout(timeoutRef.current);
+  }
+  function checkIfAlt(characterName: string, realm: string): string {
+    const className = "h-[23px] align-middle hover:bg-gray-200/20 cursor-pointer"
+    if (hoveredAlts.some(alt => alt.name == characterName && alt.realm == realm)) {
+      return className + " bg-gray-500/20"
+    }
+    return className
+  }
   function ladderFilter(): string[] {
     const classAndSpecFilter: string[] = [];
     for (const className of selectedClasses) {
@@ -71,6 +90,7 @@ function Rankings() {
     else {
       FilteredLadderData(ladderFilter(), bracket);
     }
+
     //the sync runs every two hours and a bracket can start at any moment, so the bar is refreshed for
     //as long as this bracket is on screen rather than only while it was last seen below 100%
     setSyncStatus(0);
@@ -357,7 +377,10 @@ function Rankings() {
               }
               {/* map acts as a for loop to find character data in ladder */}
               {!loading && ladderData?.map((characterEntry, i) => (
-                <Table.Row className="h-[23px] align-middle hover:bg-blue-300/30 cursor-pointer" key={"rankingsRow" + i}>
+                <Table.Row onMouseEnter={() => findLeaderboardAlts(characterEntry.charSummary.name ?? "", characterEntry.charSummary.realm?.slug ?? "")}
+                  className={checkIfAlt(characterEntry.charSummary.name ?? "", characterEntry.charSummary.realm?.slug ?? "")}
+                  key={"rankingsRow" + i}
+                  onMouseLeave={() => handleMouseLeave()}>
                   <Table.Cell
                     onClick={() => {
                       if (characterEntry.charSummary?.name == null) {
