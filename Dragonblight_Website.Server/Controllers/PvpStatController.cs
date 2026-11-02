@@ -1,6 +1,7 @@
 ﻿using ArgentPonyWarcraftClient;
 using Microsoft.AspNetCore.Mvc;
 
+
 namespace Dragonblight_Website.Server.Controllers
 {
     [ApiController]
@@ -10,12 +11,32 @@ namespace Dragonblight_Website.Server.Controllers
         private readonly ILogger<PvpStatController> _logger;
         private readonly IWarcraftRedisProxy _warcraftCachedData; //underscore is syntax to global variable
 
+        private readonly RatingHistoryService _ratingHistory;
 
-        public PvpStatController(ILogger<PvpStatController> logger, IWarcraftRedisProxy warcraftCachedData)
+        public PvpStatController(ILogger<PvpStatController> logger, IWarcraftRedisProxy warcraftCachedData, RatingHistoryService ratingHistory)
         {
             _logger = logger;
             _warcraftCachedData = warcraftCachedData; //dependency injection to IWarcraftRedisProxy cs file
+            _ratingHistory = ratingHistory;
         }
+        [HttpGet("GetRatingHistory")]
+        public async Task<ActionResult<List<RatingHistoryPoint>>> GetRatingHistory(string server, string characterName, string region, string bracketType, int? specId)
+        {
+            try
+            {
+                var flavor = HttpContext.GetGameFlavor();
+                var profile = await _warcraftCachedData.GetCharSummary(server.ToLower(), characterName.ToLower(), region, flavor);
+                var ladder = await _warcraftCachedData.RewardLadder(bracketType, region, specId, flavor);
+                var season = await _warcraftCachedData.GetSeason(region, flavor);
+                return Ok(await _ratingHistory.GetRatingHistory(flavor, region, profile.Id, ladder, season));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching rating history.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
         /* 
         "dynamic-classic-us" is static name for region in us, need to find other static region names in developer.battle.net
         */

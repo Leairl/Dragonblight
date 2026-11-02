@@ -976,3 +976,6 @@ latest-data/*
 
 # Claude Code session transcripts
 claude-logs/
+
+# local docker compose secrets
+.env

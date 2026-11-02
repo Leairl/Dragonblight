@@ -1,0 +1,56 @@
+#redis and postgres for local development; restart: unless-stopped brings them back with docker.
+#The password comes from .env, which is not committed - copy .env.example to start one.
+name: dragonblight
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: dragonblight_redis_container
+    command: ["redis-server", "--appendonly", "yes"]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - dragonblight
+    #redis answers LOADING while it reads a big dataset back, so only PONG counts as ready
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
+      interval: 2s
+      timeout: 3s
+      retries: 5
+      start_period: 120s
+
+  postgres:
+    image: postgres:17
+    container_name: dragonblight_postgres_container
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: dragonblight
+      POSTGRES_USER: dragonblight
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?copy .env.example to .env and set a password}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - dragonblight
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dragonblight -d dragonblight"]
+      interval: 2s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+
+#fixed names, so the data stays put whatever folder or project name compose runs under
+volumes:
+  redis_data:
+    name: dragonblight_redis_data
+  pg_data:
+    name: dragonblight_pgdata
+
+#the backend container joins this network by name in the "Run Docker" task
+networks:
+  dragonblight:
+    name: dragonblight-network
