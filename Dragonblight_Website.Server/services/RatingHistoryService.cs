@@ -16,6 +16,7 @@ public class RatingHistoryService(IDbContextFactory<HistoryDbContext> historyFac
         var regionName = region.ToLower();
 
         await using var history = await historyFactory.CreateDbContextAsync();
+        //list of rows for a character on a ladder, ordered by time, for a season
         var rows = await history.RatingSnapshots
             .AsNoTracking()
             .Where(s => s.Flavor == flavorName && s.Region == regionName && s.CharacterId == characterId && s.Bracket == ladder && s.Season == season)
@@ -32,10 +33,12 @@ public class RatingHistoryService(IDbContextFactory<HistoryDbContext> historyFac
                 continue;
             }
             var change = 0;
+            //if there was a change in rating, calculate the change from the previous row
             if (previousRating != null)
             {
                 change = row.Rating - previousRating.Value;
             }
+            //then add a point to the list of points to return
             points.Add(new RatingHistoryPoint
             {
                 Rating = row.Rating,

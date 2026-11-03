@@ -10,7 +10,14 @@ namespace Dragonblight_Website.Server.Controllers
     {
         private readonly ILogger<ActivityController> _logger;
         private readonly IWarcraftRedisProxy _warcraftCachedData; //underscore is syntax to global variable
-
+        private static string SyncedSpec(PlayerActivity activity, string currentSpec)
+        {
+            if (string.IsNullOrEmpty(activity.Spec))
+            {
+                return currentSpec;
+            }
+            return activity.Spec;
+        }
 
         public ActivityController(ILogger<ActivityController> logger, IWarcraftRedisProxy warcraftCachedData)
         {
@@ -37,7 +44,7 @@ namespace Dragonblight_Website.Server.Controllers
                         CurrPvpEntry = p.NewPlayer,
                         TimeDifference = p.NewPlayer.Time.TimeAgo(),
                         CharSummary = ProfileSummaryEntry,
-                        spec = specName
+                        spec = SyncedSpec(p, specName)
                     };
                 });
                 var result = await Task.WhenAll(LeaderboardEntry);
@@ -75,7 +82,7 @@ namespace Dragonblight_Website.Server.Controllers
                         CurrPvpEntry = ladderEntry.NewPlayer,
                         TimeDifference = ladderEntry.NewPlayer.Time.TimeAgo(),
                         CharSummary = ProfileSummaryEntry,
-                        spec = specName
+                        spec = SyncedSpec(ladderEntry, specName)
                     };
                 });
                 result = result.Concat(await Task.WhenAll(LadderLeaderboardEntries)).ToList();
@@ -102,7 +109,7 @@ namespace Dragonblight_Website.Server.Controllers
 
             [JsonPropertyName("charSummary")]
             public required CharacterProfileSummary CharSummary { get; set; }
-            
+
             [JsonPropertyName("spec")]
             public required string spec { get; set; }
         }

@@ -35,6 +35,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddWarcraftClients(battlenetClient, battlenetSecret);
 builder.Services.AddScoped<IWarcraftRedisProxy, WarcraftRedisProxy>();
+//allows other services to create a new dbcontext for the rating history table, which is only written to when a character's games played changes
 builder.Services.AddDbContextFactory<HistoryDbContext>(o => o.UseNpgsql(configuration.GetConnectionString("Postgres")));
 builder.Services.AddScoped<RatingHistoryService>();
 builder.Services.AddScoped<CharacterCacheService>();

@@ -32,7 +32,7 @@ partial class WarcraftRedisProxy
             return JsonSerializer.Deserialize<PvpLeaderboardEntryandTime>(player!.ToString());
         }).ToList();
     }
-    public async Task InsertToBracketActivityPage(string bracket, string region, PvpLeaderboardEntry oldPlayer, PvpLeaderboardEntry newPlayer, GameFlavor flavor)
+    public async Task InsertToBracketActivityPage(string bracket, string region, PvpLeaderboardEntry oldPlayer, PvpLeaderboardEntry newPlayer, string specName, GameFlavor flavor)
     {
         var OldPvpLeaderboardEntryandTime = new PvpLeaderboardEntryandTime
         {
@@ -57,7 +57,8 @@ partial class WarcraftRedisProxy
         var newPlayerActivity = new PlayerActivity
         {
             OldPlayer = OldPvpLeaderboardEntryandTime,
-            NewPlayer = NewPvpLeaderboardEntryandTime
+            NewPlayer = NewPvpLeaderboardEntryandTime,
+            Spec = specName
         };
         var db = redis.GetDatabase();
         await db.ListRightPushAsync(flavor.KeyPrefix() + "actvity" + bracket + region, JsonSerializer.Serialize(newPlayerActivity));
@@ -98,7 +99,7 @@ partial class WarcraftRedisProxy
         var parts = characterClass.Split(':');
         var className = parts[0];
         var specName = parts.Length > 1 ? parts[1] : null;
-        string keyAndRegion = flavor.KeyPrefix() + "activity" + bracket + "_" + characterClass + "_" + region;
+        string keyAndRegion = flavor.KeyPrefix() + "activity" + bracket + "_" + className + "_" + region;
         var ladder = await db.ListRangeAsync(keyAndRegion);
         //convert player to pvpleaderboardentry (for our filtered list of strings)
         //and for each entry with a specName / no spec asked for we keep it

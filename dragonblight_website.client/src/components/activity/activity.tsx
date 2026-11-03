@@ -25,8 +25,29 @@ import Cutoffs from "../cutoffs/cutoffs";
 import { brackets } from "../../helpers/game-flavor";
 import classNames from "classnames";
 import { realmName } from "../../helpers/realmNameHelper";
+import { defaultBlitzSpec, defaultShuffleSpec, isBlitzBracket, isShuffleBracket } from "../../helpers/solo-bracket-specs";
 
 const Skeletons = [0, 1, 2];
+
+const bracketLabels: Record<string, string> = {
+  "2v2": "2v2",
+  "3v3": "3v3",
+  "5v5": "5v5",
+  rbg: "RBG",
+  shuffle: "Shuffle",
+  blitz: "Blitz",
+};
+
+//Shuffle and Blitz have a ladder per spec, so their tabs show the overall ladder and the class filter narrows it down
+function bracketSlug(name: string): string {
+  if (name == "shuffle") {
+    return defaultShuffleSpec;
+  }
+  if (name == "blitz") {
+    return defaultBlitzSpec;
+  }
+  return name;
+}
 
 function Activity() {
   //const [count, setCount] = useState(0); //store dynamic data, focus on arena ladder component
@@ -55,11 +76,12 @@ function Activity() {
   }
 
   function queuedTogether(entry: Dragonblight.ActivityCharacterSummary) {
-    if (hoveredPlayer == null) {
+    //Shuffle and Blitz are solo queues, so matching wins and losses doesn't mean two players queued together
+    if (hoveredPlayer == null || isShuffleBracket(bracket) || isBlitzBracket(bracket)) {
       return false;
     }
     const hovered = increasedGames(hoveredPlayer);
-    if (hovered.won + hovered.lost < 4 || hoveredPlayer.charSummary.id == entry.charSummary.id) {
+    if (hovered.won + hovered.lost < 4 || hoveredPlayer.charSummary?.id == entry.charSummary?.id) {
       return false;
     }
     const gained = increasedGames(entry);
@@ -72,7 +94,7 @@ function Activity() {
       return className + " bg-emerald-500/20"
     }
     else {
-      if (hoveredAlts.some(alt => alt.name == entry.charSummary.name && alt.realm == entry.charSummary.realm?.slug)) {
+      if (hoveredAlts.some(alt => alt.name == entry.charSummary?.name && alt.realm == entry.charSummary?.realm?.slug)) {
         return className + " bg-gray-500/20"
       }
     }
@@ -81,7 +103,7 @@ function Activity() {
 
   function hoveredPlayerAndLeaderboardAlts(entry: Dragonblight.ActivityCharacterSummary) {
     setHoveredPlayer(entry);
-    findLeaderboardAlts(entry.charSummary.name ?? "", entry.charSummary.realm?.slug ?? "")
+    findLeaderboardAlts(entry.charSummary?.name ?? "", entry.charSummary?.realm?.slug ?? "")
   }
   const findLeaderboardAlts = async (characterName: string, realm: string) => {
     timeoutRef.current = setTimeout(async () => {
@@ -140,48 +162,29 @@ function Activity() {
   return (
     <div>
       <Cutoffs region={region} bracket={bracket}></Cutoffs>
+      <ClassFilter region={region} onChange={(classes, specs) => {
+        setSelectedClasses(classes);
+        setSelectedSpecs(specs);
+      }} />
       <div className="flex-col">
         <div className="flex-row justify-center flex px-0 py-3 flex-wrap">
 
           <div className={loading ? "div-disabled" : ""}>
             <SegmentedControl.Root
-              className=" w-[250px] grow-0"
+              className="w-[300px] grow-0"
               defaultValue={URLbracket ?? "3v3"}
             >
-              <SegmentedControl.Item
-                onClick={() => {
-                  BracketClick("2v2");
-                }}
-                value="2v2"
-              >
-                2v2
-              </SegmentedControl.Item>
-              <SegmentedControl.Item
-                onClick={() => {
-                  BracketClick("3v3");
-                }}
-                value="3v3"
-              >
-                3v3
-              </SegmentedControl.Item>
-              {brackets().includes("5v5") && (
+              {brackets().map((name) => (
                 <SegmentedControl.Item
+                  key={name}
                   onClick={() => {
-                    BracketClick("5v5");
+                    BracketClick(bracketSlug(name));
                   }}
-                  value="5v5"
+                  value={bracketSlug(name)}
                 >
-                  5v5
+                  {bracketLabels[name]}
                 </SegmentedControl.Item>
-              )}
-              <SegmentedControl.Item
-                onClick={() => {
-                  BracketClick("rbg");
-                }}
-                value="rbg"
-              >
-                RBG
-              </SegmentedControl.Item>
+              ))}
             </SegmentedControl.Root>
           </div>
           <div className="db-grow"></div>
@@ -210,10 +213,6 @@ function Activity() {
           </div>
         </div>
       </div>
-      <ClassFilter region={region} onChange={(classes, specs) => {
-        setSelectedClasses(classes);
-        setSelectedSpecs(specs);
-      }} />
       <div>
         <Pagination
           currentPage={page}
@@ -407,10 +406,11 @@ function Activity() {
                           <Avatar.Root className="h-[23px] w-[23px] mr-1">
                             <Avatar.Image
                               src={(() => {
-                                if (characterEntry.charSummary?.active_spec?.name == null || characterEntry.charSummary?.active_spec?.name == "") {
+                                const specName = characterEntry.spec || characterEntry.charSummary?.active_spec?.name;
+                                if (!specName) {
                                   return `/unknown.png`;
                                 }
-                                return `/Specs/${characterEntry.charSummary?.active_spec?.name?.toLowerCase()}_${characterEntry.charSummary?.character_class?.name?.toLowerCase()}.png`;
+                                return `/Specs/${specName.toLowerCase()}_${characterEntry.charSummary?.character_class?.name?.toLowerCase()}.png`;
                               })()}
                             />
                             <Avatar.Fallback />
