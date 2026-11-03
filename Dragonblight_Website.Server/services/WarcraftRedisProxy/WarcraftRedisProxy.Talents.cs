@@ -50,7 +50,7 @@ partial class WarcraftRedisProxy
         return match.Success ? int.Parse(match.Groups[1].Value) : null;
     }
 
-        public async Task<string> GetCharacterSpecName(string server, string characterName, string region, GameFlavor flavor)
+    public async Task<string> GetCharacterSpecName(string server, string characterName, string region, GameFlavor flavor)
     {
         return await GetBlizzardDataCached<string>(flavor.KeyPrefix() + "characterSpecName" + characterName + server + region, async () =>
         {
@@ -59,10 +59,7 @@ partial class WarcraftRedisProxy
                 return "";
             }
             var talents = await GetPlayerTalents(server, characterName, region, flavor);
-            var activeSpecialization = talents?.SpecializationGroups.Where(s => s.IsActive).FirstOrDefault();
-            var specName = activeSpecialization?.Specializations?.OrderByDescending(spec => spec.SpentPoints)?.FirstOrDefault()?.SpecializationName;
-            return specName ?? "";
-
+            return talents?.ActiveSpecialization?.Name ?? "";
         }, TimeSpan.FromHours(6));
     }
 }

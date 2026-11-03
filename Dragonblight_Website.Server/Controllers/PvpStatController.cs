@@ -19,6 +19,7 @@ namespace Dragonblight_Website.Server.Controllers
             _warcraftCachedData = warcraftCachedData; //dependency injection to IWarcraftRedisProxy cs file
             _ratingHistory = ratingHistory;
         }
+        //finds the rows in the rating history table for a character, and returns them as a list of ratings.
         [HttpGet("GetRatingHistory")]
         public async Task<ActionResult<List<RatingHistoryPoint>>> GetRatingHistory(string server, string characterName, string region, string bracketType, int? specId)
         {

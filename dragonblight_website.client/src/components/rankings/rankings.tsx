@@ -143,6 +143,23 @@ function Rankings() {
   return (
     <div>
       <Cutoffs region={region} bracket={bracket}></Cutoffs>
+      {/* a Shuffle or Blitz ladder is a single spec, so there are no classes to filter */}
+      {isShuffleBracket(bracket) || isBlitzBracket(bracket) ? (
+        <SoloSpecFilter
+          selected={bracket}
+          onSelect={BracketClick}
+          selectedClass={soloClass}
+          onClassSelect={setSoloClass}
+          isBlitz={isBlitzBracket(bracket)}
+          isShuffle={isShuffleBracket(bracket)}
+        />
+      ) : (
+        <ClassFilter region={region} onChange={(classes, specs) => {
+          setSelectedClasses(classes);
+          setSelectedSpecs(specs);
+        }} />
+
+      )}
       <div className="toolbar py-3">
 
         <div className={loading ? "div-disabled" : ""}>
@@ -253,23 +270,6 @@ function Rankings() {
           </div>
         </div>
       </div>
-      {/* a Shuffle or Blitz ladder is a single spec, so there are no classes to filter */}
-      {isShuffleBracket(bracket) || isBlitzBracket(bracket) ? (
-        <SoloSpecFilter
-          selected={bracket}
-          onSelect={BracketClick}
-          selectedClass={soloClass}
-          onClassSelect={setSoloClass}
-          isBlitz={isBlitzBracket(bracket)}
-          isShuffle={isShuffleBracket(bracket)}
-        />
-      ) : (
-        <ClassFilter region={region} onChange={(classes, specs) => {
-          setSelectedClasses(classes);
-          setSelectedSpecs(specs);
-        }} />
-
-      )}
       <div>
         <Pagination
           currentPage={page}
@@ -378,8 +378,8 @@ function Rankings() {
               }
               {/* map acts as a for loop to find character data in ladder */}
               {!loading && ladderData?.map((characterEntry, i) => (
-                <Table.Row onMouseEnter={() => findLeaderboardAlts(characterEntry.charSummary.name ?? "", characterEntry.charSummary.realm?.slug ?? "")}
-                  className={checkIfAlt(characterEntry.charSummary.name ?? "", characterEntry.charSummary.realm?.slug ?? "")}
+                <Table.Row onMouseEnter={() => findLeaderboardAlts(characterEntry.charSummary?.name ?? "", characterEntry.charSummary?.realm?.slug ?? "")}
+                  className={checkIfAlt(characterEntry.charSummary?.name ?? "", characterEntry.charSummary?.realm?.slug ?? "")}
                   key={"rankingsRow" + i}
                   onMouseLeave={() => handleMouseLeave()}>
                   <Table.Cell

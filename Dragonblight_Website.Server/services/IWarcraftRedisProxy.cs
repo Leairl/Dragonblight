@@ -22,7 +22,7 @@ public interface IWarcraftRedisProxy
     Task InsertToPlayerPageActivity(string bracket, string region, PvpLeaderboardEntry player, GameFlavor flavor);
     Task<IEnumerable<PvpLeaderboardEntryandTime?>> GetPlayerPageActivity(string bracket, string region, string characterId, GameFlavor flavor);
     Task BracketPlayerExpiration(string bracket, string region, GameFlavor flavor);
-    Task InsertToBracketActivityPage(string bracket, string region, PvpLeaderboardEntry oldPlayer, PvpLeaderboardEntry newPlayer, GameFlavor flavor);
+    Task InsertToBracketActivityPage(string bracket, string region, PvpLeaderboardEntry oldPlayer, PvpLeaderboardEntry newPlayer, string specName, GameFlavor flavor);
     Task<IEnumerable<PlayerActivity?>> GetBracketActivityPage(string bracket, string region, GameFlavor flavor);
     Task<CharacterProfileSummary> GetCharSummary(string server, string characterName, string region, GameFlavor flavor);
     Task<PvpRewardsIndex> GetPvPRewards(string region, GameFlavor flavor);
