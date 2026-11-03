@@ -25,29 +25,9 @@ import Cutoffs from "../cutoffs/cutoffs";
 import { brackets } from "../../helpers/game-flavor";
 import classNames from "classnames";
 import { realmName } from "../../helpers/realmNameHelper";
-import { defaultBlitzSpec, defaultShuffleSpec, isBlitzBracket, isShuffleBracket } from "../../helpers/solo-bracket-specs";
+import { bracketLabels, bracketSlug, isBlitzBracket, isShuffleBracket } from "../../helpers/solo-bracket-specs";
 
 const Skeletons = [0, 1, 2];
-
-const bracketLabels: Record<string, string> = {
-  "2v2": "2v2",
-  "3v3": "3v3",
-  "5v5": "5v5",
-  rbg: "RBG",
-  shuffle: "Shuffle",
-  blitz: "Blitz",
-};
-
-//Shuffle and Blitz have a ladder per spec, so their tabs show the overall ladder and the class filter narrows it down
-function bracketSlug(name: string): string {
-  if (name == "shuffle") {
-    return defaultShuffleSpec;
-  }
-  if (name == "blitz") {
-    return defaultBlitzSpec;
-  }
-  return name;
-}
 
 function Activity() {
   //const [count, setCount] = useState(0); //store dynamic data, focus on arena ladder component

@@ -1,18 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { Card, SegmentedControl } from "@radix-ui/themes";
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { ChevronDownIcon } from '@radix-ui/react-icons';
+import { Card, SegmentedControl, Slider } from "@radix-ui/themes";
 import "./class-leaderboard-analytic.css"
 import { Dragonblight } from "../../clients/Dragonblight";
 import { useNavigate, useParams } from "react-router";
 import { ClassColor } from '../../helpers/classColorHelper';
-import { Bar } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import { brackets } from "../../helpers/game-flavor";
+import { bracketLabels, bracketSlug } from "../../helpers/solo-bracket-specs";
 
+//these need to match SpecStatRatings on the server, which only counts these ratings
+const minRating = 1500;
+const maxRating = 2700;
+const ratingStep = 100;
 
-
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+//the header and every row share these columns so they line up: name, player count, percentage
+const specColumns = "grid grid-cols-[minmax(0,1fr)_4rem_4rem] gap-2 items-center";
 
 const ClassAnalytics: React.FC = () => {
   const { URLregion, URLbracket } = useParams();
@@ -21,14 +22,13 @@ const ClassAnalytics: React.FC = () => {
   const [region, setRegion] = useState<string>(URLregion ?? "us");
   const [bracket, setBracket] = useState<string>(URLbracket ?? "3v3");
   const [rating, setRating] = useState<number>(1500);
-  const [classAnalyticsList, setClassAnalyticsList] = useState<Dragonblight.ClassAnalytics[]>([]);
+  const [specStats, setSpecStats] = useState<Dragonblight.SpecRatingCounts[]>([]);
 
   useEffect(() => {
     setLoading(true);
     const fetchData = async () => {
       const client = new Dragonblight.LeaderboardAnalyticsClient();
-      const res = await client.getLeaderboardAnalytics(region, bracket);
-      setClassAnalyticsList(res);
+      setSpecStats(await client.getSpecStatistics(region, bracket));
       setLoading(false);
     };
 
@@ -49,97 +49,53 @@ const ClassAnalytics: React.FC = () => {
     }
   }
 
-  const filteredClassAnalyticsList = classAnalyticsList.map(c => ({
-    ...c,
-    PvpEntries: c.PvpEntries.filter(entry => entry.rating >= rating)
-  }));
+  const specCounts = new Map<string, { className: string; specName: string; count: number }>();
+  for (const stat of specStats) {
+    const count = stat.playersAtRating[rating] ?? 0;
+    if (count > 0) {
+      //count for a selected rating
+      specCounts.set(stat.specName + " " + stat.className, { className: stat.className, specName: stat.specName, count });
+    }
+  }
+  //sorts the specs by count descending and stores each spec in an array for the rows
+  const sortedSpecs = [...specCounts.values()].sort((a, b) => b.count - a.count);
+  const totalPlayers = sortedSpecs.reduce((total, s) => total + s.count, 0);
 
-  const sortedClassAnalyticsList = filteredClassAnalyticsList.sort((a, b) => b.PvpEntries.length - a.PvpEntries.length);
-  const colors = sortedClassAnalyticsList.map(c => ClassColor.get(c.className));
+  const bracketName = brackets().find((name) => bracketSlug(name) == bracket) ?? bracket;
+  const bracketLabel = bracketLabels[bracketName] ?? bracket;
 
-  const data = {
-    labels: sortedClassAnalyticsList.map(c => c.className),
-    datasets: [
-      {
-        label: 'Total Players',
-        data: sortedClassAnalyticsList.map(c => c.PvpEntries.length),
-        backgroundColor: colors,
-        borderColor: 'rgba(0, 0, 0, 1)',
-        borderWidth: 1,
-      },
-    ],
-  };
-
-  const options = {
-    indexAxis: "y" as const,
-    maintainAspectRatio: false,
-    responsive: true,
-    plugins: {
-      
-      title: {
-        text: (bracket == 'rbg' ? bracket.toUpperCase() : bracket) + ' Class Stats',
-        color: 'white',
-        display: true,
-      },
-      legend: {
-        display: false,
-        position: 'right' as const
-      },
-    },
-    scales: {
-      x: {
-        title: {
-          display: false,
-          color: 'white',
-          
-          text: 'Total Players',
-        },
-        grid: {
-          offset: true,
-          display: false,
-        },
-        ticks: {
-          color: 'white', // Set x-axis labels to white
-        },
-      },
-      y: {
-        grid: {
-          offset: true,
-          display: false,
-        },
-        ticks: {
-          color: 'white', // Set y-axis labels to white
-        },
-      },
-    },
-  };
+  const ratingSlider = (
+    <Card className="flex items-center gap-3 w-[300px] h-8 py-0 px-3 [--card-background-color:#292c31]">
+      <span className="whitespace-nowrap text-sm">Min Rating: {rating}</span>
+      <Slider
+        min={minRating}
+        max={maxRating}
+        step={ratingStep}
+        value={[rating]}
+        disabled={loading}
+        onValueChange={([value]) => setRating(value)}
+      />
+    </Card>
+  );
 
   return (
-    <div className="mobileOnlyFull w-[60vw] h-[90vh]">
+    <div className="mobileOnlyFull w-[60vw] min-h-[90vh]">
       <div className="flex-col">
-        <div className="flex-row justify-center flex px-0 py-3 flex-wrap">
+        <div className="flex-row justify-center items-center flex gap-3 px-0 py-3 flex-wrap">
           <div className={loading ? "div-disabled" : ""}>
             <SegmentedControl.Root
-              className="w-[250px] grow-0"
+              className="w-[300px] grow-0"
               defaultValue={URLbracket ?? "3v3"}
             >
-              <SegmentedControl.Item onClick={() => BracketClick("2v2")} value="2v2">
-                2v2
-              </SegmentedControl.Item>
-              <SegmentedControl.Item onClick={() => BracketClick("3v3")} value="3v3">
-                3v3
-              </SegmentedControl.Item>
-              {brackets().includes("5v5") && (
-                <SegmentedControl.Item onClick={() => BracketClick("5v5")} value="5v5">
-                  5v5
+              {brackets().map((name) => (
+                <SegmentedControl.Item key={name} onClick={() => BracketClick(bracketSlug(name))} value={bracketSlug(name)}>
+                  {bracketLabels[name]}
                 </SegmentedControl.Item>
-              )}
-              <SegmentedControl.Item onClick={() => BracketClick("rbg")} value="rbg">
-                RBG
-              </SegmentedControl.Item>
+              ))}
             </SegmentedControl.Root>
           </div>
           <div className="db-grow"></div>
+          {ratingSlider}
           <div className={loading ? "div-disabled" : ""}>
             <SegmentedControl.Root
               className="w-[100px] grow-0"
@@ -153,31 +109,43 @@ const ClassAnalytics: React.FC = () => {
               </SegmentedControl.Item>
             </SegmentedControl.Root>
           </div>
-          <div className="db-grow"></div>
-          <div className={loading ? "div-disabled" : ""}>
-            <DropdownMenu.Root>
-              <DropdownMenu.Trigger asChild>
-                <button className="CustomButton">
-                  {rating} Minimum Rating
-                  <ChevronDownIcon className="DropdownArrow" />
-                </button>
-              </DropdownMenu.Trigger>
-              <DropdownMenu.Content className="DropdownMenuContent" sideOffset={5}>
-                {[1500, 1800, 2000, 2200, 2400, 2700].map(value => (
-                  <DropdownMenu.Item
-                    key={value}
-                    className="RatingDropdownMenuItem"
-                    onSelect={() => setRating(value)}
-                  >
-                    <div className="ClassItem"><span>{value} Minimum Rating</span></div>
-                  </DropdownMenu.Item>
-                ))}
-              </DropdownMenu.Content>
-            </DropdownMenu.Root>
-          </div>
         </div>
-        <Card className="w-full h-[40vh]">
-          <Bar className="w-full h-full" data={data} options={options} />
+        <Card className="w-full [--card-background-color:#292c31]">
+          <h2 className="text-center text-sm font-bold text-white pb-2">{bracketLabel} Spec Stats</h2>
+          {/* px-[10px] matches a row's border plus its padding, which keeps these headers over their columns */}
+          <div className={`${specColumns} px-[10px] pb-1 text-sm font-bold text-white`}>
+            <span>Specialization</span>
+            <span className="text-right">Players</span>
+            <span className="text-right">%</span>
+          </div>
+          <div className="flex flex-col gap-1">
+            {sortedSpecs.map((s) => {
+              const percent = s.count / totalPlayers * 100;
+              //sortedSpecs is highest first, so the top spec fills its whole row and the rest are sized against it
+              const barWidth = s.count / sortedSpecs[0].count * 100;
+              return (
+                <div key={s.specName + " " + s.className} className="relative h-10 overflow-hidden rounded border-2 border-black">
+                  <div
+                    className="absolute inset-y-0 left-0 transition-[width] duration-300"
+                    style={{ width: `${barWidth}%`, backgroundColor: ClassColor.get(s.className) }}
+                  />
+                  {/* the outline keeps the text readable on both the class color and the dark background */}
+                  <div className={`${specColumns} relative h-full px-2 text-sm font-bold text-white [text-shadow:0_0_3px_black,0_0_3px_black]`}>
+                    <span className="flex items-center gap-2 min-w-0">
+                      <img
+                        className="w-6 h-6 shrink-0"
+                        src={`/Specs/${s.specName.toLowerCase()}_${s.className.toLowerCase()}.png`}
+                        alt=""
+                      />
+                      <span className="truncate">{s.specName} {s.className}</span>
+                    </span>
+                    <span className="text-right">{s.count}</span>
+                    <span className="text-right">{percent.toFixed(1)}%</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </Card>
       </div>
     </div>

@@ -516,8 +516,8 @@ export class LeaderboardAnalyticsClient {
         this.baseUrl = baseUrl ?? "";
     }
 
-    getLeaderboardAnalytics(region: string | undefined, bracket: string | undefined): Promise<ClassAnalytics[]> {
-        let url_ = this.baseUrl + "/api/LeaderboardAnalytics/ClassStatisticsForLeaderboard?";
+    getSpecStatistics(region: string | undefined, bracket: string | undefined): Promise<SpecRatingCounts[]> {
+        let url_ = this.baseUrl + "/api/LeaderboardAnalytics/SpecStatistics?";
         if (region === null)
             throw new globalThis.Error("The parameter 'region' cannot be null.");
         else if (region !== undefined)
@@ -529,24 +529,24 @@ export class LeaderboardAnalyticsClient {
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
-            method: "POST",
+            method: "GET",
             headers: {
                 "Accept": "application/json"
             }
         };
 
         return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processGetLeaderboardAnalytics(_response);
+            return this.processGetSpecStatistics(_response);
         });
     }
 
-    protected processGetLeaderboardAnalytics(response: Response): Promise<ClassAnalytics[]> {
+    protected processGetSpecStatistics(response: Response): Promise<SpecRatingCounts[]> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200) {
             return response.text().then((_responseText) => {
             let result200: any = null;
-            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ClassAnalytics[];
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as SpecRatingCounts[];
             return result200;
             });
         } else if (status !== 200 && status !== 204) {
@@ -554,7 +554,7 @@ export class LeaderboardAnalyticsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<ClassAnalytics[]>(null as any);
+        return Promise.resolve<SpecRatingCounts[]>(null as any);
     }
 }
 
@@ -1949,9 +1949,10 @@ export interface PreviousCharacterName {
     changed_at: Date;
 }
 
-export interface ClassAnalytics {
-    PvpEntries: PvpLeaderboardEntry[];
+export interface SpecRatingCounts {
     className: string;
+    specName: string;
+    playersAtRating: { [key: string]: number; };
 }
 
 export interface PvpLeaderboardEntry {

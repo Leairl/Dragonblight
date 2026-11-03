@@ -65,12 +65,15 @@
     bottom: 0px;
 }
 
-.talentIconWrapper {
+/* only the icon goes gray: on the wrapper this also took the blue tint out of the card behind it */
+.talentIconWrapper .talentIcon {
     filter: grayscale(100%);
 }
 
 .talentIconWrapper[data-talented="true"] {
-    filter: grayscale(0%);
+    .talentIcon {
+        filter: grayscale(0%);
+    }
     .talentIcon > span:not([class]) {
         color:rgb(39, 150, 255);
     }

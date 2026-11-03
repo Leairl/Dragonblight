@@ -1,6 +1,4 @@
 using System.Security.Cryptography.X509Certificates;
-using System.Text.Json.Serialization;
-using ArgentPonyWarcraftClient;
 using Microsoft.AspNetCore.Mvc;
 using TwitchLib.Api.Helix.Models.ChannelPoints;
 
@@ -20,40 +18,24 @@ namespace Dragonblight_Website.Server.Controllers
             _warcraftCachedData = warcraftCachedData; //dependency injection to IWarcraftRedisProxy cs file
         }
 
-        [HttpPost("ClassStatisticsForLeaderboard")]
-        public async Task<ActionResult<IEnumerable<ClassAnalytics>>> GetLeaderboardAnalytics(string region, string bracket)
-        // foreach allows us to select multiple classes on our leaderboard
-
+        [HttpGet("SpecStatistics")]
+        public async Task<ActionResult<List<SpecRatingCounts>>> GetSpecStatistics(string region, string bracket)
         {
             try
             {
-                var classes = (await _warcraftCachedData.GetPlayableClasses(region, HttpContext.GetGameFlavor())).Select(c => c.Name);
-                List<ClassAnalytics?> result = [];
-                foreach (var charClass in classes)
+                //any Shuffle or Blitz bracket, e.g. "blitz-overall", counts that mode's spec ladders
+                var ladder = bracket.Split('-')[0];
+                if (ladder == "shuffle" || ladder == "blitz")
                 {
-                    var classLeaderboard = await _warcraftCachedData.CachedClassCharacters(region, charClass, bracket, HttpContext.GetGameFlavor());
-                    result.Add(new ClassAnalytics
-                    {
-                        className = charClass,
-                        PvpEntries = classLeaderboard.ToArray()
-                    });
+                    return Ok(await _warcraftCachedData.GetSoloSpecStats(ladder, region, HttpContext.GetGameFlavor()));
                 }
-                return Ok(result);
+                return Ok(await _warcraftCachedData.GetClassSpecStats(bracket, region, HttpContext.GetGameFlavor()));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error occurred while getting class stats.");
+                _logger.LogError(ex, "Error occurred while getting spec stats.");
                 return StatusCode(500, "An error occurred while processing your request.");
             }
-
-        }
-        public class ClassAnalytics
-        {
-            [JsonPropertyName("PvpEntries")]
-            public required PvpLeaderboardEntry?[] PvpEntries { get; init; }
-
-            [JsonPropertyName("className")]
-            public required string className { get; init; }
         }
     }
 }
