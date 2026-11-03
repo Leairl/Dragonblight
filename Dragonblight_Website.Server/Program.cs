@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using AspNetCore.Proxy;
 using AspNetCore.Proxy.Options;
 using Serilog;
+using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
@@ -34,6 +35,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddWarcraftClients(battlenetClient, battlenetSecret);
 builder.Services.AddScoped<IWarcraftRedisProxy, WarcraftRedisProxy>();
+builder.Services.AddDbContextFactory<HistoryDbContext>(o => o.UseNpgsql(configuration.GetConnectionString("Postgres")));
+builder.Services.AddScoped<RatingHistoryService>();
 builder.Services.AddScoped<CharacterCacheService>();
 if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") != "NSWAG")
 {
@@ -42,7 +45,6 @@ if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") != "NSWAG")
     redisOptions.ConnectRetry = 10;
     redisOptions.ConnectTimeout = 5000;
     redisOptions.SyncTimeout = 5000;
-
     builder.Services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisOptions));
     builder.Services.AddHostedService<BgService>();
 }
@@ -89,6 +91,13 @@ builder.Services.Configure<HostOptions>(hostOptions =>
     hostOptions.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore;
 });
 var app = builder.Build();
+
+//does migration on startup without nswag so the database is updated to latest.
+if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") != "NSWAG")
+{
+    using var history = app.Services.GetRequiredService<IDbContextFactory<HistoryDbContext>>().CreateDbContext();
+    history.Database.Migrate();
+}
 app.UseDefaultFiles();
 app.UseStaticFiles();
 

@@ -30,7 +30,8 @@
     {
       "label": "Run Docker",
       "type": "shell",
-      "command": "docker network inspect dragonblight-network >/dev/null 2>&1 || docker network create dragonblight-network; docker ps --format '{{.Names}}' | grep -qx dragonblight_redis_container || { docker start dragonblight_redis_container 2>/dev/null || docker run -d --name dragonblight_redis_container --network dragonblight-network -p 6379:6379 -v dragonblight_redis_data:/data --restart unless-stopped redis:7-alpine redis-server --appendonly yes; }; until docker exec dragonblight_redis_container redis-cli ping 2>/dev/null | grep -q PONG; do echo 'Waiting for Redis...'; sleep 1; done; echo 'Redis ready'; docker rm -f dragonblight_backend_container || true; docker run -d --name dragonblight_backend_container --network dragonblight-network -p 8080:8080 -p 7054:7054 --env ASPNETCORE_ENVIRONMENT=Development --env DOTNET_USE_POLLING_FILE_WATCHER=1 --env Redis__ConnectionString=dragonblight_redis_container:6379 dragonblight_backend",
+      //inside the docker network postgres is reached by container name, not the localhost in .env
+      "command": "docker compose up -d --wait && set -a && . ./.env && set +a; docker rm -f dragonblight_backend_container || true; docker run -d --name dragonblight_backend_container --network dragonblight-network -p 8080:8080 -p 7054:7054 --env ASPNETCORE_ENVIRONMENT=Development --env DOTNET_USE_POLLING_FILE_WATCHER=1 --env Redis__ConnectionString=dragonblight_redis_container:6379 --env \"ConnectionStrings__Postgres=Host=dragonblight_postgres_container;Database=dragonblight;Username=dragonblight;Password=$POSTGRES_PASSWORD\" dragonblight_backend",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -48,12 +49,11 @@
       "problemMatcher": []
     },
     {
-      //redis in docker with a named volume, so the cache and the alt lists survive a restart
-      //instead of starting empty on a fresh anonymous volume. A container that is already running
-      //is left alone - restarting it is what threw the data away
-      "label": "Local: Redis",
+      //redis and postgres from docker-compose.yml, on named volumes so their data survives a restart.
+      //Containers already running are left alone, and --wait holds until both pass their healthchecks
+      "label": "Local: Docker Compose",
       "type": "shell",
-      "command": "docker network inspect dragonblight-network >/dev/null 2>&1 || docker network create dragonblight-network; docker ps --format '{{.Names}}' | grep -qx dragonblight_redis_container || { docker start dragonblight_redis_container 2>/dev/null || docker run -d --name dragonblight_redis_container --network dragonblight-network -p 6379:6379 -v dragonblight_redis_data:/data --restart unless-stopped redis:7-alpine redis-server --appendonly yes; }; until docker exec dragonblight_redis_container redis-cli ping 2>/dev/null | grep -q PONG; do echo 'Waiting for Redis...'; sleep 1; done; echo 'Redis ready'",
+      "command": "docker compose up -d --wait",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -68,15 +68,15 @@
       "options": {
         "cwd": "${workspaceFolder}"
       },
-      "dependsOn": "Local: Redis",
+      "dependsOn": "Local: Docker Compose",
       "problemMatcher": "$msCompile"
     },
     {
-      //the backend on the host rather than in a container, so redis is reached on localhost.
+      //the backend on the host rather than in a container, so redis and postgres are reached on localhost.
       //no launch profile: the http profile loads the spa proxy, which would start the frontend too
       "label": "Local: Backend",
       "type": "shell",
-      "command": "dotnet run --no-launch-profile --project Dragonblight_Website.Server",
+      "command": "set -a && . ./.env && set +a && dotnet run --no-launch-profile --project Dragonblight_Website.Server",
       "options": {
         "cwd": "${workspaceFolder}",
         "env": {
@@ -86,7 +86,7 @@
           "Redis__ConnectionString": "localhost:6379"
         }
       },
-      "dependsOn": "Local: Redis",
+      "dependsOn": "Local: Docker Compose",
       "isBackground": true,
       "problemMatcher": {
         "pattern": {
@@ -126,7 +126,7 @@
     {
       "label": "Local: Run All",
       "dependsOn": [
-        "Local: Redis",
+        "Local: Docker Compose",
         "Local: Backend",
         "Local: Frontend"
       ],

@@ -4,7 +4,7 @@ using ArgentPonyWarcraftClient;
 using StackExchange.Redis;
 using TwitchLib.Api.Helix.Models.Entitlements;
 
-partial class CharacterCacheService(IWarcraftRedisProxy warcraftRedisProxy, ILogger<CharacterCacheService> logger, IConfiguration Config, IConnectionMultiplexer redis)
+partial class CharacterCacheService(IWarcraftRedisProxy warcraftRedisProxy, ILogger<CharacterCacheService> logger, IConfiguration Config, IConnectionMultiplexer redis, RatingHistoryService ratingHistory)
 {
     //how many players of each Shuffle and Blitz spec ladder are synced
     private const int SpecLadderLimit = 500;
@@ -34,6 +34,8 @@ partial class CharacterCacheService(IWarcraftRedisProxy warcraftRedisProxy, ILog
         var batchAmount = newarray.Length / batchSize;
         decimal percent = 0;
         await redis.GetDatabase().StringSetAsync(SyncStatusKey(bracket, region, flavor), percent.ToString());
+        var snapshots = new List<CharacterRatingSnapshot>();
+        var season = await warcraftRedisProxy.GetSeason(region, flavor);
         for (int i = 0; i < batchAmount; i++)
         {
             var slice = newarray.Skip(i * batchSize).Take(batchSize);
@@ -79,6 +81,12 @@ partial class CharacterCacheService(IWarcraftRedisProxy warcraftRedisProxy, ILog
                         await warcraftRedisProxy.InsertToPlayerPageActivity(bracket, region, player, flavor);
                     }
                     ;
+                    // if the character wasn't in the old ladder, or if the character's games played has changed, record a snapshot of their rating
+                    if (oldPlayer == null || oldPlayer.SeasonMatchStatistics.Played != player.SeasonMatchStatistics.Played)
+                    {
+                        snapshots.Add(CharacterRatingSnapshot.FromEntry(player, bracket, region, flavor, season));
+                    }
+
                     await warcraftRedisProxy.InsertCacheClassCharacter(bracket, player, summary, specName, region, flavor);
                     //files the character under its account's alt key while we are already walking the ladder
                     await warcraftRedisProxy.IndexAltList(player.Character.Realm.Slug, name, region, flavor);
@@ -103,6 +111,17 @@ partial class CharacterCacheService(IWarcraftRedisProxy warcraftRedisProxy, ILog
         {
             logger.LogError(ex, "Error estimating cutoffs for " + bracket);
         }
+        try
+        {
+            //save snapshots of characters whose games played has changed to the database
+            await ratingHistory.SaveSnapshots(snapshots);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error saving rating history for " + bracket);
+        }
+
+
         warcraftRedisProxy.overrideClient = null;
     }
     public async Task CacheLadder(string region, string bracket, PvpLeaderboard OldLeaderboard, PvpLeaderboard NewLeaderboard, GameFlavor flavor)

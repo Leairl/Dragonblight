@@ -101,6 +101,43 @@
     opacity: 1;
     border-bottom-color: currentColor;
 }
+.rating-history-button {
+  align-self: center;
+  margin-top: auto;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: #ffffff10;
+  border: 1px solid #000000;
+  border-radius: 4px;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+.rating-history-button:hover {
+  background: #ffffff24;
+}
+.rating-history-chart {
+  margin: 16px 0;
+}
+.rating-history-message {
+  margin: 32px 0;
+  text-align: center;
+  color: #8f857c;
+}
+.rating-history-tooltip {
+  background: #1d1f23;
+  border: 1px solid #ffffff24;
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-size: 12px;
+  width: 200px;
+  color: #f6ede2;
+}
+.rating-history-tooltip-time {
+  color: #8f857c;
+  margin-bottom: 4px;
+}
 @media only screen and (max-width: 800px) {
         .width-60vw {
         width: auto;

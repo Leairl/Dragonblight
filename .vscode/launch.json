@@ -25,12 +25,13 @@
       "url": "https://localhost:5173"
     },
     {
-      //local workflow: redis in docker, backend on the host, frontend in its own watch server
+      //local workflow: redis and postgres in docker compose, backend on the host, frontend in its own watch server
       "name": "Local Backend (dotnet run)",
       "type": "coreclr",
       "request": "launch",
       "preLaunchTask": "Local: Build Backend",
       "program": "${workspaceFolder}/Dragonblight_Website.Server/bin/Debug/net10.0/Dragonblight_Website.Server.dll",
+      "launchSettingsProfile": null,
       "cwd": "${workspaceFolder}/Dragonblight_Website.Server",
       "stopAtEntry": false,
       "serverReadyAction": {
@@ -38,7 +39,8 @@
         "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
         "uriFormat": "%s/swagger"
       },
-      //redis is reached on localhost here, not by container name
+      //redis and postgres are reached on localhost here, not by container name; .env has the postgres login
+      "envFile": "${workspaceFolder}/.env",
       "env": {
         "DOTNET_ROLL_FORWARD": "LatestMajor",
         "ASPNETCORE_ENVIRONMENT": "Development",
@@ -56,7 +58,7 @@
   ],
   "compounds": [
     {
-      //one pick starts redis, the backend and the frontend watch server
+      //one pick starts docker compose, the backend and the frontend watch server
       "name": "Local: Backend + Frontend",
       "configurations": ["Local Backend (dotnet run)", "Local Frontend (vite)"],
       "stopAll": true

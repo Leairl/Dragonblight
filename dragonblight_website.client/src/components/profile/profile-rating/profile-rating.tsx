@@ -6,7 +6,7 @@ import "./profile-rating.css";
 import { brackets, getFlavor } from "../../../helpers/game-flavor";
 import { bestReward, ratingColor, RatingTier, RetailTiers } from "../../../helpers/ratingTierHelper";
 import { SoloSpecIcon } from "../../../helpers/solo-bracket-specs";
-import { progressPropDefs } from "@radix-ui/themes/components/progress.props";
+import RatingHistoryDialog from "./rating-history-dialog";
 
 
 interface ProfileRatingProps {
@@ -18,7 +18,7 @@ interface ProfileRatingProps {
   rewards: Dragonblight.PvpSeasonRewardWithRank[] | [];
 }
 
-const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound, characterClass, characterFaction, rewards}) => {
+const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound, characterClass, characterFaction, rewards }) => {
   // pulls dictionary of keys from pvp bracket
   const [characterRatings, setcharacterRatings] = useState<
     Dragonblight.CharacterPvpBracketStatistics[]
@@ -147,6 +147,17 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
     );
   }
 
+  function historyTitle(BracketStatistics: Dragonblight.CharacterPvpBracketStatistics | null, index: number): string {
+    const specName = BracketStatistics?.specialization?.name;
+    if (!specName) {
+      return brackets()[index]?.replace("rbg", "RBG") ?? "";
+    }
+    if (BracketStatistics?.bracket?.type?.startsWith("BLITZ")) {
+      return `${specName} Blitz`;
+    }
+    return `${specName} Shuffle`;
+  }
+
   function getRatingCard(BracketStatistics: Dragonblight.CharacterPvpBracketStatistics | null, index: number): ReactElement {
     const stats = (BracketStatistics?.specialization?.id != null ? BracketStatistics?.season_round_statistics : undefined)
       ?? BracketStatistics?.season_match_statistics;
@@ -217,7 +228,14 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
             ""
           )}
           {/* mt-auto fills all space vertically from the top, pushing the prediction text to the bottom */}
-          <span className="text-xs italic mt-auto text-center">
+          {(BracketStatistics?.rating ?? 0) > 0 && (
+            <RatingHistoryDialog
+              title={historyTitle(BracketStatistics, index)}
+              bracketType={BracketStatistics?.bracket?.type ?? ""}
+              specId={BracketStatistics?.specialization?.id}
+            />
+          )}
+          <span className="text-xs italic mt-2 text-center">
             {getTitleLine(
               BracketStatistics?.bracket?.type ?? "",
               BracketStatistics?.rating ?? 0,
