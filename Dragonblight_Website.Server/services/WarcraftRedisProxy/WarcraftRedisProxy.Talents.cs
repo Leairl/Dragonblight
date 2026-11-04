@@ -14,6 +14,36 @@ partial class WarcraftRedisProxy
         }, TimeSpan.FromHours(6));
     }
 
+    //Fetches a character's current spec past the cache, for a character who has just played. It only
+    //replaces what's cached once Blizzard has answered, so a failed lookup leaves the old spec in place.
+    //Retail's spec is on the profile, and classic's comes from the talents.
+    public async Task RefreshCharacterSpec(string server, string characterName, string region, GameFlavor flavor)
+    {
+        var ns = GetProfileRegion(region, flavor);
+        try
+        {
+            if (flavor == GameFlavor.Retail)
+            {
+                var profile = await warcraftClient.GetCharacterProfileSummaryAsync(server, characterName, ns, GetRegion(region), GetLocale(region));
+                if (profile.Success && profile.Value != null)
+                {
+                    await SaveToRedis(VersionedKey("GetCharacter" + server + characterName + ns), profile.Value, TimeSpan.FromDays(1));
+                }
+                return;
+            }
+            var talents = await warcraftClient.GetCharacterSpecializationsSummaryAsync(server, characterName, ns, GetRegion(ns), GetLocale(ns));
+            if (talents.Success && talents.Value != null)
+            {
+                await SaveToRedis(VersionedKey("characterSpecSummary" + characterName + server + ns), talents.Value, TimeSpan.FromHours(6));
+                await SaveToRedis(VersionedKey(flavor.KeyPrefix() + "characterSpecName" + characterName + server + region), talents.Value.ActiveSpecialization?.Name ?? "", TimeSpan.FromHours(6));
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Could not refresh the spec for " + characterName + " " + server);
+        }
+    }
+
     //The retail talent trees a spec draws from: one call returns the class tree, the spec tree
     //and every hero tree, each node carrying the grid position Wowhead lays them out by.
     //Static game data, so it is cached for a month. A failure returns null and is not cached,

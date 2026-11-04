@@ -37,5 +37,19 @@ namespace Dragonblight_Website.Server.Controllers
                 return StatusCode(500, "An error occurred while processing your request.");
             }
         }
+
+        [HttpGet("Compositions")]
+        public async Task<ActionResult<List<CompositionCounts>>> GetCompositions(string region, string bracket)
+        {
+            try
+            {
+                return Ok(await _warcraftCachedData.GetCompositions(bracket, region, HttpContext.GetGameFlavor()));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting compositions.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
     }
 }

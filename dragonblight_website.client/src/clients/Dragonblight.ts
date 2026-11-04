@@ -503,6 +503,47 @@ export class LeaderboardAnalyticsClient {
         });
     }
 
+    getCompositions(region: string | undefined, bracket: string | undefined): Promise<CompositionCounts[]> {
+        let url_ = this.baseUrl + "/api/LeaderboardAnalytics/Compositions?";
+        if (region === null)
+            throw new globalThis.Error("The parameter 'region' cannot be null.");
+        else if (region !== undefined)
+            url_ += "region=" + encodeURIComponent("" + region) + "&";
+        if (bracket === null)
+            throw new globalThis.Error("The parameter 'bracket' cannot be null.");
+        else if (bracket !== undefined)
+            url_ += "bracket=" + encodeURIComponent("" + bracket) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetCompositions(_response);
+        });
+    }
+
+    protected processGetCompositions(response: Response): Promise<CompositionCounts[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as CompositionCounts[];
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<CompositionCounts[]>(null as any);
+    }
+
     protected processGetSpecStatistics(response: Response): Promise<SpecRatingCounts[]> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
@@ -1863,6 +1904,16 @@ export interface PreviousCharacterName {
     name: string;
     realm: string;
     changed_at: Date;
+}
+
+export interface CompositionSpec {
+    className: string;
+    specName: string;
+}
+
+export interface CompositionCounts {
+    specs: CompositionSpec[];
+    countsAtRating: { [key: string]: number; };
 }
 
 export interface SpecRatingCounts {

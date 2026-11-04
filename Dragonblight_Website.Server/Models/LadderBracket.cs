@@ -30,6 +30,23 @@ public class SpecRatingCounts
     public required Dictionary<int, Dictionary<string, int>> RacesAtRating { get; init; }
 }
 
+public class CompositionSpec
+{
+    [JsonPropertyName("className")]
+    public required string ClassName { get; init; }
+    [JsonPropertyName("specName")]
+    public required string SpecName { get; init; }
+}
+
+//how many times a team composition was seen at or above each minimum rating
+public class CompositionCounts
+{
+    [JsonPropertyName("specs")]
+    public required List<CompositionSpec> Specs { get; init; }
+    [JsonPropertyName("countsAtRating")]
+    public required Dictionary<int, int> CountsAtRating { get; init; }
+}
+
 public class WowClass
 {
     [JsonPropertyName("id")]
