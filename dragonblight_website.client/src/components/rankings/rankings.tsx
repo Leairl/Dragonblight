@@ -157,7 +157,7 @@ function Rankings() {
         }} />
 
       )}
-      <div className="toolbar py-3">
+      <div className="ladder-toolbar desktopWidth toolbar py-3">
 
         <div className={loading ? "div-disabled" : ""}>
           <SegmentedControl.Root

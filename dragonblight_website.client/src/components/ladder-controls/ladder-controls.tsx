@@ -4,6 +4,7 @@ import { Button, SegmentedControl, Skeleton, Table } from "@radix-ui/themes";
 import { Pagination } from "react-headless-pagination";
 import { Dragonblight } from "../../clients/Dragonblight";
 import DialogCloseButton from "../dialog-close-button/dialog-close-button";
+import { useMediaQuery } from "../../helpers/useMediaQuery";
 import "./ladder-controls.css";
 
 //The controls the rankings and activity tables have in common.
@@ -19,14 +20,22 @@ export const RegionToggle: FC<RegionToggleProps> = (props) => {
   if (props.disabled) {
     wrapperClass = "div-disabled";
   }
+  //flags on mobile, the width the ladder tables switch layout at
+  const isMobile = useMediaQuery("(max-width: 950px)");
+  function regionLabel(region: string, text: string) {
+    if (isMobile) {
+      return <img src={`/Regions/${region}.svg`} alt={text} className="region-flag" />;
+    }
+    return text;
+  }
   return (
     <div className={wrapperClass}>
       <SegmentedControl.Root className="w-[100px] grow-0" defaultValue={props.defaultValue}>
         <SegmentedControl.Item onClick={() => props.onSelect("us")} value="us">
-          US
+          {regionLabel("us", "US")}
         </SegmentedControl.Item>
         <SegmentedControl.Item onClick={() => props.onSelect("eu")} value="eu">
-          EU
+          {regionLabel("eu", "EU")}
         </SegmentedControl.Item>
       </SegmentedControl.Root>
     </div>
