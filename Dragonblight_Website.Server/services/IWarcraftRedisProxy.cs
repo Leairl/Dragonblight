@@ -20,9 +20,6 @@ public interface IWarcraftRedisProxy
     Task ClearAllCachedClassCharacters(string bracket, string region, GameFlavor flavor);
     Task<List<string>> CachedCharacters(GameFlavor flavor);
     Task<List<PvpLeaderboardEntry?>> CachedClassCharacters(string region, string characterClass, string bracket, GameFlavor flavor);
-    Task<IEnumerable<PvpLeaderboardAndTime?>> GetLadderHistory(string key, string region, GameFlavor flavor);
-    Task InsertToPlayerPageActivity(string bracket, string region, PvpLeaderboardEntry player, GameFlavor flavor);
-    Task<IEnumerable<PvpLeaderboardEntryandTime?>> GetPlayerPageActivity(string bracket, string region, string characterId, GameFlavor flavor);
     Task BracketPlayerExpiration(string bracket, string region, GameFlavor flavor);
     Task InsertToBracketActivityPage(string bracket, string region, PvpLeaderboardEntry oldPlayer, PvpLeaderboardEntry newPlayer, string specName, GameFlavor flavor);
     Task<IEnumerable<PlayerActivity?>> GetBracketActivityPage(string bracket, string region, GameFlavor flavor);

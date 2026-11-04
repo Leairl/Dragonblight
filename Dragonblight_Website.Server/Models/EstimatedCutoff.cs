@@ -60,6 +60,19 @@ public class EstimateInsideEntry
     public int Rank { get; set; }
     [JsonPropertyName("rating")]
     public int Rating { get; set; }
+    //only filled in for the popup, from the current ladder and synced profiles
+    [JsonPropertyName("won")]
+    public int Won { get; set; }
+    [JsonPropertyName("lost")]
+    public int Lost { get; set; }
+    [JsonPropertyName("className")]
+    public string ClassName { get; set; } = "";
+    [JsonPropertyName("specName")]
+    public string SpecName { get; set; } = "";
+    [JsonPropertyName("raceName")]
+    public string RaceName { get; set; } = "";
+    [JsonPropertyName("gender")]
+    public string Gender { get; set; } = "";
     //for an alt, the character holding its account's spot
     [JsonPropertyName("mainName")]
     public string MainName { get; set; } = "";
@@ -82,11 +95,14 @@ public class EstimateHistoryPoint
     public int AltsInside { get; set; }
 }
 
-//what the Estimated popup shows: the latest estimate with who is inside it, and every sync before it
+//what the cutoff popup shows: the latest estimate with who is inside it, every sync before it, and who is above Blizzard's cutoff
 public class EstimateDetail
 {
     [JsonPropertyName("estimate")]
     public EstimatedCutoff? Estimate { get; set; }
     [JsonPropertyName("history")]
     public List<EstimateHistoryPoint> History { get; set; } = [];
+    //everyone at or above Blizzard's current cutoff, which is a different list to who holds the estimated spots
+    [JsonPropertyName("qualifiedAtCutoff")]
+    public List<EstimateInsideEntry> QualifiedAtCutoff { get; set; } = [];
 }

@@ -1,10 +1,6 @@
 using System.Text.Json;
 using ArgentPonyWarcraftClient;
 using Dragonblight_Website.Server.Helpers;
-
-
-//PvP ladders, seasons and rewards. The ladders and seasons come from Blizzard and are cached;
-//ladder history is our own record, kept as Redis lists.
 partial class WarcraftRedisProxy
 {
     public async Task<PvpLeaderboard> GetLeaderboard(string region, string bracket, GameFlavor flavor)
@@ -65,7 +61,7 @@ partial class WarcraftRedisProxy
     //counts every spec's ladder and puts that data in a dictionary as an overall count for the spec stats page.
     public async Task<List<SpecRatingCounts>> GetSoloSpecStats(string ladder, string region, GameFlavor flavor)
     {
-        return await GetBlizzardDataCached<List<SpecRatingCounts>>(flavor.KeyPrefix() + "specStatsPerHundred" + ladder + region, async () =>
+        return await GetBlizzardDataCached<List<SpecRatingCounts>>(flavor.KeyPrefix() + "specStatsWithRaces" + ladder + region, async () =>
         {
             var stats = new List<SpecRatingCounts>();
             var ladderBrackets = await GetLadderBrackets(region, flavor);
@@ -73,11 +69,18 @@ partial class WarcraftRedisProxy
             {
                 var leaderboard = await GetLeaderboard(region, bracket.Slug, flavor);
                 var ratings = leaderboard?.Entries?.Where(e => e != null).Select(e => e.Rating).ToList() ?? [];
+                //races come from the synced profiles, which only cover each spec ladder's top players
+                var summaries = await GetPvpLeaderSummaries(bracket.Slug, region, flavor);
+                var players = summaries.OfType<PvpCharacterSummary>()
+                    .Where(s => !string.IsNullOrEmpty(s.charSummary?.Race?.Name))
+                    .Select(s => (s.PvpEntry.Rating, s.charSummary.Race.Name))
+                    .ToList();
                 stats.Add(new SpecRatingCounts
                 {
                     ClassName = bracket.ClassName ?? "",
                     SpecName = bracket.SpecName ?? "",
-                    PlayersAtRating = CountPlayersAtRatings(ratings)
+                    PlayersAtRating = CountPlayersAtRatings(ratings),
+                    RacesAtRating = CountRacesAtRatings(players)
                 });
             }
             return stats;
@@ -86,27 +89,53 @@ partial class WarcraftRedisProxy
     //the same counts for brackets without spec ladders, like 3v3, from the class lists the character sync fills.
     public async Task<List<SpecRatingCounts>> GetClassSpecStats(string bracket, string region, GameFlavor flavor)
     {
-        var stats = new List<SpecRatingCounts>();
-        var classes = await GetPlayableClasses(region, flavor);
-        foreach (var wowClass in classes)
+        //reading every profile is slow, so this keeps the result briefly. A sync refills the lists, so it can't stay stale for long
+        return await GetBlizzardDataCached<List<SpecRatingCounts>>(flavor.KeyPrefix() + "classSpecStats" + bracket + region, async () =>
         {
-            var entries = await CachedClassCharacters(region, wowClass.Name, bracket, flavor);
-            var specGroups = entries.OfType<ClassLadderEntry>().Where(e => !string.IsNullOrEmpty(e.Spec)).GroupBy(e => e.Spec);
-            foreach (var specGroup in specGroups)
+            //the class lists know each player's spec and the profiles know their race, so the character id connects them
+            var raceByCharacter = new Dictionary<int, string>();
+            foreach (var summary in (await GetPvpLeaderSummaries(bracket, region, flavor)).OfType<PvpCharacterSummary>())
             {
-                stats.Add(new SpecRatingCounts
+                if (!string.IsNullOrEmpty(summary.charSummary?.Race?.Name))
                 {
-                    ClassName = wowClass.Name,
-                    SpecName = specGroup.Key,
-                    PlayersAtRating = CountPlayersAtRatings(specGroup.Select(e => e.Rating).ToList())
-                });
+                    raceByCharacter.TryAdd(summary.PvpEntry.Character.Id, summary.charSummary.Race.Name);
+                }
             }
-        }
-        return stats;
+
+            var stats = new List<SpecRatingCounts>();
+            var classes = await GetPlayableClasses(region, flavor);
+            foreach (var wowClass in classes)
+            {
+                var entries = await CachedClassCharacters(region, wowClass.Name, bracket, flavor);
+                var specGroups = entries.OfType<ClassLadderEntry>().Where(e => !string.IsNullOrEmpty(e.Spec)).GroupBy(e => e.Spec);
+                foreach (var specGroup in specGroups)
+                {
+                    var players = specGroup
+                        .Where(e => raceByCharacter.ContainsKey(e.Character.Id))
+                        .Select(e => (e.Rating, raceByCharacter[e.Character.Id]))
+                        .ToList();
+                    stats.Add(new SpecRatingCounts
+                    {
+                        ClassName = wowClass.Name,
+                        SpecName = specGroup.Key,
+                        PlayersAtRating = CountPlayersAtRatings(specGroup.Select(e => e.Rating).ToList()),
+                        RacesAtRating = CountRacesAtRatings(players)
+                    });
+                }
+            }
+            return stats;
+        }, TimeSpan.FromMinutes(5));
     }
     private static Dictionary<int, int> CountPlayersAtRatings(List<int> ratings)
     {
         return SpecStatRatings.ToDictionary(minRating => minRating, minRating => ratings.Count(rating => rating >= minRating));
+    }
+    private static Dictionary<int, Dictionary<string, int>> CountRacesAtRatings(List<(int Rating, string Race)> players)
+    {
+        return SpecStatRatings.ToDictionary(minRating => minRating, minRating => players
+            .Where(player => player.Rating >= minRating)
+            .GroupBy(player => player.Race)
+            .ToDictionary(race => race.Key, race => race.Count()));
     }
     public async Task<PvpRewardsIndex> GetPvPRewards(string region, GameFlavor flavor)
     {
@@ -119,35 +148,6 @@ partial class WarcraftRedisProxy
             return ActivePvpRewards.Value;
         }, TimeSpan.FromHours(6)); //uses getredisproxy generic type of pvpleaderboard to get rbg ladder + region from redis
     }
-    public async Task AddToLadderHistory(string key, string region, PvpLeaderboard currLadder, GameFlavor flavor) //get rbgLeaderboard in redis
-    {
-        var currLadderAndTime = new PvpLeaderboardAndTime
-        {
-            Entries = currLadder.Entries,
-            Links = currLadder.Links,
-            Name = currLadder.Name,
-            Season = currLadder.Season,
-            Time = DateTime.Now
-        };
-        var db = redis.GetDatabase();
-        await db.ListRightPushAsync(flavor.KeyPrefix() + key + region, JsonSerializer.Serialize(currLadderAndTime));
-    }
-
-    public async Task<IEnumerable<PvpLeaderboardAndTime?>> GetLadderHistory(string key, string region, GameFlavor flavor)
-    {
-        region = GetDynamicRegion(region, flavor);
-        var db = redis.GetDatabase(); //var to redis database
-        string keyAndRegion = flavor.KeyPrefix() + key + region;
-
-        var ladder = await db.ListRangeAsync(keyAndRegion);
-        //convert player to pvpleaderboardentry (for our filtered list of strings)
-        return ladder.Where(p => p.HasValue).Select(player =>
-        {
-            //deserialized out of json to become an object.
-            return JsonSerializer.Deserialize<PvpLeaderboardAndTime>(player!.ToString());
-        }).ToList();
-    }
-
     //seasons differ per flavor, so the namespace is derived here rather than assumed
     public async Task<int> GetSeason(string region, GameFlavor flavor) // get currSeason in redis
     {

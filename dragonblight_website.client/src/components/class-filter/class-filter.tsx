@@ -1,9 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import * as Checkbox from '@radix-ui/react-checkbox';
-import { CheckIcon, ChevronDownIcon } from '@radix-ui/react-icons'; // Import the arrow icon
-import { Button } from '@radix-ui/themes';
-import { ClassColor } from '../../helpers/classColorHelper';
 import { Dragonblight } from '../../clients/Dragonblight';
 import './class-filter.css';
 import { getFlavor } from '../../helpers/game-flavor';

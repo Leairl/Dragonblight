@@ -1,4 +1,4 @@
-import React, { FC, useEffect, useRef, useState } from "react";
+import { FC, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router";
 import "./profile-equipment.css";
 import { Button, Callout, Card, ChevronDownIcon, DropdownMenu, Flex, Heading, Skeleton } from "@radix-ui/themes";
@@ -14,7 +14,7 @@ import TalentViewer from "../../talent-viewer/talent-viewer";
 import GlyphViewer from "../../glyph-viewer/glyph-viewer";
 import RetailTalentViewer from "../../retail-talent-viewer/retail-talent-viewer";
 import ProfileAlts from "../profile-alts/profile-alts";
-import { formerNames, realmDisplayName } from "../../../helpers/realmNameHelper";
+import { realmDisplayName } from "../../../helpers/realmNameHelper";
 import { InfoCircledIcon } from "@radix-ui/react-icons";
 import { getFlavor, wowheadUrl } from "../../../helpers/game-flavor";
 import { installTierSetSpecFilter } from "../../../helpers/wowhead-tier-set";
@@ -191,7 +191,6 @@ const ProfileEquipment: FC<profileEquipmentProps> = (props) => {
   const [loading, setLoading] = useState<boolean>(true);
   const [modelLoading, setModelLoading] = useState<boolean>(true);
   const buildNumber = useRef(0);
-  const [seasonal, setSeasonal] = useState<Dragonblight.SeasonalAchievement[]>([]);
   const [tiers, setTiers] = useState<Dragonblight.TierAchievements[]>([]);
   const [ilvlMode] = useItemLevelMode();
 
@@ -200,7 +199,7 @@ const ProfileEquipment: FC<profileEquipmentProps> = (props) => {
   window.onbeforeunload = () => setModelLoading(true);
   const { region, server, characterName } = useParams();
   //need a useeffect in the child component to change boolean
-  function setAnimationAfterLoad(m: WowModelViewer, zoom: number, build: number = 0) {
+  function setAnimationAfterLoad(m: WowModelViewer, zoom: number) {
     setTimeout(() => {
       if (m.isLoaded()) {
         setTimeout(() => {
@@ -294,7 +293,7 @@ const ProfileEquipment: FC<profileEquipmentProps> = (props) => {
             return;
           }
           wow_model_viewer = m;
-          setAnimationAfterLoad(m, zooms[race ?? 1] ?? DEFAULT_ZOOM, build);
+          setAnimationAfterLoad(m, zooms[race ?? 1] ?? DEFAULT_ZOOM);
         })
         .catch((error) => {
           //a race the viewer has no data for would otherwise spin forever, hiding the paperdoll

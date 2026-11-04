@@ -1,6 +1,4 @@
-.top100 {
-  top:180px;
-}
+
 
 .model3d {
   position: absolute !important;
@@ -58,29 +56,6 @@
   visibility: visible;
 }
 }
-
-
-.paperdoll-text {
-  position: relative;
-  z-index: 2;
-  color: #d6bc76;
-  text-shadow: 2px 2px 2px #1c1c1c;
-  text-align: center;
-  width: 100%;
-  left: 0;
-  margin: 0px;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-.TooltipContent {
-  transform-origin: var(--radix-tooltip-content-transform-origin);
-  animation: scaleIn 0.5s ease-out;
-}
-.TooltipContent[data-side='top'] {
-  animation-name: slideUp;
-}
-.TooltipContent[data-side='bottom'] {
-  animation-name: slideDown;
-}
 .character-text {
   text-shadow: 2px 2px 2px #1c1c1c;
   text-wrap: wrap;
@@ -118,23 +93,11 @@
   width: 60vw;
   --color-panel: #292c31;
 }
-
-.achievement-row{
-  width: 60vw;
-  background-color: #292c31;
-  --color-panel: #292c31;
-}
 @media only screen and (max-width: 800px) {
   .paperdoll-card {
     width: 95vw;
   }
-  .achievement-row{
-    width: 95vw;
-  }
   .header-card{
-    width: 95vw;
-  }
-  .achievement-row{
     width: 95vw;
   }
   .talent-row{
@@ -157,16 +120,6 @@
   max-width: calc(50% - .625rem);
   transition: opacity .2s;
   z-index: 1;
-}
-
-
-.paperdoll-bottom {
-  margin-top: 15px;
-  margin-bottom: 15px;
-  margin-left: auto;
-  margin-right: auto;
-  height: 55px;
-  width: 160px;
 }
 .center-column {
   flex-grow: 1;
@@ -236,11 +189,6 @@
   padding-top: 1px;
   overflow: hidden;
 }
-
-.item-row:first-child.item-details {
-  padding-top: 0;
-}
-
 
 .item-enchant {
 

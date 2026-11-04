@@ -31,40 +31,6 @@
     color: #727272;
 }
 
-/* for the same span with no class inside the talentIcon I want to make the text red when data-talented="true" */
-
-.tree-talent-points-db {
-    background-color: #000;
-    border: #333;
-    border-radius: 3px !important;
-    color: #787878;
-    cursor: pointer;
-    font-size: 8px;
-    padding: 0 3px;
-    user-select: none;
-    position: relative;
-    top: -10px;
-    right: -30px;
-    left: auto;
-    bottom: 0px;
-}
-
-.tree-talent-points-db[data-talented="true"] {
-    background-color: #000;
-    border: #333;
-    border-radius: 3px !important;
-    color: rgba(177, 218, 241, 0.8);
-    cursor: pointer;
-    font-size: 8px;
-    padding: 0 3px;
-    user-select: none;
-    position: relative;
-    top: -10px;
-    right: -30px;
-    left: auto;
-    bottom: 0px;
-}
-
 /* only the icon goes gray: on the wrapper this also took the blue tint out of the card behind it */
 .talentIconWrapper .talentIcon {
     filter: grayscale(100%);

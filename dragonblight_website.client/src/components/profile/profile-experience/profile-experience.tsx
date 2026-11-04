@@ -6,20 +6,16 @@ import * as Accordion from "@radix-ui/react-accordion";
 import { Card, Heading, Skeleton } from "@radix-ui/themes";
 import { ChevronDownIcon } from "@radix-ui/react-icons";
 import { seasonalIcon } from "../../../helpers/seasonal-icons";
-import { getFlavor } from "../../../helpers/game-flavor";
 import { TitleColors } from "../../../helpers/ratingTierHelper";
 
 
 interface ProfileExperienceProps {
-  //shows highest achievement per season 
-  achievements?: Dragonblight.SeasonalAchievement;
   characterNotFound?: boolean;
 }
 
-const ProfileExperience: FC<ProfileExperienceProps> = ({ achievements, characterNotFound }) => {
+const ProfileExperience: FC<ProfileExperienceProps> = ({ characterNotFound }) => {
   //state to hold seasonal data
   const [seasons, setSeasons] = useState<Dragonblight.SeasonalAchievement[]>([]);
-  const [seasonStart, setSeasonStart] = useState<Date | null>();
   const { region, server, characterName } = useParams();
   const [loading, setLoading] = useState<boolean>(true);
 

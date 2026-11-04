@@ -1,65 +1,14 @@
 using System.Text.Json;
 using ArgentPonyWarcraftClient;
+using Dragonblight_Website.Server.Helpers;
 
 //Rating changes seen between ladder syncs, per player and per bracket. Redis only - nothing here
 //calls Blizzard; the background sync feeds it.
 partial class WarcraftRedisProxy
 {
-    public async Task InsertToPlayerPageActivity(string bracket, string region, PvpLeaderboardEntry player, GameFlavor flavor)
-    {
-        var PvpLeaderboardEntryandTime = new PvpLeaderboardEntryandTime
-        {
-            Character = player.Character,
-            Faction = player.Faction,
-            Rank = player.Rank,
-            Rating = player.Rating,
-            SeasonMatchStatistics = player.SeasonMatchStatistics,
-            Tier = player.Tier,
-            Time = DateTime.Now
-        };
-        var db = redis.GetDatabase();
-        await db.ListRightPushAsync(flavor.KeyPrefix() + "actvity" + bracket + region + player.Character.Id, JsonSerializer.Serialize(PvpLeaderboardEntryandTime));
-    }
-    public async Task<IEnumerable<PvpLeaderboardEntryandTime?>> GetPlayerPageActivity(string bracket, string region, string characterId, GameFlavor flavor)
-    {
-        var db = redis.GetDatabase(); //var to redis database
-        string keyAndRegion = flavor.KeyPrefix() + "actvity" + bracket + region + characterId;
-        var ladder = await db.ListRangeAsync(keyAndRegion);
-        //convert player to pvpleaderboardentry (for our filtered list of strings)
-        return ladder.Where(p => p.HasValue).Select(player =>
-        {
-            //deserialized out of json to become an object.
-            return JsonSerializer.Deserialize<PvpLeaderboardEntryandTime>(player!.ToString());
-        }).ToList();
-    }
     public async Task InsertToBracketActivityPage(string bracket, string region, PvpLeaderboardEntry oldPlayer, PvpLeaderboardEntry newPlayer, string specName, GameFlavor flavor)
     {
-        var OldPvpLeaderboardEntryandTime = new PvpLeaderboardEntryandTime
-        {
-            Character = oldPlayer.Character,
-            Faction = oldPlayer.Faction,
-            Rank = oldPlayer.Rank,
-            Rating = oldPlayer.Rating,
-            SeasonMatchStatistics = oldPlayer.SeasonMatchStatistics,
-            Tier = oldPlayer.Tier,
-            Time = DateTime.Now.Subtract(TimeSpan.FromHours(3))
-        };
-        var NewPvpLeaderboardEntryandTime = new PvpLeaderboardEntryandTime
-        {
-            Character = newPlayer.Character,
-            Faction = newPlayer.Faction,
-            Rank = newPlayer.Rank,
-            Rating = newPlayer.Rating,
-            SeasonMatchStatistics = newPlayer.SeasonMatchStatistics,
-            Tier = newPlayer.Tier,
-            Time = DateTime.Now
-        };
-        var newPlayerActivity = new PlayerActivity
-        {
-            OldPlayer = OldPvpLeaderboardEntryandTime,
-            NewPlayer = NewPvpLeaderboardEntryandTime,
-            Spec = specName
-        };
+        PlayerActivity newPlayerActivity =  PlayerActivityHelper.NewPlayerActivity(oldPlayer, newPlayer, specName);
         var db = redis.GetDatabase();
         await db.ListRightPushAsync(flavor.KeyPrefix() + "actvity" + bracket + region, JsonSerializer.Serialize(newPlayerActivity));
     }
@@ -115,39 +64,14 @@ partial class WarcraftRedisProxy
 
     public async Task InsertActivityCacheClassCharacter(string bracket, PvpLeaderboardEntry oldPlayer, PvpLeaderboardEntry newPlayer, CharacterProfileSummary characterClass, string specName, string region, GameFlavor flavor)
     //these all return a string, allowing us to connect ed to cachedclasscharacters function
-    {
-        var OldPvpLeaderboardEntryandTime = new PvpLeaderboardEntryandTime
-        {
-            Character = oldPlayer.Character,
-            Faction = oldPlayer.Faction,
-            Rank = oldPlayer.Rank,
-            Rating = oldPlayer.Rating,
-            SeasonMatchStatistics = oldPlayer.SeasonMatchStatistics,
-            Tier = oldPlayer.Tier,
-            Time = DateTime.Now.Subtract(TimeSpan.FromHours(3))
-        };
-        var NewPvpLeaderboardEntryandTime = new PvpLeaderboardEntryandTime
-        {
-            Character = newPlayer.Character,
-            Faction = newPlayer.Faction,
-            Rank = newPlayer.Rank,
-            Rating = newPlayer.Rating,
-            SeasonMatchStatistics = newPlayer.SeasonMatchStatistics,
-            Tier = newPlayer.Tier,
-            Time = DateTime.Now
-        };
-        var newPlayerActivity = new PlayerActivity
-        {
-            OldPlayer = OldPvpLeaderboardEntryandTime,
-            NewPlayer = NewPvpLeaderboardEntryandTime,
-            Spec = specName
-        };
+    {        
         if (oldPlayer == null) { return; }
         if (newPlayer == null) { return; }
         if (region == null) { return; }
         if (bracket == null) { return; }
         if (characterClass == null) { return; }
         if (characterClass.CharacterClass == null) { return; }
+        PlayerActivity newPlayerActivity =  PlayerActivityHelper.NewPlayerActivity(oldPlayer, newPlayer, specName);
         string key = flavor.KeyPrefix() + "activity" + bracket + "_" + characterClass.CharacterClass.Name + "_" + region;
         var db = redis.GetDatabase(); //var to redis database
         //looks at a player, finds the correct data and puts it inside the key values, then goes inside of sectioned list of data
@@ -163,7 +87,7 @@ partial class WarcraftRedisProxy
         int c = 0;
         foreach (var expiredPlayer in expiredPlayers)
         {
-            if (expiredPlayer == null || (DateTime.Now - expiredPlayer!.NewPlayer.Time) > TimeSpan.FromHours(12))
+            if (DateTime.Now - expiredPlayer!.NewPlayer.Time > TimeSpan.FromHours(12))
             {
                 c++;
             }

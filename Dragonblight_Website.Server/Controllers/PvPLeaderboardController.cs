@@ -64,21 +64,6 @@ namespace Dragonblight_Website.Server.Controllers
             }
         }
 
-        [HttpGet("GetLeaderboardIndex")]
-        public async Task<ActionResult<PvpLeaderboardsIndex>> GetLeaderboardIndex(string region)
-        {
-            try
-            {
-                var leaderboardIndex = await _warcraftCachedData.GetLeaderboardIndex(region, HttpContext.GetGameFlavor());
-                return Ok(leaderboardIndex);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred while fetching the leaderboard index.");
-                return StatusCode(500, "An error occurred while processing your request.");
-            }
-        }
-
         [HttpGet("GetLadderBrackets")]
         public async Task<ActionResult<List<LadderBracket>>> GetLadderBrackets(string region)
         {
@@ -148,7 +133,7 @@ namespace Dragonblight_Website.Server.Controllers
         }
 
         [HttpGet("GetRankFromCutoffs")]
-        public async Task<int> GetRankFromCutoffs(int cutoff, string bracketType, string region, int? specId = null)
+        private async Task<int> GetRankFromCutoffs(int cutoff, string bracketType, string region, int? specId = null)
         {
             try
             {
@@ -205,7 +190,6 @@ namespace Dragonblight_Website.Server.Controllers
                         .OrderBy(l => l!.PvpEntry.Rank)
                         .Skip(skip).Take(take));
                 }
-                List<PvpCharacterSummary> result = [];
                 List<PvpLeaderboardEntry?> filteredLadder = [];
                 foreach (var charClass in classes)
                 {
@@ -217,8 +201,7 @@ namespace Dragonblight_Website.Server.Controllers
                 var LadderLeaderboardEntries = filteredLadder.Where(p => p != null).Select(p => p!).Select(async ladderEntry =>
                 {
                     var ProfileSummaryEntries = await _warcraftCachedData.GetCharSummary(ladderEntry.Character.Realm.Slug, ladderEntry.Character.Name, region, HttpContext.GetGameFlavor());
-                    var specName = await _warcraftCachedData.GetCharacterSpecName(ladderEntry.Character.Realm.Slug, ladderEntry.Character.Name, region, HttpContext.GetGameFlavor());
-                    var spec = specName;
+                    var spec = await _warcraftCachedData.GetCharacterSpecName(ladderEntry.Character.Realm.Slug, ladderEntry.Character.Name, region, HttpContext.GetGameFlavor());
                     var savedSpec = (ladderEntry as ClassLadderEntry)?.Spec;
                     if (!string.IsNullOrEmpty(savedSpec))
                     {
@@ -232,7 +215,7 @@ namespace Dragonblight_Website.Server.Controllers
                         spec = spec
                     };
                 });
-                result = result.Concat(await Task.WhenAll(LadderLeaderboardEntries)).ToList();
+                List<PvpCharacterSummary> result = await Task.WhenAll(LadderLeaderboardEntries).ContinueWith(t => t.Result.Where(r => r != null).ToList());
                 //displays correct ranking and returns all selected classes we want to filter
                 return Ok(result);
             }
@@ -247,19 +230,6 @@ namespace Dragonblight_Website.Server.Controllers
         {
             return await _warcraftCachedData.GetAlts(server, characterName, region, HttpContext.GetGameFlavor());
         }
-
-        public class PvpCharacterSummary
-        {
-            [JsonPropertyName("pvpEntry")]
-            public required PvpLeaderboardEntry PvpEntry { get; init; }
-
-            [JsonPropertyName("charSummary")]
-            public required CharacterProfileSummary charSummary { get; init; }
-
-            [JsonPropertyName("spec")]
-            public required string spec { get; init; }
-        }
-
     }
 
 }

@@ -25,6 +25,7 @@ import Cutoffs from "../cutoffs/cutoffs";
 import { brackets } from "../../helpers/game-flavor";
 import classNames from "classnames";
 import { realmName } from "../../helpers/realmNameHelper";
+import { rankOneRatingClass } from "../../helpers/ratingTierHelper";
 import { bracketLabels, bracketSlug, isBlitzBracket, isShuffleBracket } from "../../helpers/solo-bracket-specs";
 
 const Skeletons = [0, 1, 2];
@@ -46,8 +47,29 @@ function Activity() {
   ]);
   const [selectedSpecs, setSelectedSpecs] = useState<string[]>([]);
   const [hoveredAlts, setHoveredAlts] = useState<Dragonblight.CharacterIdentity[]>([]);
+  const [ladders, setLadders] = useState<Dragonblight.LadderBracket[]>([]);
+  const [rewards, setRewards] = useState<Dragonblight.PvpSeasonRewardWithRank[]>([]);
   const [hoveredPlayer, setHoveredPlayer] = useState<Dragonblight.ActivityCharacterSummary | null>(null);
   const timeoutRef = useRef(0);
+
+  //rewards and ladders only change with the region, and a failed lookup just leaves the ratings uncolored
+  useEffect(() => {
+    const client = new Dragonblight.PvpLeaderboardClient();
+    client.getPvPRewards(region).then((r) => setRewards(r ?? [])).catch(() => setRewards([]));
+    client.getLadderBrackets(region).then((l) => setLadders(l ?? [])).catch(() => setLadders([]));
+  }, [region]);
+
+  function ratingClass(entry: Dragonblight.ActivityCharacterSummary): string {
+    return rankOneRatingClass(
+      rewards,
+      ladders,
+      bracket,
+      entry.currPvpEntry.rating,
+      entry.charSummary?.character_class?.name,
+      entry.spec || entry.charSummary?.active_spec?.name,
+      entry.currPvpEntry.faction?.type
+    );
+  }
 
   function increasedGames(entry: Dragonblight.ActivityCharacterSummary) {
     const won = (entry.currPvpEntry?.season_match_statistics?.won ?? 0) - (entry.prevPvpEntry?.season_match_statistics?.won ?? 0);
@@ -431,7 +453,7 @@ function Activity() {
                         }}
                         className="desktopOnly"
                       >
-                        {characterEntry.currPvpEntry.rating}{" "}
+                        <span className={ratingClass(characterEntry)}>{characterEntry.currPvpEntry.rating}</span>{" "}
                         <span
                           className={
                             characterEntry.currPvpEntry.rating >=
@@ -558,7 +580,7 @@ function Activity() {
                                     </DataList.Label>
                                     <DataList.Value className="justify-end">
                                       <div className="flex flex-row justify-center">
-                                        {characterEntry.currPvpEntry.rating}{" "}
+                                        <span className={ratingClass(characterEntry)}>{characterEntry.currPvpEntry.rating}</span>{" "}
                                         &nbsp;
                                         <span
                                           className={

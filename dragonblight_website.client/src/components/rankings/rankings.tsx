@@ -26,9 +26,7 @@ import { brackets } from "../../helpers/game-flavor";
 import { SoloSpec, defaultBlitzSpec, isBlitzBracket, setShuffleSpecs, setBlitzSpecs, defaultShuffleSpec, isShuffleBracket, shuffleSpecs, blitzSpecs, SoloSpecIcon } from "../../helpers/solo-bracket-specs";
 import SoloSpecFilter from "../solo-spec-filter/solo-spec-filter";
 import { realmName } from "../../helpers/realmNameHelper";
-import { server } from "typescript";
-
-const Skeletons = [0, 1, 2];
+import { rankOneRatingClass } from "../../helpers/ratingTierHelper";
 
 function Rankings() {
   //const [count, setCount] = useState(0); //store dynamic data, focus on arena ladder component
@@ -46,8 +44,21 @@ function Rankings() {
   const [selectedSpecs, setSelectedSpecs] = useState<string[]>([]);
   const [syncStatus, setSyncStatus] = useState<number>(0);
   const [ladders, setLadders] = useState<Dragonblight.LadderBracket[]>([]);
+  const [rewards, setRewards] = useState<Dragonblight.PvpSeasonRewardWithRank[]>([]);
   const [hoveredAlts, setHoveredAlts] = useState<Dragonblight.CharacterIdentity[]>([]);
   const timeoutRef = useRef(0);
+
+  function ratingClass(entry: Dragonblight.PvpCharacterSummary): string {
+    return rankOneRatingClass(
+      rewards,
+      ladders,
+      bracket,
+      entry.pvpEntry.rating,
+      entry.charSummary?.character_class?.name,
+      entry.spec || entry.charSummary?.active_spec?.name,
+      entry.pvpEntry.faction?.type
+    );
+  }
 
   const findLeaderboardAlts = async (characterName: string, realm: string) => {
     timeoutRef.current = setTimeout(async () => {
@@ -103,6 +114,8 @@ function Rankings() {
   }, [bracket, region, page, selectedClasses, selectedSpecs, soloClass]);
   useEffect(() => {
     const DragonblightClient = new Dragonblight.PvpLeaderboardClient();
+    //a failed lookup just leaves the ratings uncolored
+    DragonblightClient.getPvPRewards(region).then((r) => setRewards(r ?? [])).catch(() => setRewards([]));
     DragonblightClient.getLadderBrackets(region).then(
       (result) => {
         setLadders(result ?? [])
@@ -484,7 +497,7 @@ function Rankings() {
                       }
                       navigate(`/profile/${region}/${characterEntry.charSummary?.realm?.slug}/${characterEntry.charSummary?.name}`);
                     }}
-                    className="desktopOnly"
+                    className={"desktopOnly " + ratingClass(characterEntry)}
                   >
                     {characterEntry.pvpEntry.rating}
                   </Table.Cell>
@@ -555,7 +568,7 @@ function Rankings() {
                                 <DataList.Label className=" p-2  font-bold text-white">
                                   Rating
                                 </DataList.Label>
-                                <DataList.Value className="justify-end">
+                                <DataList.Value className={"justify-end " + ratingClass(characterEntry)}>
                                   {characterEntry.pvpEntry.rating}
                                 </DataList.Value>
                               </DataList.Item>

@@ -1,4 +1,4 @@
-import React, { FC, ReactElement, useEffect, useState } from "react";
+import { FC, ReactElement, useEffect, useState } from "react";
 import { Dragonblight } from "../../../clients/Dragonblight";
 import { useParams } from "react-router";
 import { Card, Heading, Separator, Skeleton, HoverCard, DataList } from "@radix-ui/themes";
@@ -100,19 +100,6 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
     const reward = bestReward(rewards, bracket, current_rating, specId, characterFaction);
     const title = reward?.achievement?.name?.split(":")[0];
     return title ? `Predicted Title: ${title}` : "";
-  }
-
-  // isolates rewards for a specific bracket, or returns [] when rewards are not yet loaded.
-  function bracketRewards(bracket: string, specId?: number) {
-    return rewards?.filter((r) => {
-      if (specId !== undefined && r.specialization?.id !== specId) {
-        return false;
-      }
-      return (
-        r.bracket?.type?.includes(bracket) ||
-        (r.bracket?.type?.includes("BATTLEGROUNDS") && bracket == "rbg")
-      );
-    });
   }
 
   return (

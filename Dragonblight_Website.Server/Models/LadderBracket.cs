@@ -25,6 +25,9 @@ public class SpecRatingCounts
     public required string SpecName { get; init; }
     [JsonPropertyName("playersAtRating")]
     public required Dictionary<int, int> PlayersAtRating { get; init; }
+    //for each minimum rating, how many of the spec's players are each race
+    [JsonPropertyName("racesAtRating")]
+    public required Dictionary<int, Dictionary<string, int>> RacesAtRating { get; init; }
 }
 
 public class WowClass

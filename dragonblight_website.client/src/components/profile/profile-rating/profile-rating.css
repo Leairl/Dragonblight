@@ -1,23 +1,4 @@
-.rating-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
 
-.main-card {
-    width: 100%;
-    /* Full width of the container */
-}
-.rating-cards {
-    display: flex;
-    width: 100%;
-    justify-self: center;
-}
-
-.width-60vw {
-    width: 60vw;
-    justify-self: center;
-}
 
 .mobile-padding {
     margin-left: unset;
@@ -43,7 +24,6 @@
     min-width: 0;
 }
 
-
 .page-container.not-found {
     position: relative;
 }
@@ -53,7 +33,6 @@
     pointer-events: none;
     user-select: none;
 }
-
 
 /* Radix pulses every skeleton with an !important animation, and the colour only comes from its
    keyframes, so stopping it means setting the colour here */
@@ -139,14 +118,10 @@
   margin-bottom: 4px;
 }
 @media only screen and (max-width: 800px) {
-        .width-60vw {
-        width: auto;
-    }
 
     .rating-card {
         flex: 0 0 140px !important;
         min-width: 100px;
     }
-
 
 }

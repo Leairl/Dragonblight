@@ -4,11 +4,3 @@ input:focus{
   border-color:transparent;
   outline:none;
 }
-.search-input-without-border {
-  .rc-select-selection-search-input {
-    border: none;
-    outline: none;
-    background: rgba(255, 0, 0, 0.2);
-    width: 100%;
-  }
-}

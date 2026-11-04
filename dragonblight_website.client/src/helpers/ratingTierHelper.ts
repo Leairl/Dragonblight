@@ -85,8 +85,47 @@ function ratingColor(
   }
   return TitleColors(reward?.achievement?.name)
 }
+const RewardBracketTypes: Record<string, string> = {
+  "2v2": "ARENA_2v2",
+  "3v3": "ARENA_3v3",
+  "5v5": "ARENA_5v5",
+  rbg: "BATTLEGROUNDS",
+  shuffle: "SHUFFLE",
+  blitz: "BLITZ",
+};
+// The color for a ladder row's rating: the bracket's top title color once it reaches that title's cutoff,
+// otherwise nothing so it keeps the page's color. Shuffle and Blitz cutoffs are per spec, so an overall
+// ladder finds the row's own spec, and a row whose spec isn't known stays uncolored.
+function rankOneRatingClass(
+  rewards: Dragonblight.PvpSeasonRewardWithRank[],
+  ladders: Dragonblight.LadderBracket[],
+  bracket: string,
+  rating: number,
+  className: string | undefined,
+  specName: string | undefined,
+  faction: string | undefined
+): string {
+  const ladder = bracket.split("-")[0];
+  let specId: number | undefined;
+  if (ladder == "shuffle" || ladder == "blitz") {
+    //the overall ladders store a spec as its ladder name, like "beastmastery" for "Beast Mastery"
+    const specLadderName = (specName ?? "").replace(/ /g, "").toLowerCase();
+    const spec = ladders.find((l) => l.slug == bracket && l.specId) ??
+      ladders.find((l) => l.ladder == ladder && l.className == className && l.specName?.replace(/ /g, "").toLowerCase() == specLadderName);
+    if (!spec) {
+      return "";
+    }
+    specId = spec.specId;
+  }
+  // no rating is above this, so it finds the bracket's highest title rather than the best one reached
+  const topReward = bestReward(rewards, RewardBracketTypes[ladder], Number.MAX_SAFE_INTEGER, specId, faction);
+  if (!topReward || rating < topReward.rating_cutoff) {
+    return "";
+  }
+  return TitleColors(topReward.achievement?.name) + " text-shadow-md text-shadow-black";
+}
 export {
-  RetailTiers, retailTier, bestReward, RankOneColor, ratingColor // Tiers follow the current rating (Blizzard doesn't return the season high);
+  RetailTiers, retailTier, bestReward, RankOneColor, ratingColor, rankOneRatingClass // Tiers follow the current rating (Blizzard doesn't return the season high);
   , TitleColors, cleanTitle
 };
 export type { RatingTier };

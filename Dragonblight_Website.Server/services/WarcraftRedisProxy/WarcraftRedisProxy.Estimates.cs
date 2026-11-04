@@ -68,7 +68,7 @@ partial class WarcraftRedisProxy
         var db = redis.GetDatabase();
         var keys = entries
             .Select(e => (RedisKey)VersionedKey("AltKey" + e.Character.Realm.Slug.ToLowerInvariant() + e.Character.Name.ToLowerInvariant() + region + flavor.KeyPrefix()))
-            .ToArray(); 
+            .ToArray();
         var values = await db.StringGetAsync(keys);
         var accounts = new Dictionary<int, string>();
         for (var i = 0; i < entries.Count; i++)
@@ -99,7 +99,10 @@ partial class WarcraftRedisProxy
         {
             seen.Add(accounts[entry.Character.Id]);
         }
-        await db.StringSetAsync(key, seen.Count, TimeSpan.FromDays(30));
+        if (seen.Count > 0)
+        {
+            await db.StringSetAsync(key, seen.Count, TimeSpan.FromDays(30));
+        }
         return seen.Count;
     }
 
@@ -143,7 +146,7 @@ partial class WarcraftRedisProxy
                 Rating = entry.Rating,
                 MainName = mainName
             });
-            //cutoff reached, but keep going to count alts of the accounts already inside
+            //cutoff reached, but keep going to count alts of the accounts already inside. stops at the last main and doesnt count alts after
             if (!isAlt && seen.Count == spots)
             {
                 break;
@@ -194,6 +197,14 @@ partial class WarcraftRedisProxy
     //historykey holds data for each sync and each point is the data from that bracket at a specific timestamp
     public async Task<EstimateDetail> GetEstimateDetail(string bracket, int achievementId, string region, GameFlavor flavor)
     {
+        //reading every profile is slow, so this keeps the result briefly. A sync replaces the estimate, so it can't stay stale for long
+        return await GetBlizzardDataCached<EstimateDetail>(
+            flavor.KeyPrefix() + "EstimateDetail-" + bracket + "-" + achievementId + "-" + region,
+            () => BuildEstimateDetail(bracket, achievementId, region, flavor),
+            TimeSpan.FromMinutes(5));
+    }
+    private async Task<EstimateDetail> BuildEstimateDetail(string bracket, int achievementId, string region, GameFlavor flavor)
+    {
         var detail = new EstimateDetail();
         detail.Estimate = await GetRedisData<EstimatedCutoff>(EstimateKey(bracket, achievementId, region, flavor));
         var db = redis.GetDatabase();
@@ -204,6 +215,57 @@ partial class WarcraftRedisProxy
             if (parsed != null)
             {
                 detail.History.Add(parsed);
+            }
+        }
+        if (detail.Estimate != null)
+        {
+            var leaderboard = await GetLeaderboard(region, bracket, flavor);
+            var ladder = leaderboard?.Entries?.Where(e => e != null).OrderBy(e => e.Rank).ToList() ?? [];
+            var qualified = ladder.Where(e => e.Rating >= detail.Estimate.RatingCutoff).ToList();
+            var accounts = await GetAccountKeys(qualified, region, flavor);
+            //no spot limit, so the walk marks the alts of everyone above the cutoff without stopping early
+            detail.QualifiedAtCutoff = WalkSpots(qualified, accounts, int.MaxValue).Inside;
+
+            //the walk only keeps what the estimate needs, so wins and losses come from the ladder
+            var records = ladder.GroupBy(e => e.Character.Id).ToDictionary(g => g.Key, g => g.First().SeasonMatchStatistics);
+            var profiles = (await GetPvpLeaderSummaries(bracket, region, flavor))
+                .OfType<PvpCharacterSummary>()
+                .GroupBy(s => s.PvpEntry.Character.Id)
+                .ToDictionary(g => g.Key, g => g.First());
+            //the class lists hold the spec a character was in when synced, which is the one the rankings table shows
+            var syncedSpecs = new Dictionary<int, string>();
+            foreach (var wowClass in await GetPlayableClasses(region, flavor))
+            {
+                foreach (var classEntry in (await CachedClassCharacters(region, wowClass.Name, bracket, flavor)).OfType<ClassLadderEntry>())
+                {
+                    if (!string.IsNullOrEmpty(classEntry.Spec))
+                    {
+                        syncedSpecs.TryAdd(classEntry.Character.Id, classEntry.Spec);
+                    }
+                }
+            }
+            foreach (var entry in detail.QualifiedAtCutoff.Concat(detail.Estimate.Inside))
+            {
+                if (records.TryGetValue(entry.CharacterId, out var record))
+                {
+                    entry.Won = record.Won;
+                    entry.Lost = record.Lost;
+                }
+                if (profiles.TryGetValue(entry.CharacterId, out var profile))
+                {
+                    entry.ClassName = profile.charSummary?.CharacterClass?.Name ?? "";
+                    entry.RaceName = profile.charSummary?.Race?.Name ?? "";
+                    entry.Gender = profile.charSummary?.Gender?.Name ?? "";
+                    entry.SpecName = profile.spec;
+                    if (string.IsNullOrEmpty(entry.SpecName))
+                    {
+                        entry.SpecName = profile.charSummary?.ActiveSpec?.Name ?? "";
+                    }
+                }
+                if (syncedSpecs.TryGetValue(entry.CharacterId, out var syncedSpec))
+                {
+                    entry.SpecName = syncedSpec;
+                }
             }
         }
         return detail;
