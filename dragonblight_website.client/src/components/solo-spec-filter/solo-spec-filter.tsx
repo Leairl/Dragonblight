@@ -1,6 +1,7 @@
 import React from 'react';
 import { blitzSpecs, shuffleSpecs, SoloSpecIcon, defaultBlitzSpec, defaultShuffleSpec } from '../../helpers/solo-bracket-specs';
 import { classIcon } from '../../helpers/classIconHelper';
+import { ClassColor } from '../../helpers/classColorHelper';
 import './solo-spec-filter.css';
 
 interface SoloSpecFilterProps {
@@ -38,7 +39,7 @@ const SoloSpecFilter: React.FC<SoloSpecFilterProps> = (props) => {
                 props.onSelect(overallSlug);
               }}
               title={className}
-              style={{ borderColor: 'black' }}
+              style={{ borderColor: ClassColor.get(className) }}
             >
               <img src={classIcon(className)} alt={className} />
             </button>

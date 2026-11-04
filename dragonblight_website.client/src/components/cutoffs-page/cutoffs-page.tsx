@@ -7,6 +7,7 @@ import { TitleColors, cleanTitle } from "../../helpers/ratingTierHelper";
 import "./cutoffs-page.css";
 import { ClassColor } from "../../helpers/classColorHelper";
 import ClassFilter, { all_classes } from "../class-filter/class-filter";
+import { RegionFlag } from "../ladder-controls/ladder-controls";
 import EstimateDialog from "../cutoffs/estimate-dialog";
 
 
@@ -113,6 +114,11 @@ const CutoffsPage: FC = () => {
   const soloShown = selectedClasses.includes(all_classes)
     ? soloSorted
     : soloSorted.filter(([specId]) => selectedClasses.includes(specClass.get(specId) ?? ""));
+  //black until the table is showing one class, when it takes that class's color
+  let specTableBorder = "#000000";
+  if (selectedClasses.length == 1 && selectedClasses[0] != all_classes) {
+    specTableBorder = ClassColor.get(selectedClasses[0]) ?? specTableBorder;
+  }
   const shuffleTitle = soloSorted.find(([, s]) => s.shuffle)?.[1].shuffle?.titles[0];
   const blitzTitle = soloSorted.find(([, s]) => s.blitz)?.[1].blitz?.titles.join(" / ");
 
@@ -161,9 +167,9 @@ const CutoffsPage: FC = () => {
           <h1 className="cutoffs-title">Season Title Cutoffs</h1>
           <p className="cutoffs-subtitle">Rank thresholds for competitive PvP titles</p>
         </div>
-        <SegmentedControl.Root className="w-[100px]" value={region}>
-          <SegmentedControl.Item value="us" onClick={() => navigate("/cutoffs/us", { replace: true })}>US</SegmentedControl.Item>
-          <SegmentedControl.Item value="eu" onClick={() => navigate("/cutoffs/eu", { replace: true })}>EU</SegmentedControl.Item>
+        <SegmentedControl.Root className="slider-border w-[100px]" value={region}>
+          <SegmentedControl.Item value="us" onClick={() => navigate("/cutoffs/us", { replace: true })}><RegionFlag region="us" /></SegmentedControl.Item>
+          <SegmentedControl.Item value="eu" onClick={() => navigate("/cutoffs/eu", { replace: true })}><RegionFlag region="eu" /></SegmentedControl.Item>
         </SegmentedControl.Root>
       </header>
 
@@ -213,7 +219,7 @@ const CutoffsPage: FC = () => {
             )}
           </div>
           <ClassFilter region={region} showSpecs={false} onChange={(classes) => setSelectedClasses(classes)} />
-          <Table.Root variant="surface" size="1">
+          <Table.Root variant="surface" size="1" className="cutoff-spec-table" style={{ borderColor: specTableBorder }}>
             <Table.Header>
               <Table.Row>
                 <Table.ColumnHeaderCell>Spec</Table.ColumnHeaderCell>

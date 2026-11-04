@@ -157,11 +157,11 @@ function Rankings() {
         }} />
 
       )}
-      <div className="toolbar py-3">
+      <div className="ladder-toolbar desktopWidth toolbar py-3">
 
         <div className={loading ? "div-disabled" : ""}>
           <SegmentedControl.Root
-            className="bracket-toggle w-[300px] grow-0"
+            className="bracket-toggle slider-border w-[300px] grow-0"
             //every spec ladder sits under the one Shuffle or Blitz tab
             defaultValue={isShuffleBracket(URLbracket) ? "shuffle" : isBlitzBracket(URLbracket) ? "blitz" : URLbracket ?? "3v3"}
           >

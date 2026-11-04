@@ -7,6 +7,7 @@ import './class-filter.css';
 import { getFlavor } from '../../helpers/game-flavor';
 import { classIcon, specIcon } from '../../helpers/classIconHelper';
 import { useMediaQuery } from '../../helpers/useMediaQuery';
+import { ClassColor } from '../../helpers/classColorHelper';
 
 export const all_classes = 'All Classes'
 //what a ladder asks the server for: "Class:Spec" for a class with specs picked, otherwise the class
@@ -178,6 +179,7 @@ const ClassFilter: React.FC<ClassFilterProps> = (props) => {
         aria-label={wowClass.name}
         aria-pressed={isSelected(wowClass.name)}
         onClick={onClick}
+        style={{ "--class-color": ClassColor.get(wowClass.name) } as React.CSSProperties}
       >
         <img src={classIcon(wowClass.name)} alt="" />
         {canPickSpecs && (

@@ -176,11 +176,11 @@ function Activity() {
         setSelectedSpecs(specs);
       }} />
       <div className="flex-col">
-        <div className="flex-row justify-center flex px-0 py-3 flex-wrap">
+        <div className="ladder-toolbar desktopWidth flex-row justify-center flex px-0 py-3 flex-wrap">
 
           <div className={loading ? "div-disabled" : ""}>
             <SegmentedControl.Root
-              className="bracket-toggle w-[300px] grow-0"
+              className="bracket-toggle slider-border w-[300px] grow-0"
               defaultValue={URLbracket ?? "3v3"}
             >
               {brackets().map((name) => (

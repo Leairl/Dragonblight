@@ -173,3 +173,11 @@
   color: #ffcc00;
   text-decoration: none;
 }
+
+/* Every card has a border. No specificity, so a card that sets its own, like .border-card, keeps it */
+:where(.rt-Card) {
+  border: 1px solid #000000;
+}
+.slider-border {
+  border: 1px solid #000000;
+}
