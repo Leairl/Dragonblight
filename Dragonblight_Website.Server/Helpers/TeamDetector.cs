@@ -4,15 +4,16 @@ namespace Dragonblight_Website.Server.Helpers;
 public record SyncedPlayer(int CharacterId, int Rating, int RatingChange, int Won, int Lost, string ClassName, string SpecName);
 
 //Blizzard doesn't say who queued with who, so teams are worked out from the ladder. Teammates play the
-//same games, so they gain the same wins and losses between two syncs, and close to the same rating.
-//These limits were picked against real activity: wins and losses alone also match strangers, which
-//shows up as groups too big to be one team.
+//same games, so they gain the same wins and losses between two syncs. Strangers can match that too, so a
+//group has to be exactly one team's size, and in 3v3 has to be a healer and two damage specs.
 public static class TeamDetector
 {
     //fewer games than this match by chance too often to mean anything
-    private const int MinGames = 4;
-    private const int MaxRatingChangeGap = 8;
-    private const int MaxRatingGap = 200;
+    private const int MinGames = 6;
+
+    //these names only ever belong to healers or tanks, on both flavors. Anything else is a damage spec
+    private static readonly HashSet<string> HealerSpecs = ["Restoration", "Holy", "Discipline", "Mistweaver", "Preservation"];
+    private static readonly HashSet<string> TankSpecs = ["Protection", "Blood", "Guardian", "Brewmaster", "Vengeance"];
 
     //Shuffle and Blitz are solo queues, and a Rated Battleground team is too big to find this way
     public static int? TeamSize(string bracket)
@@ -30,33 +31,23 @@ public static class TeamDetector
     //smaller one is missing someone who isn't on the ladder, so its composition isn't known.
     public static List<List<SyncedPlayer>> FindTeams(IEnumerable<SyncedPlayer> players, int teamSize)
     {
-        var teams = new List<List<SyncedPlayer>>();
-        var sameRecord = players
+        return players
             .Where(p => p.Won + p.Lost >= MinGames && p.ClassName != "" && p.SpecName != "")
-            .GroupBy(p => (p.Won, p.Lost));
-        foreach (var record in sameRecord)
-        {
-            //walks up the rating changes, starting a new group wherever there is a gap between two players
-            var group = new List<SyncedPlayer>();
-            foreach (var player in record.OrderBy(p => p.RatingChange))
-            {
-                if (group.Count > 0 && player.RatingChange - group[^1].RatingChange > MaxRatingChangeGap)
-                {
-                    AddIfTeam(teams, group, teamSize);
-                    group = [];
-                }
-                group.Add(player);
-            }
-            AddIfTeam(teams, group, teamSize);
-        }
-        return teams;
+            .GroupBy(p => (p.Won, p.Lost))
+            .Select(sameRecord => sameRecord.ToList())
+            .Where(group => group.Count == teamSize && HasValidRoles(group, teamSize))
+            .ToList();
     }
 
-    private static void AddIfTeam(List<List<SyncedPlayer>> teams, List<SyncedPlayer> group, int teamSize)
+    //a 3v3 team only counts as a healer and two damage specs. Other brackets take any mix
+    private static bool HasValidRoles(List<SyncedPlayer> group, int teamSize)
     {
-        if (group.Count == teamSize && group.Max(p => p.Rating) - group.Min(p => p.Rating) <= MaxRatingGap)
+        if (teamSize != 3)
         {
-            teams.Add(group);
+            return true;
         }
+        var healers = group.Count(p => HealerSpecs.Contains(p.SpecName));
+        var tanks = group.Count(p => TankSpecs.Contains(p.SpecName));
+        return healers == 1 && tanks == 0;
     }
 }
