@@ -3,8 +3,8 @@ using ArgentPonyWarcraftClient;
 using Dragonblight_Website.Server.Helpers;
 using StackExchange.Redis;
 
-//Estimated cutoffs for the percentage titles: rank one on retail 3v3, Shuffle and Blitz, and rank
-//one and Gladiator on classic 3v3. Recounted after every ladder sync, one spot per battle.net account.
+//Estimated cutoffs for the percentage titles: rank one on retail 3v3, Shuffle and Blitz, and rank one
+//and Gladiator on classic 2v2, 3v3 and 5v5. Recounted after every ladder sync, one spot per battle.net account.
 partial class WarcraftRedisProxy
 {
     private static string EstimateKey(string ladder, int achievementId, string region, GameFlavor flavor)
@@ -42,7 +42,7 @@ partial class WarcraftRedisProxy
             }
             return false;
         }
-        if (type == "ARENA_3v3")
+        if (type == "ARENA_2v2" || type == "ARENA_3v3" || type == "ARENA_5v5")
         {
             return tier == PvpTitles.Tier.RankOne || tier == PvpTitles.Tier.Gladiator;
         }
