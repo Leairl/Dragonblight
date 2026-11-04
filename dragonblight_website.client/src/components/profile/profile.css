@@ -25,6 +25,14 @@
       width: 95vw;
       justify-self: center;
     }
+    /* ratings first, with the experience dropdowns under them at the main card's full width */
+    .experience-rating-row {
+      flex-direction: column-reverse;
+    }
+    .profile-rating-column {
+      flex: none;
+      width: 100%;
+    }
   }
 
   .txt-shadow {

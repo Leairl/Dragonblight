@@ -12,6 +12,7 @@ import { useCookies } from 'react-cookie';
 import { InfoCircledIcon, ReloadIcon, ColumnsIcon } from "@radix-ui/react-icons";
 import { getPvpItemLevels } from '../../helpers/pvpItemLevel';
 import ItemLevelToggle from '../item-level-toggle/item-level-toggle';
+import { useMediaQuery } from '../../helpers/useMediaQuery';
 
 
 const Profile: FC = () => {
@@ -39,6 +40,7 @@ const Profile: FC = () => {
   const [rewards, setRewards] = useState<Dragonblight.PvpSeasonRewardWithRank[]>([]);
   // each equipped item's PvP item level, for the PvE / PvP item level switch
   const [pvpLevels, setPvpLevels] = useState<Map<Dragonblight.EquippedItem, number>>(new Map());
+  const isMobile = useMediaQuery("(max-width: 800px)");
 
   //drops everything the server has cached for this character, then reloads the page: each part of
   //the profile loads its own data, so a reload is what fetches all of it again from Blizzard
@@ -126,6 +128,14 @@ const Profile: FC = () => {
     }
   }
 
+  //the gear text fills the card on mobile, so neither the render nor the 3D model is loaded there
+  let shownImage = characterImage;
+  let modelViewerOn = showModelViewer;
+  if (isMobile) {
+    shownImage = undefined;
+    modelViewerOn = false;
+  }
+
   return (((err && err != "") ?
     <div className="w-[70vw]">
       <Callout.Root color="red">
@@ -196,18 +206,20 @@ const Profile: FC = () => {
               disabled={refreshing || loading} onClick={RefreshCharacter}>
               <ReloadIcon className={refreshing ? "animate-spin" : ""} /> Refresh
             </Button>
-            <div className='self-center'>
-              <Switch className='self-center'
-                onCheckedChange={(checked) => {
-                  setShowModelViewer(checked);
-                }}
-                color="gray"
-                size="1"
-                radius="large"
-                checked={showModelViewer}
-              />
-              <span className="w-[160px] self-center"> Character Model Viewer </span>
-            </div>
+            {!isMobile && (
+              <div className='self-center'>
+                <Switch className='self-center'
+                  onCheckedChange={(checked) => {
+                    setShowModelViewer(checked);
+                  }}
+                  color="gray"
+                  size="1"
+                  radius="large"
+                  checked={showModelViewer}
+                />
+                <span className="w-[160px] self-center"> Character Model Viewer </span>
+              </div>
+            )}
           </Flex>
 
         </Text>
@@ -221,17 +233,17 @@ const Profile: FC = () => {
             characterAchievementsSummary={achievementsSummary}
             specName={specName}
             previousNames={previousNames}
-            characterImage={characterImage}
-            showModelViewer={showModelViewer}
+            characterImage={shownImage}
+            showModelViewer={modelViewerOn}
             pvpLevels={pvpLevels}
             loading={loading}
             characterNotFound={characterNotFound}
             rewards={rewards}
           ></ProfileEquipment>
           {/* makes the exp / rating row maintain accurate column size with profile card*/}
-          <div className='flex flex-row w-0 min-w-full'>
+          <div className='experience-rating-row flex flex-row w-0 min-w-full'>
             <ProfileExperience characterNotFound={characterNotFound}></ProfileExperience>
-            <div className='flex-1'>
+            <div className='profile-rating-column flex-1'>
               <ProfileRating achievements={achievementsSummary} characterNotFound={characterNotFound} characterClass={characterSummary?.character_class?.name} characterFaction={characterSummary?.faction?.type} rewards={rewards}></ProfileRating>
 
             </div>

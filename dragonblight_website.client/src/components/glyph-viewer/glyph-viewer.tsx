@@ -50,7 +50,7 @@ const GlyphViewer: React.FC<GlyphViewerProps> = (props) => {
     return(
       <div className='grid'>
         <Heading size="3" className={'mt-3 mb-3 ml-2'}>{g}</Heading>
-        <div className = 'flex-wrap justify-between m-2 flex flex-row'>
+        <div className = 'flex-wrap justify-between max-[800px]:justify-center m-2 flex flex-row'>
         {glyphs}
         </div>
       </div>
