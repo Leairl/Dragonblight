@@ -1,4 +1,5 @@
 using ArgentPonyWarcraftClient;
+using Dragonblight_Website.Server.Helpers;
 
 public interface IWarcraftRedisProxy
 {
@@ -14,6 +15,9 @@ public interface IWarcraftRedisProxy
     Task<PvpLeaderboardsIndex> GetLeaderboardIndex(string region, GameFlavor flavor);
     Task<List<SpecRatingCounts>> GetSoloSpecStats(string ladder, string region, GameFlavor flavor);
     Task<List<SpecRatingCounts>> GetClassSpecStats(string bracket, string region, GameFlavor flavor);
+    Task RefreshCharacterSpec(string server, string characterName, string region, GameFlavor flavor);
+    Task RecordCompositions(string bracket, string region, List<List<SyncedPlayer>> teams, GameFlavor flavor);
+    Task<List<CompositionCounts>> GetCompositions(string bracket, string region, GameFlavor flavor);
     Task<PvpLeaderboard> GetLeaderboard(string region, string bracket, GameFlavor flavor);
     Task InsertCacheCharacter(string characterName, string server, string region, GameFlavor flavor);
     Task InsertCacheClassCharacter(string bracket, PvpLeaderboardEntry player, CharacterProfileSummary summary, string specName, string region, GameFlavor flavor);

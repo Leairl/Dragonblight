@@ -36,6 +36,9 @@ partial class CharacterCacheService(IWarcraftRedisProxy warcraftRedisProxy, ILog
         decimal percent = 0;
         await redis.GetDatabase().StringSetAsync(SyncStatusKey(bracket, region, flavor), percent.ToString());
         var snapshots = new List<CharacterRatingSnapshot>();
+        //everyone who played since the last sync, for working out which of them were on a team together
+        var playedPlayers = new List<SyncedPlayer>();
+        var teamSize = TeamDetector.TeamSize(bracket);
         var season = await warcraftRedisProxy.GetSeason(region, flavor);
         var ladderBrackets = await warcraftRedisProxy.GetLadderBrackets(region, flavor);
         for (int i = 0; i < batchAmount; i++)
@@ -48,6 +51,12 @@ partial class CharacterCacheService(IWarcraftRedisProxy warcraftRedisProxy, ILog
                 {
                     var name = player.Character.Name.ToLower();
                     await warcraftRedisProxy.RecordCharacter(player.Character.Id, player.Character.Name, player.Character.Realm.Slug, region, flavor);
+                    //a cached spec can be a day old, and a team's composition is recorded with the spec read here.
+                    //Team brackets have no spec ladders to check it against
+                    if (teamSize != null && oldarray.Any(p => p.Character.Id == player.Character.Id && p.SeasonMatchStatistics.Played < player.SeasonMatchStatistics.Played))
+                    {
+                        await warcraftRedisProxy.RefreshCharacterSpec(player.Character.Realm.Slug, name, region, flavor);
+                    }
                     var summary = await warcraftRedisProxy.GetCharSummary(player.Character.Realm.Slug, name, region, flavor);
                     if (summary == new CharacterProfileSummary())
                     {
@@ -108,6 +117,14 @@ partial class CharacterCacheService(IWarcraftRedisProxy warcraftRedisProxy, ILog
                     {
                         await warcraftRedisProxy.InsertToBracketActivityPage(bracket, region, oldPlayer, player, activitySpec, flavor);
                         await warcraftRedisProxy.InsertActivityCacheClassCharacter(bracket, oldPlayer, player, summary, activitySpec, region, flavor);
+                        playedPlayers.Add(new SyncedPlayer(
+                            player.Character.Id,
+                            player.Rating,
+                            player.Rating - oldPlayer.Rating,
+                            player.SeasonMatchStatistics.Won - oldPlayer.SeasonMatchStatistics.Won,
+                            player.SeasonMatchStatistics.Lost - oldPlayer.SeasonMatchStatistics.Lost,
+                            summary.CharacterClass?.Name ?? "",
+                            activitySpec ?? ""));
                     }
                     // if the character wasn't in the old ladder, or if the character's games played has changed, record a snapshot of their rating
                     if (oldPlayer == null || oldPlayer.SeasonMatchStatistics.Played != player.SeasonMatchStatistics.Played)
@@ -138,6 +155,17 @@ partial class CharacterCacheService(IWarcraftRedisProxy warcraftRedisProxy, ILog
         catch (Exception ex)
         {
             logger.LogError(ex, "Error estimating cutoffs for " + bracket);
+        }
+        try
+        {
+            if (teamSize != null)
+            {
+                await warcraftRedisProxy.RecordCompositions(bracket, region, TeamDetector.FindTeams(playedPlayers, teamSize.Value), flavor);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error recording compositions for " + bracket);
         }
         try
         {
