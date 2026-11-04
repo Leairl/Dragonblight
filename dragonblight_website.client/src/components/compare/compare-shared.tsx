@@ -52,12 +52,12 @@ export const SideHeader: FC<{
 }> = ({ kind, side, spec, isActiveSpec, summary, children }) => (
   <div className={`talent-side ${kind}`}>
     <span className="diff-marker">{kind == "del" ? "−" : "+"}</span>
-    <div className="min-w-0 grow">
+    <div className="talent-side-name min-w-0 flex-1">
       <Text size="2" weight="bold" className="block truncate">
         {side.displayName ?? side.name}
       </Text>
       {!isActiveSpec && (
-        <Text size="1" color="gray" className="block">
+        <Text size="1" color="gray" className="talent-side-note block">
           Logged out as {summary?.active_specialization?.name}, showing their {spec?.specialization?.name}
         </Text>
       )}
