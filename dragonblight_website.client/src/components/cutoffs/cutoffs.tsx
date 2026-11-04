@@ -5,6 +5,7 @@ import { getFlavor } from '../../helpers/game-flavor';
 import { cleanTitle, TitleColors } from "../../helpers/ratingTierHelper";
 import "./cutoffs.css";
 import EstimateDialog from "./estimate-dialog";
+import { useMediaQuery } from "../../helpers/useMediaQuery";
 
 
 
@@ -37,6 +38,8 @@ const Cutoffs: React.FC<CutoffProps> = (props) => {
     const [rewards, setRewards] = useState<Dragonblight.PvpSeasonRewardWithRank[]>([]);
     const [estimates, setEstimates] = useState<Dragonblight.EstimatedCutoff[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
+    //the width the ladder tables switch to their mobile layout at
+    const isMobile = useMediaQuery("(max-width: 950px)");
 
     async function CutoffData() {
         setLoading(true);
@@ -58,9 +61,11 @@ const Cutoffs: React.FC<CutoffProps> = (props) => {
     function getBlitzSpecId(bracket: string | undefined): number | undefined {
         return blitzSpecs.find(s => s.slug == bracket)?.specId;
     }
-    //the live estimate for a card, when its title is one of the percentage titles
+    //the live estimate for a card, when its title is one of the percentage titles. An estimate keeps
+    //the cutoff from its last sync, so it can be behind a reward Blizzard has since moved
     function estimateFor(reward: Dragonblight.PvpSeasonRewardWithRank): Dragonblight.EstimatedCutoff | undefined {
-        return estimates.find((e) => e.bracket == props.bracket && e.ratingCutoff == reward.rating_cutoff);
+        return estimates.find((e) => e.bracket == props.bracket
+            && (e.achievementId == reward.achievement?.id || e.ratingCutoff == reward.rating_cutoff));
     }
 
     useEffect(() => {
@@ -81,12 +86,31 @@ const Cutoffs: React.FC<CutoffProps> = (props) => {
         ordered = [...matching].sort((a, b) => b.rating_cutoff - a.rating_cutoff);
     }
 
+    //classic has a card per title tier, which on a phone read best as one list from the top title down
+    const stacked = getFlavor() === "classic" && isMobile;
+    let cardsClass = "cutoff-cards";
+    if (stacked) {
+        cardsClass = "cutoff-cards cutoff-cards-stacked";
+    }
+
     return (
         <div className="cutoff-strip">
-            <div className={`cutoff-cards ${loading ? "fadeOut" : "fadeIn"}`}>
+            <div className={`${cardsClass} ${loading ? "fadeOut" : "fadeIn"}`}>
                 {ordered.map((i) => {
                     const title = cardTitle(i.achievement?.name);
                     const estimate = estimateFor(i);
+                    if (stacked) {
+                        return (
+                            <div key={`${i.achievement?.id}-${i.faction?.type}`} className="cutoff-row" style={{ borderLeftColor: tierColor(title) }}>
+                                <div className="cutoff-row-title">
+                                    <span className="cutoff-tier txt-shadow" style={{ color: tierColor(title) }}>{title}</span>
+                                    <span className="cutoff-top">Top {i.rank}</span>
+                                </div>
+                                {estimate && <EstimateDialog region={props.region} title={title} estimate={estimate} />}
+                                <span className={"cutoff-rating txt-shadow " + TitleColors(title)}>{i.rating_cutoff}</span>
+                            </div>
+                        );
+                    }
                     return (
                         //outer plate is the black frame; the inner one is clipped 1px smaller so the frame shows on the chamfers
                         <div key={`${i.achievement?.id}-${i.specialization?.id}-${i.faction?.type}`} className="cutoff-card">

@@ -31,47 +31,66 @@
   gap: 12px;
   margin-bottom: 12px;
 }
-.title-pill {
-  flex: 1;
-  min-width: 240px;
+/* one title per row, each in a card like the tables around it */
+.solo-title-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.solo-title-card {
   display: flex;
   align-items: center;
   gap: 24px;
-  border-radius: 999px;
   font-size: 14px;
 }
 .title-shadow {
     text-shadow: 0px 2px 4px black;
 }
-.title-pill-label {
-  width: 60px;
-  font-size: 14px;
+/* a cutoff rating glows in its own color, with the same drop shadow as the titles */
+.cutoff-rating-glow {
+  font-weight: 700;
+  text-shadow: 0px 2px 4px black;
 }
-/* 900px wide on desktop, but never wider than the screen */
+.cutoff-rating-open {
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+.cutoff-rating-open:hover {
+  filter: brightness(1.1);
+}
+.title-pill-label {
+  flex-shrink: 0;
+  width: 72px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+/* the page sizes to its contents, so a percentage has nothing to resolve against. Never wider than the screen */
 .cutoffs-wrap {
-  width: 100%;
-  max-width: 900px;
+  width: min(1000px, 95vw);
   margin: 0 auto;
 }
-.cutoff-title-cell { width: 460px; }
+/* Each table would otherwise size its columns from its own titles, so these keep every bracket's
+   columns lined up, with the title taking the rest of the width */
+.cutoff-bracket-table .rt-TableRootTable { table-layout: fixed; }
+.cutoff-rating-col { width: 130px; }
+.cutoff-ranks-col { width: 90px; }
 
 .label-short { display: none; }
 
 /* tablets and phones: same breakpoint as rankings/activity */
 @media only screen and (max-width: 950px) {
-  .cutoff-title-cell { width: auto; }
-  /* pills stack instead of each demanding 240px side by side */
-  .title-pill { min-width: 0; flex-basis: 100%; }
 }
 
 /* phones: same breakpoint as the profile and nav */
 @media only screen and (max-width: 800px) {
   .cutoffs-title { font-size: 22px; }
-  .cutoffs-wrap { padding-left: 8px; padding-right: 8px; }
+  .cutoffs-wrap { width: 100vw; padding-left: 16px; padding-right: 16px; }
 }
 
 /* small phones: shorter headers so every column fits */
 @media only screen and (max-width: 600px) {
+  .cutoff-ranks-col { width: 70px; }
   .label-full { display: none; }
   .label-short { display: inline; }
 }

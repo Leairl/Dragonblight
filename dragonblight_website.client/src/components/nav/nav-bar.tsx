@@ -179,6 +179,20 @@ function NavBar() {
           </NavigationMenu.Item>
           <NavigationMenu.Item>
             <div className="px-3 py-2 w-full">
+            <a onClick={() => { window.location.href = flavorHref("/cutoffs") }}>
+            {/* acts as a button */}
+              <NavigationMenu.Trigger className=" h-12  w-full group flex select-none items-center gap-[2px] rounded-[4px] text-[15px] font-medium leading-none outline-hidden">
+                <div className="mobile-nav-frame">
+                  <div className="mobile-nav-inner">
+                    <span className="nav-text text-white">Cutoffs</span>
+                  </div>
+                </div>
+              </NavigationMenu.Trigger>
+            </a>
+            </div>
+          </NavigationMenu.Item>
+          <NavigationMenu.Item>
+            <div className="px-3 py-2 w-full">
             <a onClick={() => { window.location.href = flavorHref("/class-stats") }}>
             {/* acts as a button */}
               <NavigationMenu.Trigger className=" h-12  w-full group flex select-none items-center gap-[2px] rounded-[4px] text-[15px] font-medium leading-none outline-hidden">

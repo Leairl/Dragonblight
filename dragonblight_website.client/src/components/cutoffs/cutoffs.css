@@ -38,6 +38,37 @@
   clip-path: polygon(9px 0, 100% 0, 100% calc(100% - 13px), calc(100% - 13px) 100%, 0 100%, 0 13px);
 }
 
+/* classic's title tiers as one list, each row marked by its tier's color */
+.cutoff-cards-stacked {
+  grid-template-columns: minmax(0, 300px);
+  gap: 6px;
+}
+.cutoff-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  background: var(--cutoff-card-bg);
+  border-left: 3px solid;
+  border-radius: 2px;
+}
+.cutoff-row .cutoff-estimate-open {
+  align-self: flex-end;
+}
+/* a set width, since each number's digits differ, so the ratings and the buttons before them line up */
+.cutoff-row .cutoff-rating {
+  flex-shrink: 0;
+  width: 84px;
+  text-align: right;
+}
+.cutoff-row-title {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
 .cutoff-tier,
 .cutoff-rating {
   font-family: "Poppins", sans-serif;
