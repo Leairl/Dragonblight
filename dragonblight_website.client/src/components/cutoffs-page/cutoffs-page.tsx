@@ -1,12 +1,13 @@
 import { FC, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { Heading, SegmentedControl, Table } from "@radix-ui/themes";
+import { Card, Heading, SegmentedControl, Table } from "@radix-ui/themes";
 import { Dragonblight } from "../../clients/Dragonblight";
 import { SoloSpecIcon } from "../../helpers/solo-bracket-specs";
 import { TitleColors, cleanTitle } from "../../helpers/ratingTierHelper";
 import "./cutoffs-page.css";
 import { ClassColor } from "../../helpers/classColorHelper";
 import ClassFilter, { all_classes } from "../class-filter/class-filter";
+import EstimateDialog from "../cutoffs/estimate-dialog";
 
 
 //Blizzard's bracket types as the headings read them; a type not listed shows as Blizzard sends it
@@ -26,6 +27,30 @@ interface CutoffRow {
 }
 
 
+//where a bracket's table goes on the page, in bracketNames' order rather than the order Blizzard sends them
+function bracketPosition(type: string): number {
+  const position = Object.keys(bracketNames).indexOf(type);
+  if (position == -1) {
+    return Object.keys(bracketNames).length;
+  }
+  return position;
+}
+
+//the ladder a bracket's rewards are earned on, the same names the server saves estimates under
+function bracketLadder(type: string): string {
+  return type.replace("ARENA_", "").replace("BATTLEGROUNDS", "rbg");
+}
+
+//RBG lists one title per faction, and only the faction differs: "Hero of the Alliance: Venomous"
+function rowTitle(row: CutoffRow): string {
+  const alliance = row.titles.find((t) => t.startsWith("Hero of the Alliance"));
+  const hasHorde = row.titles.some((t) => t.startsWith("Hero of the Horde"));
+  if (alliance != undefined && hasHorde) {
+    return "Hero of the Alliance / Horde" + alliance.slice("Hero of the Alliance".length);
+  }
+  return row.titles.join(" / ");
+}
+
 const CutoffsPage: FC = () => {
   const { URLregion } = useParams();
   const region = URLregion ?? "us";
@@ -33,19 +58,24 @@ const CutoffsPage: FC = () => {
   const [rewards, setRewards] = useState<Dragonblight.PvpSeasonRewardWithRank[]>([]);
   //spec id -> class name, which a rewaard doesn't crry but the spec icon needs
   const [specClass, setSpecClass] = useState<Map<number, string>>(new Map());
+  //"shuffle:spec id" -> that spec's ladder, which is what an estimate is saved under
+  const [specLadders, setSpecLadders] = useState<Map<string, string>>(new Map());
+  const [estimates, setEstimates] = useState<Dragonblight.EstimatedCutoff[]>([]);
   const [selectedClasses, setSelectedClasses] = useState<string[]>([all_classes]);
 
   useEffect(() => {
     const client = new Dragonblight.PvpLeaderboardClient();
     client.getPvPRewards(region).then((r) => setRewards(r ?? [])).catch(() => setRewards([]));
-    client.getLadderBrackets(region).then((ladders) =>
-      setSpecClass(new Map((ladders ?? [])
-        .filter((ladder) => ladder.specId != null)
-        .map((ladder) => [ladder.specId!, ladder.className ?? ""] as [number, string])))
-    );
+    //the ratings still show without an estimate, they just can't be opened
+    client.getEstimatedCutoffs(region).then((e) => setEstimates(e ?? [])).catch(() => setEstimates([]));
+    client.getLadderBrackets(region).then((ladders) => {
+      const perSpec = (ladders ?? []).filter((ladder) => ladder.specId != null);
+      setSpecClass(new Map(perSpec.map((ladder) => [ladder.specId!, ladder.className ?? ""] as [number, string])));
+      setSpecLadders(new Map(perSpec.map((ladder) => [`${ladder.ladder}:${ladder.specId}`, ladder.slug] as [string, string])));
+    });
   }, [region]);
 
-  //bracket type -> its rows, in the order Blizzard sends the brackets
+  //bracket type -> its rows
   const tables = new Map<string, CutoffRow[]>();
   for (const reward of rewards) {
     const type = reward.bracket?.type ?? "";
@@ -86,6 +116,30 @@ const CutoffsPage: FC = () => {
   const shuffleTitle = soloSorted.find(([, s]) => s.shuffle)?.[1].shuffle?.titles[0];
   const blitzTitle = soloSorted.find(([, s]) => s.blitz)?.[1].blitz?.titles.join(" / ");
 
+  //Glows in the title's color, and opens the ladder's original and estimated cutoffs when it has any.
+  //An estimate keeps the cutoff from its last sync, so it can be behind a reward Blizzard has since
+  //moved, which is why the achievement counts as a match too.
+  function ratingCell(ladder: string | undefined, row: CutoffRow) {
+    const color = TitleColors(row.titles[0]) ?? "";
+    const estimate = estimates.find((e) => e.bracket == ladder
+      && (e.achievementId == row.reward.achievement?.id || e.ratingCutoff == row.reward.rating_cutoff));
+    if (estimate == undefined) {
+      return <span className={"cutoff-rating-glow " + color}>{row.reward.rating_cutoff}</span>;
+    }
+    return (
+      <EstimateDialog
+        region={region}
+        title={rowTitle(row)}
+        estimate={estimate}
+        trigger={
+          <button type="button" className={"cutoff-rating-glow cutoff-rating-open " + color}>
+            {row.reward.rating_cutoff}
+          </button>
+        }
+      />
+    );
+  }
+
   function className(row: CutoffRow): string {
     return specClass.get(row.reward.specialization?.id ?? -1) ?? "";
   }
@@ -114,22 +168,22 @@ const CutoffsPage: FC = () => {
       </header>
 
       {/* 3v3, RBG (and classic's tiers): one bar per title */}
-      {[...tables].filter(([type]) => !soloTypes.includes(type)).map(([type, rows]) => (
+      {[...tables].filter(([type]) => !soloTypes.includes(type)).sort(([a], [b]) => bracketPosition(a) - bracketPosition(b)).map(([type, rows]) => (
         <section key={type} className="w-full mb-6">
           <Heading size="4" className="mb-2">{bracketNames[type] ?? type}</Heading>
-          <Table.Root variant="surface" size="1">
+          <Table.Root variant="surface" size="1" className="cutoff-bracket-table">
             <Table.Header>
               <Table.Row>
                 <Table.ColumnHeaderCell>Title</Table.ColumnHeaderCell>
-                <Table.ColumnHeaderCell justify="end">Rating Cutoff</Table.ColumnHeaderCell>
-                <Table.ColumnHeaderCell justify="end">Ranks</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell justify="end" className="cutoff-rating-col">Rating Cutoff</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell justify="end" className="cutoff-ranks-col">Ranks</Table.ColumnHeaderCell>
               </Table.Row>
             </Table.Header>
             <Table.Body>
               {sortByClassnameAndCutoff([...rows], false).map((row) => (
                 <Table.Row key={`${row.reward.rating_cutoff}-${row.titles[0]}`}>
-                  <Table.Cell className={"title-shadow cutoff-title-cell " + TitleColors(row.titles[0])}>{row.titles.join(" / ")}</Table.Cell>
-                  <Table.Cell justify="end">{row.reward.rating_cutoff}</Table.Cell>
+                  <Table.Cell className={"title-shadow cutoff-title-cell " + TitleColors(row.titles[0])}>{rowTitle(row)}</Table.Cell>
+                  <Table.Cell justify="end">{ratingCell(bracketLadder(type), row)}</Table.Cell>
                   <Table.Cell justify="end">1 - {row.reward.rank}</Table.Cell>
                 </Table.Row>
               ))}
@@ -144,18 +198,18 @@ const CutoffsPage: FC = () => {
           <div className="solo-heading-row">
             <Heading size="4">Solo Shuffle &amp; Blitz</Heading>
           </div>
-          <div className="solo-heading-row">
+          <div className="solo-title-cards">
             {shuffleTitle && (
-              <span className="title-pill title-pill--shuffle">
+              <Card className="solo-title-card">
                 <span className="title-pill-label title-shadow font-bold ">Shuffle:</span>
                 <span className={"title-shadow " + TitleColors(shuffleTitle)}>{shuffleTitle}</span>
-              </span>
+              </Card>
             )}
             {blitzTitle && (
-              <span className="title-pill title-pill--blitz">
+              <Card className="solo-title-card">
                 <span className="title-pill-label title-shadow font-bold ">Blitz:</span>
                 <span className={"title-shadow " + TitleColors(blitzTitle)}>{blitzTitle}</span>
-              </span>
+              </Card>
             )}
           </div>
           <ClassFilter region={region} showSpecs={false} onChange={(classes) => setSelectedClasses(classes)} />
@@ -204,9 +258,9 @@ const CutoffsPage: FC = () => {
                       )}
                       {spec?.name} {specClassName}
                     </Table.Cell>
-                    <Table.Cell justify="center" className="shuffle-col group-start">{shuffle?.reward.rating_cutoff ?? "–"}</Table.Cell>
+                    <Table.Cell justify="center" className="shuffle-col group-start">{shuffle ? ratingCell(specLadders.get(`shuffle:${specId}`), shuffle) : "–"}</Table.Cell>
                     <Table.Cell justify="center" className="shuffle-col ranks-col">{shuffle ? `1 - ${shuffle.reward.rank}` : ""}</Table.Cell>
-                    <Table.Cell justify="center" className="blitz-col group-start">{blitz?.reward.rating_cutoff ?? "–"}</Table.Cell>
+                    <Table.Cell justify="center" className="blitz-col group-start">{blitz ? ratingCell(specLadders.get(`blitz:${specId}`), blitz) : "–"}</Table.Cell>
                     <Table.Cell justify="center" className="blitz-col ranks-col">{blitz ? `1 - ${blitz.reward.rank}` : ""}</Table.Cell>
                   </Table.Row>
                 );
@@ -217,9 +271,12 @@ const CutoffsPage: FC = () => {
         </section>
       )}
 
-      <p className="cutoffs-footnote">
-        Titles are displayed once per bracket; rating cutoffs and rank ranges vary by specialization.
-      </p>
+      {/* only Shuffle and Blitz have per spec cutoffs, and MoP has neither */}
+      {soloSorted.length > 0 && (
+        <p className="cutoffs-footnote">
+          Titles are displayed once per bracket; rating cutoffs and rank ranges vary by specialization.
+        </p>
+      )}
     </div>
   );
 

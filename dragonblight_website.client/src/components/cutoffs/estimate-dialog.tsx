@@ -1,8 +1,7 @@
-import { FC, useState } from "react";
+import { FC, ReactElement, useState } from "react";
 import { Dialog, Flex, SegmentedControl, Table } from "@radix-ui/themes";
 import * as Avatar from "@radix-ui/react-avatar";
 import { useNavigate } from "react-router";
-import { BarChartIcon } from "@radix-ui/react-icons";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Dragonblight } from "../../clients/Dragonblight";
 import { ClassColor } from "../../helpers/classColorHelper";
@@ -10,6 +9,7 @@ import { TitleColors } from "../../helpers/ratingTierHelper";
 import { realmDisplayName } from "../../helpers/realmNameHelper";
 import { classIcon, specIcon } from "../../helpers/classIconHelper";
 import { isBlitzBracket, isShuffleBracket } from "../../helpers/solo-bracket-specs";
+import { MobileDetailRow, MobileDetailsDialog } from "../ladder-controls/ladder-controls";
 
 //a character needs this many wins in the season to be able to earn the title
 function requiredWins(bracket: string): number {
@@ -23,6 +23,8 @@ interface EstimateDialogProps {
   region: string;
   title: string;
   estimate: Dragonblight.EstimatedCutoff;
+  //what opens the popup, when it shouldn't be the graph button
+  trigger?: ReactElement;
 }
 
 //one point on the graph, flattened from a history point
@@ -103,13 +105,32 @@ function PlayerRow({ entry, title, ratingCutoff, region, bracket }: { entry: Dra
           <span style={{ color: ClassColor.get(entry.className) }}>{entry.name}</span>
         </Flex>
       </Table.Cell>
-      <Table.Cell>{realmDisplayName(entry.realm)}</Table.Cell>
-      <Table.Cell className={ratingClass}>{entry.rating}</Table.Cell>
-      <Table.Cell className="text-green-300">{entry.won}</Table.Cell>
-      <Table.Cell className="text-red-300">{entry.lost}</Table.Cell>
-      <Table.Cell>{roleText(entry)}</Table.Cell>
-      <Table.Cell>
+      <Table.Cell className="desktopOnly">{realmDisplayName(entry.realm)}</Table.Cell>
+      <Table.Cell className={"desktopOnly " + ratingClass}>{entry.rating}</Table.Cell>
+      <Table.Cell className="desktopOnly text-green-300">{entry.won}</Table.Cell>
+      <Table.Cell className="desktopOnly text-red-300">{entry.lost}</Table.Cell>
+      <Table.Cell className="desktopOnly">{roleText(entry)}</Table.Cell>
+      <Table.Cell className="desktopOnly">
         {winsNeeded > 0 && <span className="cutoff-player-flag">Needs {winsNeeded} wins</span>}
+      </Table.Cell>
+      {/* the popup's clicks still reach this row through React, and the row opens the profile */}
+      <Table.Cell className="mobileOnly" onClick={(event) => event.stopPropagation()}>
+        <MobileDetailsDialog region={region} realm={entry.realm} characterName={entry.name}>
+          <MobileDetailRow label="Rank">{entry.rank}</MobileDetailRow>
+          <MobileDetailRow label="Rating" valueClassName={ratingClass}>{entry.rating}</MobileDetailRow>
+          <MobileDetailRow label="Player">{entry.name}</MobileDetailRow>
+          <MobileDetailRow label="Class">
+            <span style={{ color: ClassColor.get(entry.className) }}>{entry.className}</span>
+          </MobileDetailRow>
+          <MobileDetailRow label="Spec">{entry.specName}</MobileDetailRow>
+          <MobileDetailRow label="Server">{realmDisplayName(entry.realm)}</MobileDetailRow>
+          <MobileDetailRow label="Wins" valueClassName="text-green-300">{entry.won}</MobileDetailRow>
+          <MobileDetailRow label="Losses" valueClassName="text-red-300">{entry.lost}</MobileDetailRow>
+          <MobileDetailRow label="Spot">{roleText(entry)}</MobileDetailRow>
+          {winsNeeded > 0 && (
+            <MobileDetailRow label="Title" valueClassName="cutoff-player-flag">Needs {winsNeeded} wins</MobileDetailRow>
+          )}
+        </MobileDetailsDialog>
       </Table.Cell>
     </Table.Row>
   );
@@ -166,9 +187,13 @@ const EstimateDialog: FC<EstimateDialogProps> = (props) => {
   return (
     <Dialog.Root onOpenChange={onOpenChange}>
       <Dialog.Trigger>
-        <button type="button" className="cutoff-estimate-button cutoff-estimate-open" aria-label="Cutoff graph" title="Cutoff graph">
-          <BarChartIcon />
-        </button>
+        {props.trigger ?? (
+          <button type="button" className="cutoff-estimate-button cutoff-estimate-open" aria-label="Cutoff graph" title="Cutoff graph">
+            <svg width="20" height="20" viewBox="0 0 25 25" fill="none" aria-hidden>
+              <path d="M5.5 5V19.5H20M7.5 16L11.5 11.5L15.5 14L19.5 8.5" stroke="currentColor" strokeWidth="1.8" />
+            </svg>
+          </button>
+        )}
       </Dialog.Trigger>
       <Dialog.Content maxWidth={{ initial: "95vw", md: "75vw" }}>
         <Dialog.Title className={"text-shadow-md text-shadow-black " + TitleColors(props.title)}>{props.title}</Dialog.Title>
@@ -210,12 +235,13 @@ const EstimateDialog: FC<EstimateDialogProps> = (props) => {
             <Table.Row>
               <Table.ColumnHeaderCell>Rank</Table.ColumnHeaderCell>
               <Table.ColumnHeaderCell>Character</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Realm</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Rating</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Wins</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Losses</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Spot</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell></Table.ColumnHeaderCell>
+              <Table.ColumnHeaderCell className="desktopOnly">Realm</Table.ColumnHeaderCell>
+              <Table.ColumnHeaderCell className="desktopOnly">Rating</Table.ColumnHeaderCell>
+              <Table.ColumnHeaderCell className="desktopOnly">Wins</Table.ColumnHeaderCell>
+              <Table.ColumnHeaderCell className="desktopOnly">Losses</Table.ColumnHeaderCell>
+              <Table.ColumnHeaderCell className="desktopOnly">Spot</Table.ColumnHeaderCell>
+              <Table.ColumnHeaderCell className="desktopOnly"></Table.ColumnHeaderCell>
+              <Table.ColumnHeaderCell className="mobileOnly">Details</Table.ColumnHeaderCell>
             </Table.Row>
           </Table.Header>
           <Table.Body>
