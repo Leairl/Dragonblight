@@ -301,23 +301,12 @@ html body {
 }
 
 @media only screen and (max-width: 950px) {
-  /* the page sizes to its contents, so the strip needs a width of its own in order to scroll */
+  /* the page sizes to its contents, so the filter needs a width of its own for the icons to wrap at.
+     max-width keeps it inside a page with wider side padding */
   .class-filter {
     width: 95vw;
+    max-width: 100%;
     margin-inline: auto;
-  }
-  .class-filter-row {
-    flex-wrap: nowrap;
-    justify-content: safe center;
-    overflow-x: auto;
-    padding-bottom: 2px;
-    scrollbar-width: none;
-  }
-  .class-filter-row::-webkit-scrollbar {
-    display: none;
-  }
-  .class-filter-row > * {
-    flex-shrink: 0;
   }
   .class-filter-tags {
     justify-content: flex-start;
