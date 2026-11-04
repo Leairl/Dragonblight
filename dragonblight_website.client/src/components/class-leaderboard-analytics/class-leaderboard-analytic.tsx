@@ -4,6 +4,7 @@ import "./class-leaderboard-analytic.css"
 import { Dragonblight } from "../../clients/Dragonblight";
 import { useNavigate, useParams } from "react-router";
 import { ClassColor } from '../../helpers/classColorHelper';
+import { RegionFlag } from "../ladder-controls/ladder-controls";
 import { brackets } from "../../helpers/game-flavor";
 import { bracketLabels, bracketSlug } from "../../helpers/solo-bracket-specs";
 
@@ -256,7 +257,7 @@ const ClassAnalytics: React.FC = () => {
         <div className="flex-row justify-center max-[950px]:justify-start items-center flex gap-3 px-0 py-3 flex-wrap">
           <div className={loading ? "div-disabled" : ""}>
             <SegmentedControl.Root
-              className="w-[300px] grow-0"
+              className="slider-border w-[300px] grow-0"
               defaultValue={URLbracket ?? "3v3"}
             >
               {brackets().map((name) => (
@@ -270,14 +271,14 @@ const ClassAnalytics: React.FC = () => {
           {ratingSlider}
           <div className={loading ? "div-disabled" : ""}>
             <SegmentedControl.Root
-              className="w-[100px] grow-0"
+              className="slider-border w-[100px] grow-0"
               defaultValue={URLregion ?? "us"}
             >
               <SegmentedControl.Item onClick={() => RegionClick("us")} value="us">
-                US
+                <RegionFlag region="us" />
               </SegmentedControl.Item>
               <SegmentedControl.Item onClick={() => RegionClick("eu")} value="eu">
-                EU
+                <RegionFlag region="eu" />
               </SegmentedControl.Item>
             </SegmentedControl.Root>
           </div>

@@ -4,7 +4,6 @@ import { Button, SegmentedControl, Skeleton, Table } from "@radix-ui/themes";
 import { Pagination } from "react-headless-pagination";
 import { Dragonblight } from "../../clients/Dragonblight";
 import DialogCloseButton from "../dialog-close-button/dialog-close-button";
-import { useMediaQuery } from "../../helpers/useMediaQuery";
 import "./ladder-controls.css";
 
 //The controls the rankings and activity tables have in common.
@@ -15,27 +14,24 @@ interface RegionToggleProps {
   onSelect: (region: string) => void;
 }
 
+//what a region slider shows for each region
+export const RegionFlag: FC<{ region: "us" | "eu" }> = (props) => (
+  <img src={`/Regions/${props.region}.svg`} alt={props.region.toUpperCase()} className="region-flag" />
+);
+
 export const RegionToggle: FC<RegionToggleProps> = (props) => {
   let wrapperClass = "";
   if (props.disabled) {
     wrapperClass = "div-disabled";
   }
-  //flags on mobile, the width the ladder tables switch layout at
-  const isMobile = useMediaQuery("(max-width: 950px)");
-  function regionLabel(region: string, text: string) {
-    if (isMobile) {
-      return <img src={`/Regions/${region}.svg`} alt={text} className="region-flag" />;
-    }
-    return text;
-  }
   return (
     <div className={wrapperClass}>
-      <SegmentedControl.Root className="w-[100px] grow-0" defaultValue={props.defaultValue}>
+      <SegmentedControl.Root className="slider-border w-[100px] grow-0" defaultValue={props.defaultValue}>
         <SegmentedControl.Item onClick={() => props.onSelect("us")} value="us">
-          {regionLabel("us", "US")}
+          <RegionFlag region="us" />
         </SegmentedControl.Item>
         <SegmentedControl.Item onClick={() => props.onSelect("eu")} value="eu">
-          {regionLabel("eu", "EU")}
+          <RegionFlag region="eu" />
         </SegmentedControl.Item>
       </SegmentedControl.Root>
     </div>
@@ -44,16 +40,16 @@ export const RegionToggle: FC<RegionToggleProps> = (props) => {
 
 const paginationStyles = {
   compact: {
-    arrowButton: "bg-[#292c31] mx-1 h-[28px] w-[28px] py-2 px-2.5 inline-flex justify-center items-center gap-x-1.5 text-xs first:rounded-s-lg last:rounded-e-lg border border-gray-200 text-gray-800 hover:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:border-neutral-700 dark:text-white dark:hover:bg-white/10 ",
-    inactivePage: "bg-transparent h-[28px] w-[28px] flex justify-center items-center text-center first:rounded-s-md last:rounded-e-md text-gray-800 hover:bg-gray-100 py-3 px-4 text-xs focus:outline-hidden focus:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:border-neutral-700 dark:text-white dark:hover:bg-white/10 dark:focus:bg-white/10",
-    activePage: "h-[28px] w-[28px] flex justify-center items-center text-center bg-gray-200 first:rounded-s-md last:rounded-e-md text-gray-800  py-3 px-4 text-xs focus:outline-hidden focus:bg-gray-300 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-600 dark:border-neutral-700 dark:text-white dark:focus:bg-neutral-500",
+    arrowButton: "bg-[#292c31] mx-1 h-[28px] w-[28px] py-2 px-2.5 inline-flex justify-center items-center gap-x-1.5 text-xs first:rounded-s-lg last:rounded-e-lg border border-black text-gray-800 hover:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:text-white dark:hover:bg-white/10 ",
+    inactivePage: "bg-transparent h-[28px] w-[28px] flex justify-center items-center text-center first:rounded-s-md last:rounded-e-md text-gray-800 hover:bg-gray-100 py-3 px-4 text-xs focus:outline-hidden focus:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:text-white dark:hover:bg-white/10 dark:focus:bg-white/10",
+    activePage: "h-[28px] w-[28px] flex justify-center items-center text-center bg-gray-200 first:rounded-s-md last:rounded-e-md text-gray-800  py-3 px-4 text-xs focus:outline-hidden focus:bg-gray-300 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-600 dark:text-white dark:focus:bg-neutral-500",
     page: "mx-px",
     truncableText: " ... ",
   },
   large: {
-    arrowButton: "bg-[#292c31] mx-2 min-h-[38px] min-w-[38px] py-2 px-2.5 inline-flex justify-center items-center gap-x-1.5 text-sm first:rounded-s-lg last:rounded-e-lg border border-gray-200 text-gray-800 hover:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:border-neutral-700 dark:text-white dark:hover:bg-white/10 ",
-    inactivePage: "bg-[#292c31] min-h-[38px] min-w-[38px] flex justify-center items-center border border-gray-200 text-gray-800 hover:bg-gray-100 py-2 px-3 text-sm first:rounded-s-lg last:rounded-e-lg focus:outline-hidden focus:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:border-neutral-700 dark:text-white dark:hover:bg-white/10 dark:focus:bg-white/10",
-    activePage: " min-h-[38px] min-w-[38px] flex justify-center items-center bg-gray-200 text-gray-800 border border-gray-200 py-2 px-3 text-sm first:rounded-s-lg last:rounded-e-lg focus:outline-hidden focus:bg-gray-300 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-600 dark:border-neutral-700 dark:text-white dark:focus:bg-neutral-500",
+    arrowButton: "bg-[#292c31] mx-2 min-h-[38px] min-w-[38px] py-2 px-2.5 inline-flex justify-center items-center gap-x-1.5 text-sm first:rounded-s-lg last:rounded-e-lg border border-black text-gray-800 hover:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:text-white dark:hover:bg-white/10 ",
+    inactivePage: "bg-[#292c31] min-h-[38px] min-w-[38px] flex justify-center items-center text-gray-800 hover:bg-gray-100 py-2 px-3 text-sm first:rounded-s-lg last:rounded-e-lg focus:outline-hidden focus:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:text-white dark:hover:bg-white/10 dark:focus:bg-white/10",
+    activePage: " min-h-[38px] min-w-[38px] flex justify-center items-center bg-gray-200 text-gray-800 py-2 px-3 text-sm first:rounded-s-lg last:rounded-e-lg focus:outline-hidden focus:bg-gray-300 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-600 dark:text-white dark:focus:bg-neutral-500",
     page: "mx-1",
     truncableText: " - ",
   },

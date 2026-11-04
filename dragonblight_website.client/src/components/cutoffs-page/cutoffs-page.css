@@ -73,6 +73,7 @@
 /* Each table would otherwise size its columns from its own titles, so these keep every bracket's
    columns lined up, with the title taking the rest of the width */
 .cutoff-bracket-table .rt-TableRootTable { table-layout: fixed; }
+.cutoff-bracket-table { border-color: #000000; }
 .cutoff-rating-col { width: 130px; }
 .cutoff-ranks-col { width: 90px; }
 

@@ -68,6 +68,10 @@
   width: 22px;
   height: 22px;
 }
+.rt-r-size-1 .region-flag {
+  width: 16px;
+  height: 16px;
+}
 
 /* the bracket bar and the region toggle each get a row, lined up with the table's left edge */
 @media only screen and (max-width: 950px) {

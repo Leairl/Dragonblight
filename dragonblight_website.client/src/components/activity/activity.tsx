@@ -180,7 +180,7 @@ function Activity() {
 
           <div className={loading ? "div-disabled" : ""}>
             <SegmentedControl.Root
-              className="bracket-toggle w-[300px] grow-0"
+              className="bracket-toggle slider-border w-[300px] grow-0"
               defaultValue={URLbracket ?? "3v3"}
             >
               {brackets().map((name) => (

@@ -3,6 +3,7 @@ import { Card, SegmentedControl } from "@radix-ui/themes";
 import { Link, useParams, useSearchParams } from "react-router";
 import { getFlavor } from "../../helpers/game-flavor";
 import { ClassColor } from "../../helpers/classColorHelper";
+import { RegionFlag } from "../ladder-controls/ladder-controls";
 import "./blue-tracker.css";
 
 interface BluePost {
@@ -71,9 +72,9 @@ export function BlueTracker({ compact = false }: { compact?: boolean }) {
     const posts = data?.filter(p => `${p.title} ${p.excerpt} ${p.category}`.toLowerCase().includes(search.toLowerCase()));
     return <Card asChild><section className={`blue-tracker ${compact ? "blue-compact" : ""}`} aria-label="Blizzard blue tracker">
         <header className="blue-header"><div><span className="blue-eyebrow">BLIZZARD FORUMS · {label()}</span><h1>Blue Tracker</h1></div>
-            <SegmentedControl.Root size="1" value={region} aria-label="Forum region" onValueChange={r => setParams(previous => { const next = new URLSearchParams(previous); next.set("region", r); return next; })}>
-                <SegmentedControl.Item value="us">US</SegmentedControl.Item>
-                <SegmentedControl.Item value="eu">EU</SegmentedControl.Item>
+            <SegmentedControl.Root className="slider-border" size="1" value={region} aria-label="Forum region" onValueChange={r => setParams(previous => { const next = new URLSearchParams(previous); next.set("region", r); return next; })}>
+                <SegmentedControl.Item value="us"><RegionFlag region="us" /></SegmentedControl.Item>
+                <SegmentedControl.Item value="eu"><RegionFlag region="eu" /></SegmentedControl.Item>
             </SegmentedControl.Root>
         </header>
         {!compact && <input className="blue-search" aria-label="Search blue posts" placeholder="Search recent blue posts…" value={search} onChange={e => setSearch(e.target.value)} />}
