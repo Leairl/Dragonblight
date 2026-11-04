@@ -139,7 +139,7 @@ const ProfileStats: FC<ProfileStatsProps> = (props) => {
     for (let i = 0; i < 6; i++) {
       SkeletonCards.push(getSkeleton(i));
     }
-    return <div className="flex flex-col profile-stats">{SkeletonCards}</div>;
+    return <div className="profile-stats-skeleton flex flex-col profile-stats">{SkeletonCards}</div>;
   }
 
   // MoP Classic hides stats behind reforging, which the Blizzard API does not report, so the

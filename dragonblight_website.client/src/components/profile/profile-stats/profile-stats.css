@@ -26,6 +26,10 @@
         width: 95vw;
         padding-left: 0px;
     }
+    /* the stats are the last thing on a phone's page, so a long placeholder for them only adds scrolling */
+    .profile-stats-skeleton {
+        display: none;
+    }
 }
 
 .not-found .profile-stats {
