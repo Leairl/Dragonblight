@@ -11,6 +11,9 @@
   background-color: #14181f;
   border: 1px solid #ffffff40;
   border-radius: 12px;
+  box-shadow:
+    0 10px 38px -10px hsl(206 22% 7% / 35%), /* wide, soft shadow */
+    0 10px 20px -15px hsl(206 22% 7% / 20%); /* tighter shadow close to the popup */
 }
 /* the character stands behind the rows, faded enough for them to stay readable */
 .mobile-details-image {

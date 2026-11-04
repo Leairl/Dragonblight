@@ -170,7 +170,7 @@ export const MobileDetailsDialog: FC<MobileDetailsDialogProps> = (props) => {
       </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay className="backdrop-blur-sm data-[state=open]:animate-overlayShow fixed inset-0" />
-        <Dialog.Content className="mobile-details-dialog data-[state=open]:animate-contentShow fixed top-[50%] left-[50%] w-[90vw] max-h-[85vh] overflow-x-hidden overflow-y-auto translate-x-[-50%] translate-y-[-50%] shadow-[hsl(206_22%_7%/35%)_0px_10px_38px_-10px,hsl(206_22%_7%/20%)_0px_10px_20px_-15px] focus:outline-hidden">
+        <Dialog.Content className="mobile-details-dialog data-[state=open]:animate-contentShow fixed top-[50%] left-[50%] w-[90vw] max-h-[85vh] overflow-x-hidden overflow-y-auto translate-x-[-50%] translate-y-[-50%] focus:outline-hidden">
           {image && <img src={image} alt="" className="mobile-details-image" onError={() => setImage(undefined)} />}
           <div className="mobile-details-body">
             <DialogCloseButton />
