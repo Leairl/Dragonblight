@@ -59,6 +59,55 @@ partial class WarcraftRedisProxy
             return brackets;
         }, TimeSpan.FromHours(3)); 
     }
+    //the minimum ratings the spec stats page offers on its slider
+    private static readonly int[] SpecStatRatings = [1500, 1600, 1700, 1800, 1900, 2000, 2100, 2200, 2300, 2400, 2500, 2600, 2700];
+
+    //counts every spec's ladder and puts that data in a dictionary as an overall count for the spec stats page.
+    public async Task<List<SpecRatingCounts>> GetSoloSpecStats(string ladder, string region, GameFlavor flavor)
+    {
+        return await GetBlizzardDataCached<List<SpecRatingCounts>>(flavor.KeyPrefix() + "specStatsPerHundred" + ladder + region, async () =>
+        {
+            var stats = new List<SpecRatingCounts>();
+            var ladderBrackets = await GetLadderBrackets(region, flavor);
+            foreach (var bracket in ladderBrackets.Where(l => l.Ladder == ladder && !string.IsNullOrEmpty(l.SpecName)))
+            {
+                var leaderboard = await GetLeaderboard(region, bracket.Slug, flavor);
+                var ratings = leaderboard?.Entries?.Where(e => e != null).Select(e => e.Rating).ToList() ?? [];
+                stats.Add(new SpecRatingCounts
+                {
+                    ClassName = bracket.ClassName ?? "",
+                    SpecName = bracket.SpecName ?? "",
+                    PlayersAtRating = CountPlayersAtRatings(ratings)
+                });
+            }
+            return stats;
+        }, TimeSpan.FromHours(1));
+    }
+    //the same counts for brackets without spec ladders, like 3v3, from the class lists the character sync fills.
+    public async Task<List<SpecRatingCounts>> GetClassSpecStats(string bracket, string region, GameFlavor flavor)
+    {
+        var stats = new List<SpecRatingCounts>();
+        var classes = await GetPlayableClasses(region, flavor);
+        foreach (var wowClass in classes)
+        {
+            var entries = await CachedClassCharacters(region, wowClass.Name, bracket, flavor);
+            var specGroups = entries.OfType<ClassLadderEntry>().Where(e => !string.IsNullOrEmpty(e.Spec)).GroupBy(e => e.Spec);
+            foreach (var specGroup in specGroups)
+            {
+                stats.Add(new SpecRatingCounts
+                {
+                    ClassName = wowClass.Name,
+                    SpecName = specGroup.Key,
+                    PlayersAtRating = CountPlayersAtRatings(specGroup.Select(e => e.Rating).ToList())
+                });
+            }
+        }
+        return stats;
+    }
+    private static Dictionary<int, int> CountPlayersAtRatings(List<int> ratings)
+    {
+        return SpecStatRatings.ToDictionary(minRating => minRating, minRating => ratings.Count(rating => rating >= minRating));
+    }
     public async Task<PvpRewardsIndex> GetPvPRewards(string region, GameFlavor flavor)
     {
 

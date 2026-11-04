@@ -16,6 +16,17 @@ public class LadderBracket
     public int? SpecId { get; init; }
 }
 
+//how many players of a spec are at or above each minimum rating
+public class SpecRatingCounts
+{
+    [JsonPropertyName("className")]
+    public required string ClassName { get; init; }
+    [JsonPropertyName("specName")]
+    public required string SpecName { get; init; }
+    [JsonPropertyName("playersAtRating")]
+    public required Dictionary<int, int> PlayersAtRating { get; init; }
+}
+
 public class WowClass
 {
     [JsonPropertyName("id")]

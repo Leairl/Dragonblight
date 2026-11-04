@@ -47,11 +47,3 @@
     right: -5px;
     user-select: none;
 }
-
-.talentIconWrapper {
-    filter: grayscale(100%);
-}
-
-.talentIconWrapper[data-talented="true"] {
-    filter: grayscale(0%);
-}

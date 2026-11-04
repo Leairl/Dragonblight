@@ -12,6 +12,8 @@ public interface IWarcraftRedisProxy
     Task<List<LadderBracket>> GetLadderBrackets(string region, GameFlavor flavor);
     Task<PlayableSpecialization?> PlayableSpecialization(int specializationId, string region, GameFlavor flavor);
     Task<PvpLeaderboardsIndex> GetLeaderboardIndex(string region, GameFlavor flavor);
+    Task<List<SpecRatingCounts>> GetSoloSpecStats(string ladder, string region, GameFlavor flavor);
+    Task<List<SpecRatingCounts>> GetClassSpecStats(string bracket, string region, GameFlavor flavor);
     Task<PvpLeaderboard> GetLeaderboard(string region, string bracket, GameFlavor flavor);
     Task InsertCacheCharacter(string characterName, string server, string region, GameFlavor flavor);
     Task InsertCacheClassCharacter(string bracket, PvpLeaderboardEntry player, CharacterProfileSummary summary, string specName, string region, GameFlavor flavor);
