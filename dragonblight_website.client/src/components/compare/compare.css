@@ -38,6 +38,12 @@
   text-align: center;
   flex-shrink: 0;
 }
+/* on the character's name line rather than the middle of the card, with the same line height */
+.compare-char-card:has(.truncate) .diff-marker-badge {
+  align-self: flex-start;
+  margin-top: 2px;
+  line-height: 22px;
+}
 .diff-marker-badge.del {
   color: var(--red-11);
 }
@@ -106,6 +112,11 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   color: var(--gray-9);
   align-self: center;
+}
+/* on the item name's line, since a row can also hold an enchant and gems under it */
+.diff-cell:has(.diff-name-line) .diff-marker {
+  align-self: flex-start;
+  line-height: 21px;
 }
 .diff-cell.del .diff-marker {
   color: var(--red-11);
@@ -370,6 +381,15 @@
 .talent-side.add {
   background: var(--green-a2);
 }
+/* the marker matches the name's line height, so the two center on the same line */
+.talent-side .diff-marker {
+  line-height: 20px;
+}
+/* a "Logged out as" note under the name would center the marker between the two lines */
+.talent-side:has(.talent-side-note) .diff-marker,
+.talent-side:has(.talent-side-note) .talent-side-name {
+  align-self: flex-start;
+}
 .talent-side.del .diff-marker {
   color: var(--red-11);
 }
@@ -563,8 +583,16 @@
     border-left: none;
     border-top: 1px solid var(--gray-a4);
   }
+  /* the change list goes under the tree here, so the tree has the line to itself and sits in the middle */
   .talent-section-body {
     overflow-x: auto;
+    justify-content: safe center;
+  }
+  .talent-changes {
+    flex: 1 1 100%;
+  }
+  .talent-hero-pair {
+    justify-content: safe center;
   }
 }
 

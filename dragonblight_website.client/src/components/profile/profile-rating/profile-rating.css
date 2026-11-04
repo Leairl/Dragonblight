@@ -100,9 +100,35 @@
 }
 @media only screen and (max-width: 800px) {
 
+    .rating-sections {
+        flex-wrap: nowrap;
+        align-items: stretch;
+    }
+    /* 2v2, 3v3, 5v5 and RBG share one row, so the cards split its width rather than wrap */
+    .rating-bracket-row {
+        flex-wrap: nowrap;
+        justify-content: stretch;
+        width: 100%;
+    }
     .rating-card {
-        flex: 0 0 140px !important;
-        min-width: 100px;
+        flex: 1 1 0;
+        width: auto;
+    }
+    /* a spec's cards line up with a three bracket row, and a fourth spec moves down to the next line */
+    .rating-solo-row {
+        justify-content: center;
+        width: 100%;
+    }
+    .rating-solo-row .rating-card {
+        flex: 0 0 33.333%;
+        width: 33.333%;
+    }
+    .rating-padding {
+        padding: 8px;
+    }
+    /* four digits have to fit inside a card of a four bracket row on a narrow phone */
+    .rating-value {
+        font-size: clamp(1.25rem, 6.5vw, 1.875rem);
     }
 
 }

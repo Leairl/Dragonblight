@@ -1,4 +1,4 @@
-import React, { FC, useEffect, useMemo, useState } from "react";
+import React, { FC, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { Callout, Card, Heading, IconButton, SegmentedControl, Skeleton, Switch, Text } from "@radix-ui/themes";
 import { Cross2Icon, InfoCircledIcon, LoopIcon } from "@radix-ui/react-icons";
@@ -12,6 +12,7 @@ import { useItemLevelMode } from "../../helpers/itemLevelMode";
 import ItemLevelToggle from "../item-level-toggle/item-level-toggle";
 import CompareStats from "./compare-stats";
 import { secondaryStatsAttr } from "../../helpers/wowhead-item-stats";
+import { installTierSetSpecFilter } from "../../helpers/wowhead-tier-set";
 import { diffEquipment, EquipmentDiff, SideDiff, SlotDiff } from "./equipment-diff";
 import CompareSearch from "./compare-search";
 import CompareGlyphs from "./compare-glyphs";
@@ -121,6 +122,45 @@ const ProfileCompare: FC = () => {
   useEffect(() => {
     $WowheadPower.refreshLinks();
   });
+
+  //Wowhead's tooltips list a tier set's bonuses for every specialization, like on the profile. The
+  //two characters can play different specs, so the spec comes from the side the pointer is over.
+  //MoP Classic set bonuses are per class rather than per spec, so this only applies to retail.
+  const hoveredSpecId = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    if (getFlavor() !== "retail") {
+      return;
+    }
+    const trackSide = (event: PointerEvent) => {
+      const cell = (event.target as Element).closest?.("[data-spec-id]");
+      if (cell != null) {
+        hoveredSpecId.current = Number(cell.getAttribute("data-spec-id"));
+      }
+    };
+    document.addEventListener("pointerover", trackSide);
+    const removeFilter = installTierSetSpecFilter(() => hoveredSpecId.current);
+    return () => {
+      document.removeEventListener("pointerover", trackSide);
+      removeFilter();
+    };
+  }, []);
+
+  //turning "Show unchanged" off folds everything again, including runs opened one at a time
+  function changeShowUnchanged(show: boolean) {
+    setShowUnchanged(show);
+    setExpanded(new Set());
+  }
+  function setRunExpanded(key: number, open: boolean) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (open) {
+        next.add(key);
+      } else {
+        next.delete(key);
+      }
+      return next;
+    });
+  }
 
   const leftPath = `/compare/${region}/${server}/${characterName}`;
 
@@ -234,7 +274,7 @@ const ProfileCompare: FC = () => {
             <div className="grow" />
             <ItemLevelToggle />
             <Text as="label" size="2" className="flex items-center gap-2">
-              <Switch size="1" color="gray" checked={showUnchanged} onCheckedChange={setShowUnchanged} />
+              <Switch size="1" color="gray" checked={showUnchanged} onCheckedChange={changeShowUnchanged} />
               Show unchanged
             </Text>
           </div>
@@ -279,13 +319,13 @@ const ProfileCompare: FC = () => {
                 width="34px"
                 className="my-1"
               />
-              <div className="pl-2 flex flex-col justify-center min-w-0">
-                <Link to={`/profile/${r}/${s}/${n}`}>
+              <div className="pl-2 flex flex-col justify-center flex-1 min-w-0">
+                <Link to={`/profile/${r}/${s}/${n}`} className="block min-w-0">
                   <Heading size="3" className="truncate" style={{ color: ClassColor.get(className ?? "") }}>
                     {summary.name} - {summary.realm?.name ?? realmDisplayName(s)}
                   </Heading>
                 </Link>
-                <Text size="1" color="gray">
+                <Text as="div" size="1" color="gray" className="truncate">
                   {averageItemLevel(data)} {pvp ? "PvP item level" : "item level"} · {r?.toUpperCase()}
                 </Text>
               </div>
@@ -295,12 +335,11 @@ const ProfileCompare: FC = () => {
               {n}-{realmDisplayName(s)} not found
             </Text>
           ) : (
-            <div className="flex flex-col m-1 pl-1">
-              <Skeleton height="15px" width="200px" />
-              <Skeleton className="mt-1.5" height="12px" width="110px" />
+            <div className="flex flex-col flex-1 min-w-0 m-1 pl-1">
+              <Skeleton height="15px" width="200px" maxWidth="100%" />
+              <Skeleton className="mt-1.5" height="12px" width="110px" maxWidth="100%" />
             </div>
           )}
-          <div className="grow" />
           {side == "right" && (
             <IconButton variant="ghost" color="gray" size="1" title="Compare with someone else" onClick={() => navigate(leftPath)}>
               <Cross2Icon />
@@ -319,16 +358,24 @@ const ProfileCompare: FC = () => {
     const flush = () => {
       if (run.length == 0) return;
       const key = run[0].slot;
-      if (showUnchanged || expanded.has(key)) {
+      let slotCount = `${run.length} unchanged slots`;
+      if (run.length == 1) {
+        slotCount = "1 unchanged slot";
+      }
+      if (showUnchanged) {
+        run.forEach((s) => rows.push(getDiffRow(s)));
+      } else if (expanded.has(key)) {
+        //stays above the slots it opened, so the same run can be folded again
+        rows.push(
+          <button key={"fold" + key} className="diff-fold" onClick={() => setRunExpanded(key, false)}>
+            ▾ Hide {slotCount}
+          </button>
+        );
         run.forEach((s) => rows.push(getDiffRow(s)));
       } else {
         rows.push(
-          <button
-            key={"fold" + key}
-            className="diff-fold"
-            onClick={() => setExpanded((prev) => new Set(prev).add(key))}
-          >
-            ⋯ {run.length} unchanged {run.length == 1 ? "slot" : "slots"}: {run.map((s) => s.label).join(", ")}
+          <button key={"fold" + key} className="diff-fold" onClick={() => setRunExpanded(key, true)}>
+            ⋯ {slotCount}: {run.map((s) => s.label).join(", ")}
           </button>
         );
       }
@@ -366,8 +413,12 @@ const ProfileCompare: FC = () => {
   function getDiffCell(s: SlotDiff, side: SideDiff, kind: "del" | "add") {
     const item = side.item;
     const other = kind == "del" ? s.right : s.left;
+    let owner = left;
+    if (kind == "add") {
+      owner = right;
+    }
     return (
-      <div className={`diff-cell ${s.changed ? kind : ""}`}>
+      <div className={`diff-cell ${s.changed ? kind : ""}`} data-spec-id={owner.summary?.active_spec?.id}>
         <span className="diff-marker">{s.changed ? (kind == "del" ? "−" : "+") : ""}</span>
         {item ? (
           <>

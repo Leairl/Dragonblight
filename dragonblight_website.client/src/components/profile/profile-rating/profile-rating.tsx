@@ -130,7 +130,7 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
       SkeletonCards.push(getSkeleton(i));
     }
     return (
-      <div className="flex flex-wrap flex-row justify-end w-full">{SkeletonCards}</div>
+      <div className="rating-bracket-row flex flex-wrap flex-row justify-end w-full">{SkeletonCards}</div>
     );
   }
 
@@ -177,7 +177,7 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
                 BracketStatistics?.rating ?? 0,
                 BracketStatistics?.specialization?.id) +
                 " " +
-                "font-bold text-3xl flex justify-center text-shadow-md text-shadow-black"
+                "rating-value font-bold text-3xl flex justify-center text-shadow-md text-shadow-black"
 
               }
             >
@@ -256,8 +256,8 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
     }
 
     return (
-      <div className="flex-wrap flex flex-col items-end">
-        <div className="flex-wrap flex flex-row ">{RatingCards}</div>
+      <div className="rating-sections flex-wrap flex flex-col items-end">
+        <div className="rating-bracket-row flex-wrap flex flex-row ">{RatingCards}</div>
         {(ShuffleCards.length > 0 || BlitzCards.length > 0) && (
           <div className="flex flex-col items-center">
             <Card className="rating-titles">
@@ -278,7 +278,7 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
               </button>
             </Card>
             {/* switches to shuffle or blitz depending on what is the active useState for soloMode */}
-            <div className="flex-wrap flex flex-row">
+            <div className="rating-solo-row flex-wrap flex flex-row">
               {soloMode === "shuffle" ? ShuffleCards : BlitzCards}
             </div>
           </div>

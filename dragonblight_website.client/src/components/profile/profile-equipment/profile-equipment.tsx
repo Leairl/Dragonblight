@@ -364,19 +364,21 @@ const ProfileEquipment: FC<profileEquipmentProps> = (props) => {
       <div className="center-column">
         <Card className={props.characterNotFound ? "mb-3 header-card" :"mb-3 header-card border-card"}>
           {(loading || props.characterNotFound) && (
-            <div className="flex flex-row">
-              {getSkeletonIconCards()}
-              <div className="flex flex-col m-1">
-                <Skeleton height="15px" width="250px"></Skeleton>
-                <Skeleton className='mt-1.5' height="12px" width="125px"></Skeleton>
+            <div className="header-row flex items-center">
+              <div className="header-main flex flex-row">
+                {getSkeletonIconCards()}
+                <div className="flex flex-col m-1 flex-1 min-w-0">
+                  <Skeleton height="15px" width="250px" maxWidth="100%"></Skeleton>
+                  <Skeleton className='mt-1.5' height="12px" width="125px" maxWidth="100%"></Skeleton>
+                </div>
               </div>
             </div>
           )}
           {!loading && !props.characterNotFound && (
-            <div className="flex items-center">
-              <div> {getCharacterHeader()} </div>
+            <div className="header-row flex items-center">
+              <div className="header-main"> {getCharacterHeader()} </div>
               {customAchievements.length > 0 && (
-                <div className="pl-4 flex items-center pr-1">
+                <div className="header-achievements pl-4 flex items-center pr-1">
                   {customAchievements.map(getAchievementIcon)}
                 </div>
               )}
@@ -397,7 +399,7 @@ const ProfileEquipment: FC<profileEquipmentProps> = (props) => {
                     </div>
                     <Skeleton width="0px"></Skeleton>
                     <Skeleton
-                      className=" mx-auto mt-1"
+                      className="model-skeleton mx-auto mt-1"
                       width="350px"
                       height="500px"
                     ></Skeleton>
@@ -425,7 +427,7 @@ const ProfileEquipment: FC<profileEquipmentProps> = (props) => {
                     <div className="paperdoll-column"> {getSlotIcons(0, 9)} </div>
                     <div id="model3d" className="model3dx">
                       {!props.showModelViewer && props.characterImage && (
-                        <img src={props.characterImage} alt="" className="character-render" />
+                        <img src={props.characterImage} alt="" className={characterRenderClass()} />
                       )}
                     </div>
                     <div className="paperdoll-column"> {getSlotIcons(9, 19)} </div>
@@ -487,6 +489,15 @@ const ProfileEquipment: FC<profileEquipmentProps> = (props) => {
       </div >
     </div >
   );
+  //Tauren have the largest models, which run off the card at the size other races are drawn
+  function characterRenderClass(): string {
+    const race = props.characterProfileSummary?.race?.name;
+    if (race === "Tauren" || race === "Highmountain Tauren") {
+      return "character-render character-render-tauren";
+    }
+    return "character-render";
+  }
+
   function getSlotSkeleton(skip: number, end: number) {
     //for loop (map) with slots in parameter s to pull correct gear ids, and place them in the correct spots for our profile page.
     //pulls from slots array, and checks with each function for that piece of gear.
@@ -534,7 +545,7 @@ const ProfileEquipment: FC<profileEquipmentProps> = (props) => {
                 : "item-enchant"
             }
           >
-            <Skeleton width={"100px"} height={"15px"}></Skeleton>
+            <Skeleton className="block mt-1" width={"100px"} height={"15px"}></Skeleton>
           </a>
         </div>
       </div>
@@ -581,7 +592,7 @@ const ProfileEquipment: FC<profileEquipmentProps> = (props) => {
           width="34px"
           style={{ maxHeight: "34px", maxWidth: "34px" }}
         ></img>
-        <div className="pl-2 flex flex-col justify-center">
+        <div className="pl-2 flex flex-col justify-center min-w-0">
           <Heading
             className="character-text"
             size="3"
@@ -1004,7 +1015,7 @@ const ProfileEquipment: FC<profileEquipmentProps> = (props) => {
     for (let i = 0; i < 4; i++) {
       SkeletonIconCards.push(getSkeleton(i));
     }
-    return <div className="flex flex-row">{SkeletonIconCards}</div>;
+    return <div className="flex flex-row shrink-0">{SkeletonIconCards}</div>;
   }
 };
 export default ProfileEquipment;

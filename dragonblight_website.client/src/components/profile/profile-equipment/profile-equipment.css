@@ -29,10 +29,17 @@
   left: 50%;
   top: 45%;
   transform: translate(-50%, -50%);
-  height: 180%;
+  height: 162%;
   width: auto;
   max-width: none;
   pointer-events: none;
+}
+
+/* sized so the solid part of the largest Tauren render fits the card. Their models start higher up in
+   the image than other races', so they're centered rather than sitting at 45% */
+.character-render-tauren {
+  top: 50%;
+  height: 128%;
 }
 
 .former-names-trigger[data-state="open"] .former-names-chevron {
@@ -108,6 +115,28 @@
     display: flex;
     flex-wrap: wrap;
     width: 95vw;
+  }
+  /* the icons and name fill the first line, and the achievements are centered on their own */
+  .header-row {
+    flex-wrap: wrap;
+  }
+  .header-main {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  .header-achievements {
+    flex: 1 1 100%;
+    justify-content: center;
+    /* balances the 8px each icon keeps on its right, so the row is truly centered */
+    padding-left: 8px;
+    padding-right: 0;
+  }
+  /* no model placeholder here, so the gear columns sit at the edges while loading */
+  .model-skeleton {
+    display: none;
+  }
+  .paperdoll {
+    justify-content: space-between;
   }
 }
 .paperdoll {

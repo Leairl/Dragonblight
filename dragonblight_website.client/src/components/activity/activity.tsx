@@ -7,7 +7,6 @@ import {
   Table,
   Flex,
   Container,
-  DataList,
   SegmentedControl,
   Callout,
 } from "@radix-ui/themes";
@@ -18,7 +17,7 @@ import { useParams } from "react-router";
 import ClassFilter, { ladderFilter } from "../class-filter/class-filter";
 import { InfoCircledIcon } from "@radix-ui/react-icons";
 import Cutoffs from "../cutoffs/cutoffs";
-import { LadderPagination, LadderSkeletonRows, MobileDetailsDialog, RegionToggle } from "../ladder-controls/ladder-controls";
+import { LadderPagination, LadderSkeletonRows, MobileDetailRow, MobileDetailsDialog, RegionToggle } from "../ladder-controls/ladder-controls";
 import { brackets } from "../../helpers/game-flavor";
 import classNames from "classnames";
 import { realmName } from "../../helpers/realmNameHelper";
@@ -64,6 +63,31 @@ function Activity() {
       entry.spec || entry.charSummary?.active_spec?.name,
       entry.currPvpEntry.faction?.type
     );
+  }
+
+  //a lower rank number is better, so going up in number is the red direction
+  function rankChange(entry: Dragonblight.ActivityCharacterSummary) {
+    const change = entry.currPvpEntry.rank - entry.prevPvpEntry.rank;
+    let colorClass = "text-green-300";
+    if (change >= 0) {
+      colorClass = "text-red-300";
+    }
+    let sign = "";
+    if (change > 0) {
+      sign = "+";
+    }
+    return <span className={colorClass}>{sign}{change}</span>;
+  }
+
+  function ratingChange(entry: Dragonblight.ActivityCharacterSummary) {
+    const change = entry.currPvpEntry.rating - entry.prevPvpEntry.rating;
+    let colorClass = "text-red-300";
+    let sign = "";
+    if (change >= 0) {
+      colorClass = "text-green-300";
+      sign = "+";
+    }
+    return <span className={colorClass}>{sign}{change}</span>;
   }
 
   function increasedGames(entry: Dragonblight.ActivityCharacterSummary) {
@@ -176,7 +200,7 @@ function Activity() {
           <RegionToggle defaultValue={URLregion ?? "us"} disabled={loading} onSelect={RegionClick} />
         </div>
       </div>
-      <div>
+      <div className="desktopWidth">
         <LadderPagination
           page={page}
           onPageChange={handlePageChange}
@@ -236,21 +260,7 @@ function Activity() {
                         }}
                       >
                         {characterEntry.currPvpEntry.rank}{" "}
-                        <span
-                          className={
-                            characterEntry.currPvpEntry.rank >=
-                              characterEntry.prevPvpEntry.rank
-                              ? "text-red-300"
-                              : "text-green-300"
-                          }
-                        >
-                          {characterEntry.currPvpEntry.rank >
-                            characterEntry.prevPvpEntry.rank
-                            ? "+"
-                            : ""}
-                          {characterEntry.currPvpEntry.rank -
-                            characterEntry.prevPvpEntry.rank}
-                        </span>
+                        {rankChange(characterEntry)}
                       </Table.Cell>
                       <Table.Cell
                         onClick={() => {
@@ -342,21 +352,7 @@ function Activity() {
                         className="desktopOnly"
                       >
                         <span className={ratingClass(characterEntry)}>{characterEntry.currPvpEntry.rating}</span>{" "}
-                        <span
-                          className={
-                            characterEntry.currPvpEntry.rating >=
-                              characterEntry.prevPvpEntry.rating
-                              ? "text-green-300"
-                              : "text-red-300"
-                          }
-                        >
-                          {characterEntry.currPvpEntry.rating >=
-                            characterEntry.prevPvpEntry.rating
-                            ? "+"
-                            : ""}
-                          {characterEntry.currPvpEntry.rating -
-                            characterEntry.prevPvpEntry.rating}
-                        </span>
+                        {ratingChange(characterEntry)}
                       </Table.Cell>
                       <Table.Cell
                         onClick={() => {
@@ -404,151 +400,36 @@ function Activity() {
                         {characterEntry.time}
                       </Table.Cell>
                       <Table.Cell className="mobileOnly">
-                        <MobileDetailsDialog>
-                          <div>
-                            <DataList.Root className=" text-white text-left mt-2 px-10">
-                              <DataList.Item align={"center"}>
-                                <DataList.Label className=" p-2 font-bold text-white">
-                                  Rank
-                                </DataList.Label>
-                                <DataList.Value className="justify-end">
-                                  <div className="flex flex-row justify-center">
-                                    {" "}
-                                    {characterEntry.currPvpEntry.rank}{" "}
-                                    &nbsp;{" "}
-                                    <span
-                                      className={
-                                        characterEntry.currPvpEntry.rank >=
-                                          characterEntry.prevPvpEntry.rank
-                                          ? "text-red-300"
-                                          : "text-green-300"
-                                      }
-                                    >
-                                      {characterEntry.currPvpEntry.rank >
-                                        characterEntry.prevPvpEntry.rank
-                                        ? "+"
-                                        : ""}
-                                      {characterEntry.currPvpEntry.rank -
-                                        characterEntry.prevPvpEntry.rank}
-                                    </span>
-                                  </div>
-                                </DataList.Value>
-                              </DataList.Item>
-                              <DataList.Item>
-                                <DataList.Label className=" p-2  font-bold text-white">
-                                  Rating
-                                </DataList.Label>
-                                <DataList.Value className="justify-end">
-                                  <div className="flex flex-row justify-center">
-                                    <span className={ratingClass(characterEntry)}>{characterEntry.currPvpEntry.rating}</span>{" "}
-                                    &nbsp;
-                                    <span
-                                      className={
-                                        characterEntry.currPvpEntry
-                                          .rating >=
-                                          characterEntry.prevPvpEntry.rating
-                                          ? "text-green-300"
-                                          : "text-red-300"
-                                      }
-                                    >
-                                      {characterEntry.currPvpEntry.rating >=
-                                        characterEntry.prevPvpEntry.rating
-                                        ? "+"
-                                        : ""}
-                                      {characterEntry.currPvpEntry.rating -
-                                        characterEntry.prevPvpEntry.rating}
-                                    </span>
-                                  </div>
-                                </DataList.Value>
-                              </DataList.Item>
-                              <DataList.Item>
-                                <DataList.Label className=" p-2  font-bold text-white">
-                                  Player
-                                </DataList.Label>
-                                <DataList.Value className="justify-end">
-                                  {
-                                    characterEntry.currPvpEntry.character
-                                      ?.name
-                                  }
-                                </DataList.Value>
-                              </DataList.Item>
-                              <DataList.Item>
-                                <DataList.Label className=" p-2  font-bold text-white">
-                                  Class
-                                </DataList.Label>
-                                <DataList.Value className="justify-end">
-                                  <span
-                                    style={{
-                                      color: `${ClassColor.get(
-                                        characterEntry.charSummary
-                                          ?.character_class?.name ?? ""
-                                      )}`,
-                                    }}
-                                  >
-                                    {
-                                      characterEntry.charSummary
-                                        ?.character_class?.name
-                                    }
-                                  </span>
-                                </DataList.Value>
-                              </DataList.Item>
-                              <DataList.Item>
-                                <DataList.Label className="p-2   font-bold text-white">
-                                  Faction
-                                </DataList.Label>
-                                <DataList.Value className="justify-end">
-                                  {
-                                    characterEntry.charSummary?.faction
-                                      ?.name
-                                  }
-                                </DataList.Value>
-                              </DataList.Item>
-                              <DataList.Item>
-                                <DataList.Label className=" p-2  font-bold text-white">
-                                  Server
-                                </DataList.Label>
-                                <DataList.Value className="justify-end">
-                                  {realmName(characterEntry.charSummary?.realm ?? characterEntry.currPvpEntry.character?.realm)}
-                                </DataList.Value>
-                              </DataList.Item>
-                              <DataList.Item>
-                                <DataList.Label className=" p-2  font-bold text-white">
-                                  Wins
-                                </DataList.Label>
-                                <DataList.Value className=" justify-end text-green-300">
-                                  {(characterEntry.currPvpEntry
-                                    .season_match_statistics?.won ?? 0) -
-                                    (characterEntry.prevPvpEntry
-                                      .season_match_statistics?.won ?? 0)}
-                                </DataList.Value>
-                              </DataList.Item>
-                              <DataList.Item>
-                                <DataList.Label
-                                  width={"50vw"}
-                                  className=" p-2 font-bold text-white"
-                                >
-                                  Losses
-                                </DataList.Label>
-                                <DataList.Value className="justify-end text-red-300">
-                                  {(characterEntry.currPvpEntry
-                                    .season_match_statistics?.lost ?? 0) -
-                                    (characterEntry.prevPvpEntry
-                                      .season_match_statistics?.lost ?? 0)}
-                                </DataList.Value>
-                              </DataList.Item>
-                              <DataList.Item>
-                                <DataList.Label
-                                  width={"50vw"}
-                                  className=" p-2 font-bold text-white"
-                                >
-                                  Tracked
-                                </DataList.Label>
-                                <DataList.Value className="justify-end">
-                                  {characterEntry.time}
-                                </DataList.Value>
-                              </DataList.Item>
-                            </DataList.Root>
-                          </div>
+                        <MobileDetailsDialog
+                          region={region}
+                          realm={characterEntry.charSummary?.realm?.slug ?? characterEntry.currPvpEntry.character?.realm?.slug}
+                          characterName={characterEntry.charSummary?.name ?? characterEntry.currPvpEntry.character?.name}
+                        >
+                          <MobileDetailRow label="Rank">
+                            {characterEntry.currPvpEntry.rank}
+                            {rankChange(characterEntry)}
+                          </MobileDetailRow>
+                          <MobileDetailRow label="Rating">
+                            <span className={ratingClass(characterEntry)}>{characterEntry.currPvpEntry.rating}</span>
+                            {ratingChange(characterEntry)}
+                          </MobileDetailRow>
+                          <MobileDetailRow label="Player">{characterEntry.currPvpEntry.character?.name}</MobileDetailRow>
+                          <MobileDetailRow label="Class">
+                            <span style={{ color: `${ClassColor.get(characterEntry.charSummary?.character_class?.name ?? "")}` }}>
+                              {characterEntry.charSummary?.character_class?.name}
+                            </span>
+                          </MobileDetailRow>
+                          <MobileDetailRow label="Faction">{characterEntry.charSummary?.faction?.name}</MobileDetailRow>
+                          <MobileDetailRow label="Server">
+                            {realmName(characterEntry.charSummary?.realm ?? characterEntry.currPvpEntry.character?.realm)}
+                          </MobileDetailRow>
+                          <MobileDetailRow label="Wins" valueClassName="text-green-300">
+                            {increasedGames(characterEntry).won}
+                          </MobileDetailRow>
+                          <MobileDetailRow label="Losses" valueClassName="text-red-300">
+                            {increasedGames(characterEntry).lost}
+                          </MobileDetailRow>
+                          <MobileDetailRow label="Tracked">{characterEntry.time}</MobileDetailRow>
                         </MobileDetailsDialog>
                       </Table.Cell>
                     </Table.Row>
@@ -571,7 +452,7 @@ function Activity() {
           onPageChange={handlePageChange}
           size="large"
           className="pt-2 pb-10"
-          navClassName="flex justify-center grow"
+          navClassName="flex justify-center"
         />
       </Container>
     </div>

@@ -50,7 +50,7 @@ const CompareSearch: FC<CompareSearchProps> = (props) => {
             <div className="flex items-center">
               <img src={`/ClassIcons/${c.character_class?.name}.png`} height="22px" width="22px" />
               <img className="ml-1" src={`/Factions/${c.faction?.name}.png`} height="22px" width="22px" />
-              <span className="pl-2 grow" style={{ color: ClassColor.get(c.character_class?.name ?? "") }}>
+              <span className="pl-2 flex-1 min-w-0 truncate" style={{ color: ClassColor.get(c.character_class?.name ?? "") }}>
                 {c.name}-{c.realm?.name}
               </span>
               <img src={`/Regions/${regionOf(c)}.svg`} height="22px" width="22px" />
@@ -67,7 +67,7 @@ const CompareSearch: FC<CompareSearchProps> = (props) => {
                 <Option value={`${name}-${realm}-${region}`} key={`${name}|${slug}|${region}|add`}>
                   <div className="flex items-center">
                     <img src={`/Radix/plus.svg`} height="22px" width="22px" />
-                    <span className="pl-2 grow">
+                    <span className="pl-2 flex-1 min-w-0 truncate">
                       {name}-{realm}
                     </span>
                     <img src={`/Regions/${region}.svg`} height="22px" width="22px" />

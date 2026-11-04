@@ -7,7 +7,6 @@ import {
   Table,
   Flex,
   Container,
-  DataList,
   SegmentedControl,
   Progress,
   Tooltip,
@@ -18,7 +17,7 @@ import { ClassColor } from "../../helpers/classColorHelper";
 import { useParams } from "react-router";
 import ClassFilter, { ladderFilter } from "../class-filter/class-filter";
 import Cutoffs from "../cutoffs/cutoffs";
-import { LadderPagination, LadderSkeletonRows, MobileDetailsDialog, RegionToggle } from "../ladder-controls/ladder-controls";
+import { LadderPagination, LadderSkeletonRows, MobileDetailRow, MobileDetailsDialog, RegionToggle } from "../ladder-controls/ladder-controls";
 import { brackets } from "../../helpers/game-flavor";
 import { SoloSpec, defaultBlitzSpec, isBlitzBracket, setShuffleSpecs, setBlitzSpecs, defaultShuffleSpec, isShuffleBracket, shuffleSpecs, blitzSpecs, SoloSpecIcon } from "../../helpers/solo-bracket-specs";
 import SoloSpecFilter from "../solo-spec-filter/solo-spec-filter";
@@ -246,7 +245,7 @@ function Rankings() {
           <RegionToggle defaultValue={URLregion ?? "us"} disabled={loading} onSelect={RegionClick} />
         </div>
       </div>
-      <div>
+      <div className="desktopWidth">
         <LadderPagination
           page={page}
           onPageChange={handlePageChange}
@@ -263,8 +262,8 @@ function Rankings() {
             <Table.Header>
               <Table.Row align="start">
                 <Table.ColumnHeaderCell width="90px">Rank</Table.ColumnHeaderCell>
-                <Table.ColumnHeaderCell className="desktopOnly" width="350px">Character</Table.ColumnHeaderCell>
-                <Table.ColumnHeaderCell>Server</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell>Character</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell className="desktopOnly" width="260px">Server</Table.ColumnHeaderCell>
                 <Table.ColumnHeaderCell className="desktopOnly" width="110px">Rating</Table.ColumnHeaderCell>
                 <Table.ColumnHeaderCell className="desktopOnly" width="70px">Win</Table.ColumnHeaderCell>
                 <Table.ColumnHeaderCell className="desktopOnly" width="70px">Loss</Table.ColumnHeaderCell>
@@ -414,97 +413,31 @@ function Rankings() {
                     {characterEntry.pvpEntry.season_match_statistics?.lost}
                   </Table.Cell>
                   <Table.Cell className="mobileOnly">
-                    <MobileDetailsDialog>
-                      <div>
-                        <DataList.Root className=" text-white text-left mt-2 px-10">
-                          <DataList.Item align={"center"}>
-                            <DataList.Label className=" p-2 font-bold text-white">
-                              Rank
-                            </DataList.Label>
-                            <DataList.Value className="justify-end text-left">
-                              {" "}
-                              {characterEntry.pvpEntry.rank}
-                            </DataList.Value>
-                          </DataList.Item>
-                          <DataList.Item>
-                            <DataList.Label className=" p-2  font-bold text-white">
-                              Rating
-                            </DataList.Label>
-                            <DataList.Value className={"justify-end " + ratingClass(characterEntry)}>
-                              {characterEntry.pvpEntry.rating}
-                            </DataList.Value>
-                          </DataList.Item>
-                          <DataList.Item>
-                            <DataList.Label className=" p-2  font-bold text-white">
-                              Player
-                            </DataList.Label>
-                            <DataList.Value className="justify-end">
-                              {characterEntry.pvpEntry.character?.name}
-                            </DataList.Value>
-                          </DataList.Item>
-                          <DataList.Item>
-                            <DataList.Label className=" p-2  font-bold text-white">
-                              Class
-                            </DataList.Label>
-                            <DataList.Value className="justify-end">
-                              <span
-                                style={{
-                                  color: `${ClassColor.get(
-                                    characterEntry.charSummary
-                                      ?.character_class?.name ?? ""
-                                  )}`,
-                                }}
-                              >
-                                {
-                                  characterEntry.charSummary
-                                    ?.character_class?.name
-                                }
-                              </span>
-                            </DataList.Value>
-                          </DataList.Item>
-                          <DataList.Item>
-                            <DataList.Label className="p-2   font-bold text-white">
-                              Faction
-                            </DataList.Label>
-                            <DataList.Value className="justify-end">
-                              {characterEntry.charSummary?.faction?.name}
-                            </DataList.Value>
-                          </DataList.Item>
-                          <DataList.Item>
-                            <DataList.Label className=" p-2  font-bold text-white">
-                              Server
-                            </DataList.Label>
-                            <DataList.Value className="justify-end">
-                              {realmName(characterEntry.charSummary?.realm ?? characterEntry.pvpEntry.character?.realm)}
-                            </DataList.Value>
-                          </DataList.Item>
-                          <DataList.Item>
-                            <DataList.Label className=" p-2  font-bold text-white">
-                              Wins
-                            </DataList.Label>
-                            <DataList.Value className=" justify-end winColor">
-                              {
-                                characterEntry.pvpEntry
-                                  .season_match_statistics?.won
-                              }
-                            </DataList.Value>
-                          </DataList.Item>
-                          <DataList.Item>
-                            <DataList.Label
-                              width={"50vw"}
-                              className=" p-2 font-bold text-white"
-                            >
-                              Losses
-                            </DataList.Label>
-                            <DataList.Value className="justify-end lossColor">
-                              {
-                                characterEntry.pvpEntry
-                                  .season_match_statistics?.lost
-                              }
-                            </DataList.Value>
-                          </DataList.Item>
-                        </DataList.Root>
-                      </div>
+                    <MobileDetailsDialog
+                      region={region}
+                      realm={characterEntry.charSummary?.realm?.slug ?? characterEntry.pvpEntry.character?.realm?.slug}
+                      characterName={characterEntry.charSummary?.name ?? characterEntry.pvpEntry.character?.name}
+                    >
+                      <MobileDetailRow label="Rank">{characterEntry.pvpEntry.rank}</MobileDetailRow>
+                      <MobileDetailRow label="Rating" valueClassName={ratingClass(characterEntry)}>
+                        {characterEntry.pvpEntry.rating}
+                      </MobileDetailRow>
+                      <MobileDetailRow label="Player">{characterEntry.pvpEntry.character?.name}</MobileDetailRow>
+                      <MobileDetailRow label="Class">
+                        <span style={{ color: `${ClassColor.get(characterEntry.charSummary?.character_class?.name ?? "")}` }}>
+                          {characterEntry.charSummary?.character_class?.name}
+                        </span>
+                      </MobileDetailRow>
+                      <MobileDetailRow label="Faction">{characterEntry.charSummary?.faction?.name}</MobileDetailRow>
+                      <MobileDetailRow label="Server">
+                        {realmName(characterEntry.charSummary?.realm ?? characterEntry.pvpEntry.character?.realm)}
+                      </MobileDetailRow>
+                      <MobileDetailRow label="Wins" valueClassName="winColor">
+                        {characterEntry.pvpEntry.season_match_statistics?.won}
+                      </MobileDetailRow>
+                      <MobileDetailRow label="Losses" valueClassName="lossColor">
+                        {characterEntry.pvpEntry.season_match_statistics?.lost}
+                      </MobileDetailRow>
                     </MobileDetailsDialog>
                   </Table.Cell>
                 </Table.Row>
@@ -518,7 +451,7 @@ function Rankings() {
           onPageChange={handlePageChange}
           size="compact"
           className="pt-1 pb-10"
-          navClassName="flex justify-end grow"
+          navClassName="flex justify-end"
         />
       </Container>
     </div>
