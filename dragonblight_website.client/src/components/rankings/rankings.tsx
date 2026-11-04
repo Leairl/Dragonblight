@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import * as Avatar from "@radix-ui/react-avatar";
-import * as Dialog from "@radix-ui/react-dialog";
 import { useNavigate } from "react-router"
 import "@preline/select"; // Import Preline JavaScript
 import {
@@ -8,10 +7,8 @@ import {
   Table,
   Flex,
   Container,
-  Button,
   DataList,
   SegmentedControl,
-  Skeleton,
   Progress,
   Tooltip,
 } from "@radix-ui/themes";
@@ -19,9 +16,9 @@ import { Dragonblight } from "../../clients/Dragonblight";
 import "./rankings.css";
 import { ClassColor } from "../../helpers/classColorHelper";
 import { useParams } from "react-router";
-import { Pagination } from "react-headless-pagination";
-import ClassFilter from "../class-filter/class-filter";
+import ClassFilter, { ladderFilter } from "../class-filter/class-filter";
 import Cutoffs from "../cutoffs/cutoffs";
+import { LadderPagination, LadderSkeletonRows, MobileDetailsDialog, RegionToggle } from "../ladder-controls/ladder-controls";
 import { brackets } from "../../helpers/game-flavor";
 import { SoloSpec, defaultBlitzSpec, isBlitzBracket, setShuffleSpecs, setBlitzSpecs, defaultShuffleSpec, isShuffleBracket, shuffleSpecs, blitzSpecs, SoloSpecIcon } from "../../helpers/solo-bracket-specs";
 import SoloSpecFilter from "../solo-spec-filter/solo-spec-filter";
@@ -77,18 +74,6 @@ function Rankings() {
     }
     return className
   }
-  function ladderFilter(): string[] {
-    const classAndSpecFilter: string[] = [];
-    for (const className of selectedClasses) {
-      const specsForClass = selectedSpecs.filter(spec => spec.startsWith(className + ":"));
-      if (specsForClass.length > 0) {
-        classAndSpecFilter.push(...specsForClass);
-      } else {
-        classAndSpecFilter.push(className);
-      }
-    }
-    return classAndSpecFilter;
-  }
   //getting values that are changeable
   useEffect(() => {
     setLoading(true);
@@ -100,7 +85,7 @@ function Rankings() {
       LadderData();
     }
     else {
-      FilteredLadderData(ladderFilter(), bracket);
+      FilteredLadderData(ladderFilter(selectedClasses, selectedSpecs), bracket);
     }
 
     //the sync runs every two hours and a bracket can start at any moment, so the bar is refreshed for
@@ -119,7 +104,7 @@ function Rankings() {
     DragonblightClient.getLadderBrackets(region).then(
       (result) => {
         setLadders(result ?? [])
-        const soloLadders = result?.filter((l) => l.slug.startsWith("shuffle") || l.slug.startsWith("blitz")) ?? [];
+        const soloLadders = result?.filter((l) => isShuffleBracket(l.slug) || isBlitzBracket(l.slug)) ?? [];
         const soloSpecsFromLadders = soloLadders.map((l) => {
           const newSoloSpec: SoloSpec = {
             slug: l.slug,
@@ -130,8 +115,8 @@ function Rankings() {
           return newSoloSpec;
         })
         // uses ascii to sort the classes alphabetically, so that the order is consistent with the class filter
-        setShuffleSpecs(soloSpecsFromLadders.filter((s) => s.slug.startsWith("shuffle")).sort((a, b) => a.className.localeCompare(b.className)));
-        setBlitzSpecs(soloSpecsFromLadders.filter((s) => s.slug.startsWith("blitz")).sort((a, b) => a.className.localeCompare(b.className)));
+        setShuffleSpecs(soloSpecsFromLadders.filter((s) => isShuffleBracket(s.slug)).sort((a, b) => a.className.localeCompare(b.className)));
+        setBlitzSpecs(soloSpecsFromLadders.filter((s) => isBlitzBracket(s.slug)).sort((a, b) => a.className.localeCompare(b.className)));
       });
   }, [region]);
   //when page changes, call useeffect and update the skip amount
@@ -258,89 +243,18 @@ function Rankings() {
             </span>
           </Tooltip>
 
-          <div className={loading ? "div-disabled" : ""}>
-            <SegmentedControl.Root
-              className="w-[100px] grow-0"
-              defaultValue={URLregion ?? "us"}
-            >
-              <SegmentedControl.Item
-                onClick={() => {
-                  RegionClick("us");
-                }}
-                value="us"
-              >
-                US
-              </SegmentedControl.Item>
-              <SegmentedControl.Item
-                onClick={() => {
-                  RegionClick("eu");
-                }}
-                value="eu"
-              >
-                EU
-              </SegmentedControl.Item>
-            </SegmentedControl.Root>
-          </div>
+          <RegionToggle defaultValue={URLregion ?? "us"} disabled={loading} onSelect={RegionClick} />
         </div>
       </div>
       <div>
-        <Pagination
-          currentPage={page}
-          totalPages={100}
-          edgePageCount={1}
-          middlePagesSiblingCount={1}
-          setCurrentPage={handlePageChange}
+        <LadderPagination
+          page={page}
+          onPageChange={handlePageChange}
+          size="compact"
           className=" pb-3"
-          truncableText="&nbsp;...&nbsp;"
-          truncableClassName=""
-
-        >
-          <nav className="flex justify-end grow-0">
-            <span className="font-bold flex float-left grow text-sm items-center">
-              Showing {page * 50 + 1} - {(page + 1) * 50} Characters
-            </span>
-            <ul className="flex items-center">
-              <Pagination.PrevButton className="bg-[#292c31] mx-1 h-[28px] w-[28px] py-2 px-2.5 inline-flex justify-center items-center gap-x-1.5 text-xs first:rounded-s-lg last:rounded-e-lg border border-gray-200 text-gray-800 hover:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:border-neutral-700 dark:text-white dark:hover:bg-white/10 ">
-                <svg
-                  className="shrink-0 size-3.5"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="m15 18-6-6 6-6"></path>
-                </svg>
-              </Pagination.PrevButton>
-              <Pagination.PageButton
-                inactiveClassName="bg-transparent h-[28px] w-[28px] flex justify-center items-center text-center first:rounded-s-md last:rounded-e-md text-gray-800 hover:bg-gray-100 py-3 px-4 text-xs focus:outline-hidden focus:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:border-neutral-700 dark:text-white dark:hover:bg-white/10 dark:focus:bg-white/10"
-                activeClassName="h-[28px] w-[28px] flex justify-center items-center text-center bg-gray-200 first:rounded-s-md last:rounded-e-md text-gray-800  py-3 px-4 text-xs focus:outline-hidden focus:bg-gray-300 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-600 dark:border-neutral-700 dark:text-white dark:focus:bg-neutral-500"
-                className="mx-px"
-              />
-
-              <Pagination.NextButton className="bg-[#292c31] mx-1 h-[28px] w-[28px] py-2 px-2.5 inline-flex justify-center items-center gap-x-1.5 text-xs first:rounded-s-lg last:rounded-e-lg border border-gray-200 text-gray-800 hover:bg-gray-100  disabled:opacity-50 disabled:pointer-events-none dark:border-neutral-700 dark:text-white dark:hover:bg-white/10 ">
-                <svg
-                  className="shrink-0 size-3.5"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="m9 18 6-6-6-6"></path>
-                </svg>
-              </Pagination.NextButton>
-            </ul>
-          </nav>
-        </Pagination>
+          navClassName="flex justify-end grow-0"
+          showCount
+        />
       </div>
       <Container className="desktopWidth justify-center">
         {/* <Flex direction="column" gap="5" maxWidth="950px"> */}
@@ -359,31 +273,7 @@ function Rankings() {
             </Table.Header>
 
             <Table.Body>
-              {loading &&
-                Array(50).fill(0, 0, 3)?.map((i) => {
-                  return (
-                    <Table.Row key={"skeleton" + i}>
-                      <Table.Cell>
-                        <Skeleton></Skeleton>
-                      </Table.Cell>
-                      <Table.Cell>
-                        <Skeleton></Skeleton>
-                      </Table.Cell>
-                      <Table.Cell>
-                        <Skeleton></Skeleton>
-                      </Table.Cell>
-                      <Table.Cell>
-                        <Skeleton></Skeleton>
-                      </Table.Cell>
-                      <Table.Cell>
-                        <Skeleton></Skeleton>
-                      </Table.Cell>
-                      <Table.Cell>
-                        <Skeleton></Skeleton>
-                      </Table.Cell>
-                    </Table.Row>
-                  );
-                })}
+              {loading && <LadderSkeletonRows />}
               {loading &&
                 <div className="h-[1000px]">
 
@@ -524,128 +414,98 @@ function Rankings() {
                     {characterEntry.pvpEntry.season_match_statistics?.lost}
                   </Table.Cell>
                   <Table.Cell className="mobileOnly">
-                    <Dialog.Root>
-                      <Dialog.Trigger asChild>
-                        <Button className="z-10" variant="outline">
-                          View
-                        </Button>
-                      </Dialog.Trigger>
-                      <Dialog.Portal>
-                        <Dialog.Overlay className="backdrop-blur-sm data-[state=open]:animate-overlayShow fixed inset-0" />
-                        <Dialog.Content className="min-h-[400px] data-[state=open]:animate-contentShow fixed top-[50%] left-[50%] w-[90vw] h-[70vh] translate-x-[-50%] translate-y-[-50%] rounded-[6px] shadow-[hsl(206_22%_7%/35%)_0px_10px_38px_-10px,hsl(206_22%_7%/20%)_0px_10px_20px_-15px] bg-[#292c31] focus:outline-hidden">
-                          <div className=" flex justify-end">
-                            <Dialog.Close asChild>
-                              <button className="pt-7 text-2xl hover:opacity-50 focus:shadow-green7 inline-flex h-[35px] items-center justify-center rounded-[4px] px-[15px] font-medium leading-none">
-                                <svg
-                                  width="30"
-                                  height="30"
-                                  viewBox="0 0 15 15"
-                                  fill="none"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                >
-                                  <path
-                                    d="M11.7816 4.03157C12.0062 3.80702 12.0062 3.44295 11.7816 3.2184C11.5571 2.99385 11.193 2.99385 10.9685 3.2184L7.50005 6.68682L4.03164 3.2184C3.80708 2.99385 3.44301 2.99385 3.21846 3.2184C2.99391 3.44295 2.99391 3.80702 3.21846 4.03157L6.68688 7.49999L3.21846 10.9684C2.99391 11.193 2.99391 11.557 3.21846 11.7816C3.44301 12.0061 3.80708 12.0061 4.03164 11.7816L7.50005 8.31316L10.9685 11.7816C11.193 12.0061 11.5571 12.0061 11.7816 11.7816C12.0062 11.557 12.0062 11.193 11.7816 10.9684L8.31322 7.49999L11.7816 4.03157Z"
-                                    fill="currentColor"
-                                    fillRule="evenodd"
-                                    clipRule="evenodd"
-                                  ></path>
-                                </svg>
-                              </button>
-                            </Dialog.Close>
-                          </div>
-                          <div>
-                            <DataList.Root className=" text-white text-left mt-2 px-10">
-                              <DataList.Item align={"center"}>
-                                <DataList.Label className=" p-2 font-bold text-white">
-                                  Rank
-                                </DataList.Label>
-                                <DataList.Value className="justify-end text-left">
-                                  {" "}
-                                  {characterEntry.pvpEntry.rank}
-                                </DataList.Value>
-                              </DataList.Item>
-                              <DataList.Item>
-                                <DataList.Label className=" p-2  font-bold text-white">
-                                  Rating
-                                </DataList.Label>
-                                <DataList.Value className={"justify-end " + ratingClass(characterEntry)}>
-                                  {characterEntry.pvpEntry.rating}
-                                </DataList.Value>
-                              </DataList.Item>
-                              <DataList.Item>
-                                <DataList.Label className=" p-2  font-bold text-white">
-                                  Player
-                                </DataList.Label>
-                                <DataList.Value className="justify-end">
-                                  {characterEntry.pvpEntry.character?.name}
-                                </DataList.Value>
-                              </DataList.Item>
-                              <DataList.Item>
-                                <DataList.Label className=" p-2  font-bold text-white">
-                                  Class
-                                </DataList.Label>
-                                <DataList.Value className="justify-end">
-                                  <span
-                                    style={{
-                                      color: `${ClassColor.get(
-                                        characterEntry.charSummary
-                                          ?.character_class?.name ?? ""
-                                      )}`,
-                                    }}
-                                  >
-                                    {
-                                      characterEntry.charSummary
-                                        ?.character_class?.name
-                                    }
-                                  </span>
-                                </DataList.Value>
-                              </DataList.Item>
-                              <DataList.Item>
-                                <DataList.Label className="p-2   font-bold text-white">
-                                  Faction
-                                </DataList.Label>
-                                <DataList.Value className="justify-end">
-                                  {characterEntry.charSummary?.faction?.name}
-                                </DataList.Value>
-                              </DataList.Item>
-                              <DataList.Item>
-                                <DataList.Label className=" p-2  font-bold text-white">
-                                  Server
-                                </DataList.Label>
-                                <DataList.Value className="justify-end">
-                                  {realmName(characterEntry.charSummary?.realm ?? characterEntry.pvpEntry.character?.realm)}
-                                </DataList.Value>
-                              </DataList.Item>
-                              <DataList.Item>
-                                <DataList.Label className=" p-2  font-bold text-white">
-                                  Wins
-                                </DataList.Label>
-                                <DataList.Value className=" justify-end winColor">
-                                  {
-                                    characterEntry.pvpEntry
-                                      .season_match_statistics?.won
-                                  }
-                                </DataList.Value>
-                              </DataList.Item>
-                              <DataList.Item>
-                                <DataList.Label
-                                  width={"50vw"}
-                                  className=" p-2 font-bold text-white"
-                                >
-                                  Losses
-                                </DataList.Label>
-                                <DataList.Value className="justify-end lossColor">
-                                  {
-                                    characterEntry.pvpEntry
-                                      .season_match_statistics?.lost
-                                  }
-                                </DataList.Value>
-                              </DataList.Item>
-                            </DataList.Root>
-                          </div>
-                        </Dialog.Content>
-                      </Dialog.Portal>
-                    </Dialog.Root>
+                    <MobileDetailsDialog>
+                      <div>
+                        <DataList.Root className=" text-white text-left mt-2 px-10">
+                          <DataList.Item align={"center"}>
+                            <DataList.Label className=" p-2 font-bold text-white">
+                              Rank
+                            </DataList.Label>
+                            <DataList.Value className="justify-end text-left">
+                              {" "}
+                              {characterEntry.pvpEntry.rank}
+                            </DataList.Value>
+                          </DataList.Item>
+                          <DataList.Item>
+                            <DataList.Label className=" p-2  font-bold text-white">
+                              Rating
+                            </DataList.Label>
+                            <DataList.Value className={"justify-end " + ratingClass(characterEntry)}>
+                              {characterEntry.pvpEntry.rating}
+                            </DataList.Value>
+                          </DataList.Item>
+                          <DataList.Item>
+                            <DataList.Label className=" p-2  font-bold text-white">
+                              Player
+                            </DataList.Label>
+                            <DataList.Value className="justify-end">
+                              {characterEntry.pvpEntry.character?.name}
+                            </DataList.Value>
+                          </DataList.Item>
+                          <DataList.Item>
+                            <DataList.Label className=" p-2  font-bold text-white">
+                              Class
+                            </DataList.Label>
+                            <DataList.Value className="justify-end">
+                              <span
+                                style={{
+                                  color: `${ClassColor.get(
+                                    characterEntry.charSummary
+                                      ?.character_class?.name ?? ""
+                                  )}`,
+                                }}
+                              >
+                                {
+                                  characterEntry.charSummary
+                                    ?.character_class?.name
+                                }
+                              </span>
+                            </DataList.Value>
+                          </DataList.Item>
+                          <DataList.Item>
+                            <DataList.Label className="p-2   font-bold text-white">
+                              Faction
+                            </DataList.Label>
+                            <DataList.Value className="justify-end">
+                              {characterEntry.charSummary?.faction?.name}
+                            </DataList.Value>
+                          </DataList.Item>
+                          <DataList.Item>
+                            <DataList.Label className=" p-2  font-bold text-white">
+                              Server
+                            </DataList.Label>
+                            <DataList.Value className="justify-end">
+                              {realmName(characterEntry.charSummary?.realm ?? characterEntry.pvpEntry.character?.realm)}
+                            </DataList.Value>
+                          </DataList.Item>
+                          <DataList.Item>
+                            <DataList.Label className=" p-2  font-bold text-white">
+                              Wins
+                            </DataList.Label>
+                            <DataList.Value className=" justify-end winColor">
+                              {
+                                characterEntry.pvpEntry
+                                  .season_match_statistics?.won
+                              }
+                            </DataList.Value>
+                          </DataList.Item>
+                          <DataList.Item>
+                            <DataList.Label
+                              width={"50vw"}
+                              className=" p-2 font-bold text-white"
+                            >
+                              Losses
+                            </DataList.Label>
+                            <DataList.Value className="justify-end lossColor">
+                              {
+                                characterEntry.pvpEntry
+                                  .season_match_statistics?.lost
+                              }
+                            </DataList.Value>
+                          </DataList.Item>
+                        </DataList.Root>
+                      </div>
+                    </MobileDetailsDialog>
                   </Table.Cell>
                 </Table.Row>
               ))}
@@ -653,59 +513,13 @@ function Rankings() {
           </Table.Root>
         </Card>
         {/* </Flex> */}
-        <Pagination
-          currentPage={page}
-          totalPages={100}
-          edgePageCount={1}
-          middlePagesSiblingCount={1}
-          setCurrentPage={handlePageChange}
+        <LadderPagination
+          page={page}
+          onPageChange={handlePageChange}
+          size="compact"
           className="pt-1 pb-10"
-          truncableText="&nbsp;...&nbsp;"
-          truncableClassName=""
-        >
-          <nav className="flex justify-end grow">
-            <ul className="flex items-center">
-              <Pagination.PrevButton className="bg-[#292c31] mx-1 h-[28px] w-[28px] py-2 px-2.5 inline-flex justify-center items-center gap-x-1.5 text-xs first:rounded-s-lg last:rounded-e-lg border border-gray-200 text-gray-800 hover:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:border-neutral-700 dark:text-white dark:hover:bg-white/10 ">
-                <svg
-                  className="shrink-0 size-3.5"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="m15 18-6-6 6-6"></path>
-                </svg>
-              </Pagination.PrevButton>
-              <Pagination.PageButton
-                inactiveClassName="bg-transparent h-[28px] w-[28px] flex justify-center items-center text-center first:rounded-s-md last:rounded-e-md text-gray-800 hover:bg-gray-100 py-3 px-4 text-xs focus:outline-hidden focus:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:border-neutral-700 dark:text-white dark:hover:bg-white/10 dark:focus:bg-white/10"
-                activeClassName="h-[28px] w-[28px] flex justify-center items-center text-center bg-gray-200 first:rounded-s-md last:rounded-e-md text-gray-800  py-3 px-4 text-xs focus:outline-hidden focus:bg-gray-300 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-600 dark:border-neutral-700 dark:text-white dark:focus:bg-neutral-500"
-                className="mx-px"
-              />
-
-              <Pagination.NextButton className="bg-[#292c31] mx-1 h-[28px] w-[28px] py-2 px-2.5 inline-flex justify-center items-center gap-x-1.5 text-xs first:rounded-s-lg last:rounded-e-lg border border-gray-200 text-gray-800 hover:bg-gray-100  disabled:opacity-50 disabled:pointer-events-none dark:border-neutral-700 dark:text-white dark:hover:bg-white/10 ">
-                <svg
-                  className="shrink-0 size-3.5"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="m9 18 6-6-6-6"></path>
-                </svg>
-              </Pagination.NextButton>
-            </ul>
-          </nav>
-        </Pagination>
+          navClassName="flex justify-end grow"
+        />
       </Container>
     </div>
   );

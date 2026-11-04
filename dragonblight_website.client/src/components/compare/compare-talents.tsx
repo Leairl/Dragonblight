@@ -3,6 +3,7 @@ import { Button, Card, Select, Skeleton, Text } from "@radix-ui/themes";
 import { CopyIcon, CheckIcon } from "@radix-ui/react-icons";
 import { Dragonblight } from "../../clients/Dragonblight";
 import { getFlavor, wowheadUrl } from "../../helpers/game-flavor";
+import { loadTree } from "../../helpers/talentTreeHelper";
 import { CompareNotice, SideHeader, SlotRow, SpecPicker, TalentLink } from "./compare-shared";
 import { CompareSide, useTalentSummaries } from "./talent-data";
 import {
@@ -35,20 +36,6 @@ interface CompareTalentsProps {
   //the spec in the url, if one was picked
   specId?: number;
   onSpecChange: (specId: number) => void;
-}
-
-//Talent trees are kept for the visit, so flipping between tabs does not fetch them again.
-const trees = new Map<string, Promise<Dragonblight.TalentTree>>();
-
-function loadTree(specId: number, region: string) {
-  const key = `${specId}/${region}`;
-  let p = trees.get(key);
-  if (!p) {
-    p = new Dragonblight.TalentClient().getTalentTree(specId, region);
-    p.catch(() => trees.delete(key));
-    trees.set(key, p);
-  }
-  return p;
 }
 
 interface Loaded<T> {

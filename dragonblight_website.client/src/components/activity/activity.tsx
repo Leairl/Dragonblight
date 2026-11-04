@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import * as Avatar from "@radix-ui/react-avatar";
-import * as Dialog from "@radix-ui/react-dialog";
 import { useNavigate } from "react-router";
 import "@preline/select"; // Import Preline JavaScript
 import {
@@ -8,27 +7,23 @@ import {
   Table,
   Flex,
   Container,
-  Button,
   DataList,
   SegmentedControl,
-  Skeleton,
   Callout,
 } from "@radix-ui/themes";
 import { Dragonblight } from "../../clients/Dragonblight";
 import "./activity.css";
 import { ClassColor } from "../../helpers/classColorHelper";
 import { useParams } from "react-router";
-import { Pagination } from "react-headless-pagination";
-import ClassFilter from "../class-filter/class-filter";
+import ClassFilter, { ladderFilter } from "../class-filter/class-filter";
 import { InfoCircledIcon } from "@radix-ui/react-icons";
 import Cutoffs from "../cutoffs/cutoffs";
+import { LadderPagination, LadderSkeletonRows, MobileDetailsDialog, RegionToggle } from "../ladder-controls/ladder-controls";
 import { brackets } from "../../helpers/game-flavor";
 import classNames from "classnames";
 import { realmName } from "../../helpers/realmNameHelper";
 import { rankOneRatingClass } from "../../helpers/ratingTierHelper";
 import { bracketLabels, bracketSlug, isBlitzBracket, isShuffleBracket } from "../../helpers/solo-bracket-specs";
-
-const Skeletons = [0, 1, 2];
 
 function Activity() {
   //const [count, setCount] = useState(0); //store dynamic data, focus on arena ladder component
@@ -118,18 +113,6 @@ function Activity() {
     setHoveredPlayer(null);
     clearTimeout(timeoutRef.current);
   }
-  function ladderFilter(): string[] {
-    const classAndSpecFilter: string[] = [];
-    for (const className of selectedClasses) {
-      const specsForClass = selectedSpecs.filter(spec => spec.startsWith(className + ":"));
-      if (specsForClass.length > 0) {
-        classAndSpecFilter.push(...specsForClass);
-      } else {
-        classAndSpecFilter.push(className);
-      }
-    }
-    return classAndSpecFilter;
-  }
   //getting values that are changeable
   useEffect(() => {
     if (selectedClasses != null && selectedClasses.length > 0) {
@@ -137,7 +120,7 @@ function Activity() {
       if (selectedClasses.includes("All Classes")) {
         LadderData();
       } else {
-        FilteredLadderData(ladderFilter(), bracket);
+        FilteredLadderData(ladderFilter(selectedClasses, selectedSpecs), bracket);
       }
     }
   }, [bracket, region, page, selectedClasses, selectedSpecs]);
@@ -190,89 +173,18 @@ function Activity() {
             </SegmentedControl.Root>
           </div>
           <div className="db-grow"></div>
-          <div className={loading ? "div-disabled" : ""}>
-            <SegmentedControl.Root
-              className="w-[100px] grow-0"
-              defaultValue={URLregion ?? "us"}
-            >
-              <SegmentedControl.Item
-                onClick={() => {
-                  RegionClick("us");
-                }}
-                value="us"
-              >
-                US
-              </SegmentedControl.Item>
-              <SegmentedControl.Item
-                onClick={() => {
-                  RegionClick("eu");
-                }}
-                value="eu"
-              >
-                EU
-              </SegmentedControl.Item>
-            </SegmentedControl.Root>
-          </div>
+          <RegionToggle defaultValue={URLregion ?? "us"} disabled={loading} onSelect={RegionClick} />
         </div>
       </div>
       <div>
-        <Pagination
-          currentPage={page}
-          totalPages={100}
-          edgePageCount={1}
-          middlePagesSiblingCount={1}
-          setCurrentPage={handlePageChange}
+        <LadderPagination
+          page={page}
+          onPageChange={handlePageChange}
+          size="compact"
           className=" pb-3"
-          truncableText="&nbsp;...&nbsp;"
-          truncableClassName=""
-
-        >
-          <nav className="flex justify-end grow-0">
-            <span className="font-bold flex float-left grow text-sm items-center">
-              Showing {page * 50 + 1} - {(page + 1) * 50} Characters
-            </span>
-            <ul className="flex items-center">
-              <Pagination.PrevButton className="bg-[#292c31] mx-1 h-[28px] w-[28px] py-2 px-2.5 inline-flex justify-center items-center gap-x-1.5 text-xs first:rounded-s-lg last:rounded-e-lg border border-gray-200 text-gray-800 hover:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:border-neutral-700 dark:text-white dark:hover:bg-white/10 ">
-                <svg
-                  className="shrink-0 size-3.5"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="m15 18-6-6 6-6"></path>
-                </svg>
-              </Pagination.PrevButton>
-              <Pagination.PageButton
-                inactiveClassName="bg-transparent h-[28px] w-[28px] flex justify-center items-center text-center first:rounded-s-md last:rounded-e-md text-gray-800 hover:bg-gray-100 py-3 px-4 text-xs focus:outline-hidden focus:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:border-neutral-700 dark:text-white dark:hover:bg-white/10 dark:focus:bg-white/10"
-                activeClassName="h-[28px] w-[28px] flex justify-center items-center text-center bg-gray-200 first:rounded-s-md last:rounded-e-md text-gray-800  py-3 px-4 text-xs focus:outline-hidden focus:bg-gray-300 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-600 dark:border-neutral-700 dark:text-white dark:focus:bg-neutral-500"
-                className="mx-px"
-              />
-
-              <Pagination.NextButton className="bg-[#292c31] mx-1 h-[28px] w-[28px] py-2 px-2.5 inline-flex justify-center items-center gap-x-1.5 text-xs first:rounded-s-lg last:rounded-e-lg border border-gray-200 text-gray-800 hover:bg-gray-100  disabled:opacity-50 disabled:pointer-events-none dark:border-neutral-700 dark:text-white dark:hover:bg-white/10 ">
-                <svg
-                  className="shrink-0 size-3.5"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="m9 18 6-6-6-6"></path>
-                </svg>
-              </Pagination.NextButton>
-            </ul>
-          </nav>
-        </Pagination>
+          navClassName="flex justify-end grow-0"
+          showCount
+        />
       </div>
       <Container className="desktopWidth flex justify-center">
         <Flex direction="column" gap="5" maxWidth="950px">
@@ -304,31 +216,7 @@ function Activity() {
               </Table.Header>
 
               <Table.Body>
-                {loading &&
-                  Skeletons?.map((i) => {
-                    return (
-                      <Table.Row key={"skeleton" + i}>
-                        <Table.Cell>
-                          <Skeleton></Skeleton>
-                        </Table.Cell>
-                        <Table.Cell>
-                          <Skeleton></Skeleton>
-                        </Table.Cell>
-                        <Table.Cell>
-                          <Skeleton></Skeleton>
-                        </Table.Cell>
-                        <Table.Cell>
-                          <Skeleton></Skeleton>
-                        </Table.Cell>
-                        <Table.Cell>
-                          <Skeleton></Skeleton>
-                        </Table.Cell>
-                        <Table.Cell>
-                          <Skeleton></Skeleton>
-                        </Table.Cell>
-                      </Table.Row>
-                    );
-                  })}
+                {loading && <LadderSkeletonRows />}
                 {/* map acts as a for loop to find character data in ladder */}
                 {ladderData?.map((characterEntry, i) => {
                   return (
@@ -516,182 +404,152 @@ function Activity() {
                         {characterEntry.time}
                       </Table.Cell>
                       <Table.Cell className="mobileOnly">
-                        <Dialog.Root>
-                          <Dialog.Trigger asChild>
-                            <Button className="z-10" variant="outline">
-                              View
-                            </Button>
-                          </Dialog.Trigger>
-                          <Dialog.Portal>
-                            <Dialog.Overlay className="backdrop-blur-sm data-[state=open]:animate-overlayShow fixed inset-0" />
-                            <Dialog.Content className="min-h-[400px] data-[state=open]:animate-contentShow fixed top-[50%] left-[50%] w-[90vw] h-[70vh] translate-x-[-50%] translate-y-[-50%] rounded-[6px] shadow-[hsl(206_22%_7%/35%)_0px_10px_38px_-10px,hsl(206_22%_7%/20%)_0px_10px_20px_-15px] bg-[#292c31] focus:outline-hidden">
-                              <div className=" flex justify-end">
-                                <Dialog.Close asChild>
-                                  <button className="pt-7 text-2xl hover:opacity-50 focus:shadow-green7 inline-flex h-[35px] items-center justify-center rounded-[4px] px-[15px] font-medium leading-none">
-                                    <svg
-                                      width="30"
-                                      height="30"
-                                      viewBox="0 0 15 15"
-                                      fill="none"
-                                      xmlns="http://www.w3.org/2000/svg"
-                                    >
-                                      <path
-                                        d="M11.7816 4.03157C12.0062 3.80702 12.0062 3.44295 11.7816 3.2184C11.5571 2.99385 11.193 2.99385 10.9685 3.2184L7.50005 6.68682L4.03164 3.2184C3.80708 2.99385 3.44301 2.99385 3.21846 3.2184C2.99391 3.44295 2.99391 3.80702 3.21846 4.03157L6.68688 7.49999L3.21846 10.9684C2.99391 11.193 2.99391 11.557 3.21846 11.7816C3.44301 12.0061 3.80708 12.0061 4.03164 11.7816L7.50005 8.31316L10.9685 11.7816C11.193 12.0061 11.5571 12.0061 11.7816 11.7816C12.0062 11.557 12.0062 11.193 11.7816 10.9684L8.31322 7.49999L11.7816 4.03157Z"
-                                        fill="currentColor"
-                                        fillRule="evenodd"
-                                        clipRule="evenodd"
-                                      ></path>
-                                    </svg>
-                                  </button>
-                                </Dialog.Close>
-                              </div>
-                              <div>
-                                <DataList.Root className=" text-white text-left mt-2 px-10">
-                                  <DataList.Item align={"center"}>
-                                    <DataList.Label className=" p-2 font-bold text-white">
-                                      Rank
-                                    </DataList.Label>
-                                    <DataList.Value className="justify-end">
-                                      <div className="flex flex-row justify-center">
-                                        {" "}
-                                        {characterEntry.currPvpEntry.rank}{" "}
-                                        &nbsp;{" "}
-                                        <span
-                                          className={
-                                            characterEntry.currPvpEntry.rank >=
-                                              characterEntry.prevPvpEntry.rank
-                                              ? "text-red-300"
-                                              : "text-green-300"
-                                          }
-                                        >
-                                          {characterEntry.currPvpEntry.rank >
-                                            characterEntry.prevPvpEntry.rank
-                                            ? "+"
-                                            : ""}
-                                          {characterEntry.currPvpEntry.rank -
-                                            characterEntry.prevPvpEntry.rank}
-                                        </span>
-                                      </div>
-                                    </DataList.Value>
-                                  </DataList.Item>
-                                  <DataList.Item>
-                                    <DataList.Label className=" p-2  font-bold text-white">
-                                      Rating
-                                    </DataList.Label>
-                                    <DataList.Value className="justify-end">
-                                      <div className="flex flex-row justify-center">
-                                        <span className={ratingClass(characterEntry)}>{characterEntry.currPvpEntry.rating}</span>{" "}
-                                        &nbsp;
-                                        <span
-                                          className={
-                                            characterEntry.currPvpEntry
-                                              .rating >=
-                                              characterEntry.prevPvpEntry.rating
-                                              ? "text-green-300"
-                                              : "text-red-300"
-                                          }
-                                        >
-                                          {characterEntry.currPvpEntry.rating >=
-                                            characterEntry.prevPvpEntry.rating
-                                            ? "+"
-                                            : ""}
-                                          {characterEntry.currPvpEntry.rating -
-                                            characterEntry.prevPvpEntry.rating}
-                                        </span>
-                                      </div>
-                                    </DataList.Value>
-                                  </DataList.Item>
-                                  <DataList.Item>
-                                    <DataList.Label className=" p-2  font-bold text-white">
-                                      Player
-                                    </DataList.Label>
-                                    <DataList.Value className="justify-end">
-                                      {
-                                        characterEntry.currPvpEntry.character
-                                          ?.name
+                        <MobileDetailsDialog>
+                          <div>
+                            <DataList.Root className=" text-white text-left mt-2 px-10">
+                              <DataList.Item align={"center"}>
+                                <DataList.Label className=" p-2 font-bold text-white">
+                                  Rank
+                                </DataList.Label>
+                                <DataList.Value className="justify-end">
+                                  <div className="flex flex-row justify-center">
+                                    {" "}
+                                    {characterEntry.currPvpEntry.rank}{" "}
+                                    &nbsp;{" "}
+                                    <span
+                                      className={
+                                        characterEntry.currPvpEntry.rank >=
+                                          characterEntry.prevPvpEntry.rank
+                                          ? "text-red-300"
+                                          : "text-green-300"
                                       }
-                                    </DataList.Value>
-                                  </DataList.Item>
-                                  <DataList.Item>
-                                    <DataList.Label className=" p-2  font-bold text-white">
-                                      Class
-                                    </DataList.Label>
-                                    <DataList.Value className="justify-end">
-                                      <span
-                                        style={{
-                                          color: `${ClassColor.get(
-                                            characterEntry.charSummary
-                                              ?.character_class?.name ?? ""
-                                          )}`,
-                                        }}
-                                      >
-                                        {
-                                          characterEntry.charSummary
-                                            ?.character_class?.name
-                                        }
-                                      </span>
-                                    </DataList.Value>
-                                  </DataList.Item>
-                                  <DataList.Item>
-                                    <DataList.Label className="p-2   font-bold text-white">
-                                      Faction
-                                    </DataList.Label>
-                                    <DataList.Value className="justify-end">
-                                      {
-                                        characterEntry.charSummary?.faction
-                                          ?.name
+                                    >
+                                      {characterEntry.currPvpEntry.rank >
+                                        characterEntry.prevPvpEntry.rank
+                                        ? "+"
+                                        : ""}
+                                      {characterEntry.currPvpEntry.rank -
+                                        characterEntry.prevPvpEntry.rank}
+                                    </span>
+                                  </div>
+                                </DataList.Value>
+                              </DataList.Item>
+                              <DataList.Item>
+                                <DataList.Label className=" p-2  font-bold text-white">
+                                  Rating
+                                </DataList.Label>
+                                <DataList.Value className="justify-end">
+                                  <div className="flex flex-row justify-center">
+                                    <span className={ratingClass(characterEntry)}>{characterEntry.currPvpEntry.rating}</span>{" "}
+                                    &nbsp;
+                                    <span
+                                      className={
+                                        characterEntry.currPvpEntry
+                                          .rating >=
+                                          characterEntry.prevPvpEntry.rating
+                                          ? "text-green-300"
+                                          : "text-red-300"
                                       }
-                                    </DataList.Value>
-                                  </DataList.Item>
-                                  <DataList.Item>
-                                    <DataList.Label className=" p-2  font-bold text-white">
-                                      Server
-                                    </DataList.Label>
-                                    <DataList.Value className="justify-end">
-                                      {realmName(characterEntry.charSummary?.realm ?? characterEntry.currPvpEntry.character?.realm)}
-                                    </DataList.Value>
-                                  </DataList.Item>
-                                  <DataList.Item>
-                                    <DataList.Label className=" p-2  font-bold text-white">
-                                      Wins
-                                    </DataList.Label>
-                                    <DataList.Value className=" justify-end text-green-300">
-                                      {(characterEntry.currPvpEntry
-                                        .season_match_statistics?.won ?? 0) -
-                                        (characterEntry.prevPvpEntry
-                                          .season_match_statistics?.won ?? 0)}
-                                    </DataList.Value>
-                                  </DataList.Item>
-                                  <DataList.Item>
-                                    <DataList.Label
-                                      width={"50vw"}
-                                      className=" p-2 font-bold text-white"
                                     >
-                                      Losses
-                                    </DataList.Label>
-                                    <DataList.Value className="justify-end text-red-300">
-                                      {(characterEntry.currPvpEntry
-                                        .season_match_statistics?.lost ?? 0) -
-                                        (characterEntry.prevPvpEntry
-                                          .season_match_statistics?.lost ?? 0)}
-                                    </DataList.Value>
-                                  </DataList.Item>
-                                  <DataList.Item>
-                                    <DataList.Label
-                                      width={"50vw"}
-                                      className=" p-2 font-bold text-white"
-                                    >
-                                      Tracked
-                                    </DataList.Label>
-                                    <DataList.Value className="justify-end">
-                                      {characterEntry.time}
-                                    </DataList.Value>
-                                  </DataList.Item>
-                                </DataList.Root>
-                              </div>
-                            </Dialog.Content>
-                          </Dialog.Portal>
-                        </Dialog.Root>
+                                      {characterEntry.currPvpEntry.rating >=
+                                        characterEntry.prevPvpEntry.rating
+                                        ? "+"
+                                        : ""}
+                                      {characterEntry.currPvpEntry.rating -
+                                        characterEntry.prevPvpEntry.rating}
+                                    </span>
+                                  </div>
+                                </DataList.Value>
+                              </DataList.Item>
+                              <DataList.Item>
+                                <DataList.Label className=" p-2  font-bold text-white">
+                                  Player
+                                </DataList.Label>
+                                <DataList.Value className="justify-end">
+                                  {
+                                    characterEntry.currPvpEntry.character
+                                      ?.name
+                                  }
+                                </DataList.Value>
+                              </DataList.Item>
+                              <DataList.Item>
+                                <DataList.Label className=" p-2  font-bold text-white">
+                                  Class
+                                </DataList.Label>
+                                <DataList.Value className="justify-end">
+                                  <span
+                                    style={{
+                                      color: `${ClassColor.get(
+                                        characterEntry.charSummary
+                                          ?.character_class?.name ?? ""
+                                      )}`,
+                                    }}
+                                  >
+                                    {
+                                      characterEntry.charSummary
+                                        ?.character_class?.name
+                                    }
+                                  </span>
+                                </DataList.Value>
+                              </DataList.Item>
+                              <DataList.Item>
+                                <DataList.Label className="p-2   font-bold text-white">
+                                  Faction
+                                </DataList.Label>
+                                <DataList.Value className="justify-end">
+                                  {
+                                    characterEntry.charSummary?.faction
+                                      ?.name
+                                  }
+                                </DataList.Value>
+                              </DataList.Item>
+                              <DataList.Item>
+                                <DataList.Label className=" p-2  font-bold text-white">
+                                  Server
+                                </DataList.Label>
+                                <DataList.Value className="justify-end">
+                                  {realmName(characterEntry.charSummary?.realm ?? characterEntry.currPvpEntry.character?.realm)}
+                                </DataList.Value>
+                              </DataList.Item>
+                              <DataList.Item>
+                                <DataList.Label className=" p-2  font-bold text-white">
+                                  Wins
+                                </DataList.Label>
+                                <DataList.Value className=" justify-end text-green-300">
+                                  {(characterEntry.currPvpEntry
+                                    .season_match_statistics?.won ?? 0) -
+                                    (characterEntry.prevPvpEntry
+                                      .season_match_statistics?.won ?? 0)}
+                                </DataList.Value>
+                              </DataList.Item>
+                              <DataList.Item>
+                                <DataList.Label
+                                  width={"50vw"}
+                                  className=" p-2 font-bold text-white"
+                                >
+                                  Losses
+                                </DataList.Label>
+                                <DataList.Value className="justify-end text-red-300">
+                                  {(characterEntry.currPvpEntry
+                                    .season_match_statistics?.lost ?? 0) -
+                                    (characterEntry.prevPvpEntry
+                                      .season_match_statistics?.lost ?? 0)}
+                                </DataList.Value>
+                              </DataList.Item>
+                              <DataList.Item>
+                                <DataList.Label
+                                  width={"50vw"}
+                                  className=" p-2 font-bold text-white"
+                                >
+                                  Tracked
+                                </DataList.Label>
+                                <DataList.Value className="justify-end">
+                                  {characterEntry.time}
+                                </DataList.Value>
+                              </DataList.Item>
+                            </DataList.Root>
+                          </div>
+                        </MobileDetailsDialog>
                       </Table.Cell>
                     </Table.Row>
                   );
@@ -708,60 +566,13 @@ function Activity() {
             )}
           </Card>
         </Flex>
-        <Pagination
-          currentPage={page}
-          totalPages={100}
-          edgePageCount={1}
-          middlePagesSiblingCount={1}
-          setCurrentPage={handlePageChange}
+        <LadderPagination
+          page={page}
+          onPageChange={handlePageChange}
+          size="large"
           className="pt-2 pb-10"
-          truncableText="&nbsp;-&nbsp;"
-          truncableClassName=""
-        >
-          <nav className="flex justify-center grow">
-            <ul className="flex items-center">
-              <Pagination.PrevButton className="bg-[#292c31] mx-2 min-h-[38px] min-w-[38px] py-2 px-2.5 inline-flex justify-center items-center gap-x-1.5 text-sm first:rounded-s-lg last:rounded-e-lg border border-gray-200 text-gray-800 hover:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:border-neutral-700 dark:text-white dark:hover:bg-white/10 ">
-                <svg
-                  className="shrink-0 size-3.5"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="m15 18-6-6 6-6"></path>
-                </svg>
-              </Pagination.PrevButton>
-
-              <Pagination.PageButton
-                inactiveClassName="bg-[#292c31] min-h-[38px] min-w-[38px] flex justify-center items-center border border-gray-200 text-gray-800 hover:bg-gray-100 py-2 px-3 text-sm first:rounded-s-lg last:rounded-e-lg focus:outline-hidden focus:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:border-neutral-700 dark:text-white dark:hover:bg-white/10 dark:focus:bg-white/10"
-                activeClassName=" min-h-[38px] min-w-[38px] flex justify-center items-center bg-gray-200 text-gray-800 border border-gray-200 py-2 px-3 text-sm first:rounded-s-lg last:rounded-e-lg focus:outline-hidden focus:bg-gray-300 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-600 dark:border-neutral-700 dark:text-white dark:focus:bg-neutral-500"
-                className="mx-1"
-              />
-
-              <Pagination.NextButton className="bg-[#292c31] mx-2 min-h-[38px] min-w-[38px] py-2 px-2.5 inline-flex justify-center items-center gap-x-1.5 text-sm first:rounded-s-lg last:rounded-e-lg border border-gray-200 text-gray-800 hover:bg-gray-100  disabled:opacity-50 disabled:pointer-events-none dark:border-neutral-700 dark:text-white dark:hover:bg-white/10 ">
-                <svg
-                  className="shrink-0 size-3.5"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="m9 18 6-6-6-6"></path>
-                </svg>
-              </Pagination.NextButton>
-            </ul>
-          </nav>
-        </Pagination>
+          navClassName="flex justify-center grow"
+        />
       </Container>
     </div>
   );

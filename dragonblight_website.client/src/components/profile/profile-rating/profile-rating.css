@@ -24,31 +24,12 @@
     min-width: 0;
 }
 
-.page-container.not-found {
-    position: relative;
-}
-
 .not-found .rating-card {
     filter: blur(3px);
     pointer-events: none;
     user-select: none;
 }
 
-/* Radix pulses every skeleton with an !important animation, and the colour only comes from its
-   keyframes, so stopping it means setting the colour here */
-.not-found .rt-Skeleton {
-    animation: none !important;
-    background-color: var(--gray-a3) !important;
-}
-
-.not-found-overlay {
-    position: absolute;
-    inset: 0;
-    z-index: 10;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
 .rating-spec-icon {
     display: inline-block;
     width: 32px;

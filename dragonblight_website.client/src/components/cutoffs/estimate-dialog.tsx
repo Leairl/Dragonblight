@@ -8,10 +8,12 @@ import { Dragonblight } from "../../clients/Dragonblight";
 import { ClassColor } from "../../helpers/classColorHelper";
 import { TitleColors } from "../../helpers/ratingTierHelper";
 import { realmDisplayName } from "../../helpers/realmNameHelper";
+import { classIcon, specIcon } from "../../helpers/classIconHelper";
+import { isBlitzBracket, isShuffleBracket } from "../../helpers/solo-bracket-specs";
 
 //a character needs this many wins in the season to be able to earn the title
 function requiredWins(bracket: string): number {
-  if (bracket.startsWith("shuffle") || bracket.startsWith("blitz")) {
+  if (isShuffleBracket(bracket) || isBlitzBracket(bracket)) {
     return 50;
   }
   return 150;
@@ -76,20 +78,6 @@ function raceIcon(entry: Dragonblight.EstimateInsideEntry): string {
   return `/RaceIcons/${entry.raceName.toLowerCase().replace(" ", "")}${genderSuffix}.png`;
 }
 
-function classIcon(entry: Dragonblight.EstimateInsideEntry): string {
-  if (!entry.className) {
-    return "/unknown.png";
-  }
-  return `/ProfileClassIcons/${entry.className.toLowerCase().replace(" ", "")}.png`;
-}
-
-function specIcon(entry: Dragonblight.EstimateInsideEntry): string {
-  if (!entry.specName || !entry.className) {
-    return "/unknown.png";
-  }
-  return `/Specs/${entry.specName.toLowerCase()}_${entry.className.toLowerCase()}.png`;
-}
-
 //ratings at or above the cutoff being looked at get the title's color
 function PlayerRow({ entry, title, ratingCutoff, region, bracket }: { entry: Dragonblight.EstimateInsideEntry; title: string; ratingCutoff: number; region: string; bracket: string }) {
   const navigate = useNavigate();
@@ -106,7 +94,7 @@ function PlayerRow({ entry, title, ratingCutoff, region, bracket }: { entry: Dra
       <Table.Cell>{entry.rank}</Table.Cell>
       <Table.Cell>
         <Flex>
-          {[raceIcon(entry), classIcon(entry), specIcon(entry)].map((icon, index) => (
+          {[raceIcon(entry), classIcon(entry.className), specIcon(entry.className, entry.specName)].map((icon, index) => (
             <Avatar.Root key={index} className="h-[23px] w-[23px] mr-1">
               <Avatar.Image src={icon} />
               <Avatar.Fallback />

@@ -6,6 +6,7 @@ import './retail-talent-viewer.css';
 import { Dragonblight } from "../../clients/Dragonblight";
 import { ClassColor } from '../../helpers/classColorHelper';
 import { wowheadUrl } from "../../helpers/game-flavor";
+import { loadTree } from "../../helpers/talentTreeHelper";
 import TalentArrows, { TALENT_CELL, TALENT_ICON } from "./talent-arrows";
 import { capstoneNodeId, heroTreeOf, maxRankOf, normalizePicks, spellIdOf, splitTree } from "../compare/talent-diff";
 declare const $WowheadPower: { refreshLinks: () => void };
@@ -30,20 +31,6 @@ interface RetailTalentViewerProps {
   server: string
   region: string
   charClass: string
-}
-
-// Talent trees are static game data and the same for every character, so each spec's tree is
-// fetched once per visit, however often the spec picker flips back to it.
-const trees = new Map<string, Promise<Dragonblight.TalentTree>>();
-function loadTree(specId: number, region: string) {
-  const key = `${specId}/${region}`;
-  let p = trees.get(key);
-  if (!p) {
-    p = new Dragonblight.TalentClient().getTalentTree(specId, region);
-    p.catch(() => trees.delete(key));
-    trees.set(key, p);
-  }
-  return p;
 }
 
 const RetailTalentViewer: React.FC<RetailTalentViewerProps> = (props) => {
