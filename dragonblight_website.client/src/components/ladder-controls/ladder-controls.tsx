@@ -1,8 +1,10 @@
-import { FC, ReactNode } from "react";
+import { FC, ReactNode, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Button, SegmentedControl, Skeleton, Table } from "@radix-ui/themes";
 import { Pagination } from "react-headless-pagination";
+import { Dragonblight } from "../../clients/Dragonblight";
 import DialogCloseButton from "../dialog-close-button/dialog-close-button";
+import "./ladder-controls.css";
 
 //The controls the rankings and activity tables have in common.
 
@@ -90,7 +92,7 @@ export const LadderPagination: FC<LadderPaginationProps> = (props) => {
     >
       <nav className={props.navClassName}>
         {props.showCount && (
-          <span className="font-bold flex float-left grow text-sm items-center">
+          <span className="font-bold flex flex-1 text-sm items-center">
             Showing {props.page * 50 + 1} - {(props.page + 1) * 50} Characters
           </span>
         )}
@@ -117,8 +119,18 @@ export const LadderSkeletonRows: FC = () => (
   <>
     {[0, 1, 2].map((row) => (
       <Table.Row key={"skeleton" + row}>
-        {[0, 1, 2, 3, 4, 5].map((cell) => (
-          <Table.Cell key={cell}>
+        <Table.Cell>
+          <Skeleton></Skeleton>
+        </Table.Cell>
+        <Table.Cell>
+          <Skeleton></Skeleton>
+        </Table.Cell>
+        <Table.Cell>
+          <Skeleton></Skeleton>
+        </Table.Cell>
+        {/* only three columns show on mobile */}
+        {[3, 4, 5].map((cell) => (
+          <Table.Cell key={cell} className="desktopOnly">
             <Skeleton></Skeleton>
           </Table.Cell>
         ))}
@@ -127,20 +139,64 @@ export const LadderSkeletonRows: FC = () => (
   </>
 );
 
+interface MobileDetailsDialogProps {
+  region: string;
+  realm: string | undefined;
+  characterName: string | undefined;
+  children: ReactNode;
+}
+
 //the "View" button and popup a ladder row uses on mobile, where its columns are hidden
-export const MobileDetailsDialog: FC<{ children: ReactNode }> = (props) => (
-  <Dialog.Root>
-    <Dialog.Trigger asChild>
-      <Button className="z-10" variant="outline">
-        View
-      </Button>
-    </Dialog.Trigger>
-    <Dialog.Portal>
-      <Dialog.Overlay className="backdrop-blur-sm data-[state=open]:animate-overlayShow fixed inset-0" />
-      <Dialog.Content className="min-h-[400px] data-[state=open]:animate-contentShow fixed top-[50%] left-[50%] w-[90vw] h-[70vh] translate-x-[-50%] translate-y-[-50%] rounded-[6px] shadow-[hsl(206_22%_7%/35%)_0px_10px_38px_-10px,hsl(206_22%_7%/20%)_0px_10px_20px_-15px] bg-[#292c31] focus:outline-hidden">
-        <DialogCloseButton />
-        {props.children}
-      </Dialog.Content>
-    </Dialog.Portal>
-  </Dialog.Root>
-);
+export const MobileDetailsDialog: FC<MobileDetailsDialogProps> = (props) => {
+  const [image, setImage] = useState<string>();
+
+  //a ladder page has 50 rows, so a character's image is only fetched once its popup opens
+  function loadImage(open: boolean) {
+    if (!open || image || !props.realm || !props.characterName) {
+      return;
+    }
+    new Dragonblight.ProfileClient()
+      .getCharacterImage(props.realm, props.characterName, props.region)
+      .then((url) => setImage(url || undefined))
+      .catch(() => setImage(undefined));
+  }
+
+  return (
+    <Dialog.Root onOpenChange={loadImage}>
+      <Dialog.Trigger asChild>
+        <Button className="z-10 mobile-view-button" variant="outline">
+          View
+        </Button>
+      </Dialog.Trigger>
+      <Dialog.Portal>
+        <Dialog.Overlay className="backdrop-blur-sm data-[state=open]:animate-overlayShow fixed inset-0" />
+        <Dialog.Content className="mobile-details-dialog data-[state=open]:animate-contentShow fixed top-[50%] left-[50%] w-[90vw] max-h-[85vh] overflow-x-hidden overflow-y-auto translate-x-[-50%] translate-y-[-50%] shadow-[hsl(206_22%_7%/35%)_0px_10px_38px_-10px,hsl(206_22%_7%/20%)_0px_10px_20px_-15px] focus:outline-hidden">
+          {image && <img src={image} alt="" className="mobile-details-image" onError={() => setImage(undefined)} />}
+          <div className="mobile-details-body">
+            <DialogCloseButton />
+            <div className="mobile-details-rows">{props.children}</div>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+};
+
+interface MobileDetailRowProps {
+  label: string;
+  valueClassName?: string;
+  children: ReactNode;
+}
+
+export const MobileDetailRow: FC<MobileDetailRowProps> = (props) => {
+  let valueClass = "mobile-details-value";
+  if (props.valueClassName) {
+    valueClass += " " + props.valueClassName;
+  }
+  return (
+    <div className="mobile-details-row">
+      <span className="mobile-details-label">{props.label}</span>
+      <span className={valueClass}>{props.children}</span>
+    </div>
+  );
+};

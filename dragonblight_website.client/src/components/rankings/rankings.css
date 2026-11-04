@@ -82,7 +82,9 @@
     display: table-cell;
   }
 
+  /* the page sizes to its contents, so without a set width it shrinks while the rows load */
   .desktopWidth {
-    width: unset;
+    width: 95vw;
+    margin-inline: auto;
   }
 }
