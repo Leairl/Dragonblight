@@ -1,5 +1,6 @@
 import React from 'react';
 import { blitzSpecs, shuffleSpecs, SoloSpecIcon, defaultBlitzSpec, defaultShuffleSpec } from '../../helpers/solo-bracket-specs';
+import { classIcon } from '../../helpers/classIconHelper';
 import './solo-spec-filter.css';
 
 interface SoloSpecFilterProps {
@@ -11,9 +12,6 @@ interface SoloSpecFilterProps {
   onClassSelect: (className: string | null) => void;
   selectedClass: string | null;
 }
-
-const classIcon = (className: string) =>
-  `/ProfileClassIcons/${className.replace(/ /g, '').toLowerCase()}.png`;
 
 //Picks which Solo ladder to show. Looks like the class filter, but only one spec can be
 //chosen, since every spec is its own ladder.

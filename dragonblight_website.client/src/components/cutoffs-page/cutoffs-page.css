@@ -22,9 +22,6 @@
 }
 .cutoffs-title { font-size: 26px; font-weight: 700; }
 .cutoffs-subtitle { margin-top: 4px; font-size: 14px; color: var(--cutoff-muted); }
-.cutoffs-section { margin-bottom: 24px; }
-.cutoffs-heading { margin-bottom: 10px; font-size: 20px; font-weight: 700; }
-
 
 /* heading + title pills */
 .solo-heading-row {
@@ -34,7 +31,6 @@
   gap: 12px;
   margin-bottom: 12px;
 }
-.solo-heading-row .cutoffs-heading { margin: 0 24px 0 0; }
 .title-pill {
   flex: 1;
   min-width: 240px;
@@ -80,10 +76,7 @@
   .label-short { display: inline; }
 }
 
-
 .cutoffs-footnote { font-size: 12px; color: var(--cutoff-muted); }
-
-
 
 .shuffle-col.group-start { border-left: 2px solid rgba(131, 131, 133, 0.2) }
 .blitz-col.group-start { border-left: 2px solid rgba(131, 131, 133, 0.2) }

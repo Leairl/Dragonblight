@@ -1,18 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import * as Checkbox from '@radix-ui/react-checkbox';
-import { CheckIcon, ChevronDownIcon } from '@radix-ui/react-icons'; // Import the arrow icon
-import { Button } from '@radix-ui/themes';
-import { ClassColor } from '../../helpers/classColorHelper';
 import { Dragonblight } from '../../clients/Dragonblight';
 import './class-filter.css';
 import { getFlavor } from '../../helpers/game-flavor';
+import { classIcon, specIcon } from '../../helpers/classIconHelper';
 
 export const all_classes = 'All Classes'
-const classIcon = (className: string) =>
-  `/ProfileClassIcons/${className.replace(/ /g, '').toLowerCase()}.png`;
-const specIcon = (className: string, spec: string) =>
-  `/Specs/${spec.toLowerCase()}_${className.toLowerCase()}.png`;
+//what a ladder asks the server for: "Class:Spec" for a class with specs picked, otherwise the class
+export function ladderFilter(selectedClasses: string[], selectedSpecs: string[]): string[] {
+  const classAndSpecFilter: string[] = [];
+  for (const className of selectedClasses) {
+    const specsForClass = selectedSpecs.filter(spec => spec.startsWith(className + ":"));
+    if (specsForClass.length > 0) {
+      classAndSpecFilter.push(...specsForClass);
+    } else {
+      classAndSpecFilter.push(className);
+    }
+  }
+  return classAndSpecFilter;
+}
 interface ClassFilterProps {
   region: string;
   onChange: (classes: string[], specs: string[]) => void;

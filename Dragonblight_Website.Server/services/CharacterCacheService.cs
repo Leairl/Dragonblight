@@ -108,7 +108,6 @@ partial class CharacterCacheService(IWarcraftRedisProxy warcraftRedisProxy, ILog
                     {
                         await warcraftRedisProxy.InsertToBracketActivityPage(bracket, region, oldPlayer, player, activitySpec, flavor);
                         await warcraftRedisProxy.InsertActivityCacheClassCharacter(bracket, oldPlayer, player, summary, activitySpec, region, flavor);
-                        await warcraftRedisProxy.InsertToPlayerPageActivity(bracket, region, player, flavor);
                     }
                     // if the character wasn't in the old ladder, or if the character's games played has changed, record a snapshot of their rating
                     if (oldPlayer == null || oldPlayer.SeasonMatchStatistics.Played != player.SeasonMatchStatistics.Played)

@@ -46,7 +46,7 @@ partial class WarcraftRedisProxy
     }
     public async Task ClearAllCachedClassCharacters(string bracket, string region, GameFlavor flavor)
     {
-        var wowClasses = (await GetPlayableClasses(region, flavor)).Select(c => c.Name).Prepend("All Classes");
+        var wowClasses = (await GetPlayableClasses(region, flavor)).Select(c => c.Name);
         var db = redis.GetDatabase(); //var to redis database
         //clears all cached class characters
         foreach (var wowClass in wowClasses)

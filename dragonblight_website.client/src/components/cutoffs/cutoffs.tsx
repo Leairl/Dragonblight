@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Dragonblight } from '../../clients/Dragonblight';
-import { Card } from '@radix-ui/themes';
 import { shuffleSpecs, blitzSpecs } from '../../helpers/solo-bracket-specs';
 import { getFlavor } from '../../helpers/game-flavor';
 import { cleanTitle, TitleColors } from "../../helpers/ratingTierHelper";
@@ -19,14 +18,11 @@ function cardTitle(name: string | undefined): string {
     for (const bracket of [" (2v2)", " (3v3)", " (5v5)"]) {
         title = title.replace(bracket, "");
     }
-    const words = title.split(" ");
     return title;
 }
-const rankOneWords = ["Gladiator", "Legend", "Marshal", "Warlord"];
 
 //the tier name's color; a two-word title ending in Glad/Legend/Marshal/Warlord is rank 1
 function tierColor(title: string): string {
-    const words = title.split(" ");
     if (title.includes(" Gladiator")) return "#ff8a3d";
     if (title.includes(" Legend")) return "#c07cff";
     if (title.includes(" Marshal") || title.includes(" Warlord")) return "#4ee07a";
@@ -67,27 +63,6 @@ const Cutoffs: React.FC<CutoffProps> = (props) => {
         return estimates.find((e) => e.bracket == props.bracket && e.ratingCutoff == reward.rating_cutoff);
     }
 
-    //rules 11-16 as a short note, e.g. "2 new · -1 alt"
-    function movementText(e: Dragonblight.EstimatedCutoff): string {
-        const reasons: string[] = [];
-        if (e.accountsEntered > 0) {
-            reasons.push(`${e.accountsEntered} new`);
-        }
-        if (e.accountsLeft > 0) {
-            reasons.push(`${e.accountsLeft} dropped`);
-        }
-        if (e.altsEntered > 0) {
-            reasons.push(`+${e.altsEntered} alt`);
-        }
-        if (e.altsLeft > 0) {
-            reasons.push(`-${e.altsLeft} alt`);
-        }
-        if (e.holdersReplaced > 0) {
-            reasons.push(`${e.holdersReplaced} swapped to an alt`);
-        }
-        return reasons.join(" · ");
-    }
-
     useEffect(() => {
         CutoffData()
     }, [props.bracket, props.region]);
@@ -105,9 +80,6 @@ const Cutoffs: React.FC<CutoffProps> = (props) => {
     if (getFlavor() === "classic") {
         ordered = [...matching].sort((a, b) => b.rating_cutoff - a.rating_cutoff);
     }
-
-    //the highest cutoff gets the molten line; on RBG both faction cards share it
-    const topCutoff = Math.max(0, ...ordered.map((r) => r.rating_cutoff));
 
     return (
         <div className="cutoff-strip">

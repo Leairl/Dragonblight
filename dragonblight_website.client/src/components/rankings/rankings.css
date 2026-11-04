@@ -48,15 +48,8 @@
     justify-items: center;
   }
 
-  .toolbar-left,
   .toolbar-right {
     justify-self: center;
-  }
-
-  .left50 {
-    flex-grow: 0;
-    width: 100%;
-    height: 5px;
   }
 
   .grow {

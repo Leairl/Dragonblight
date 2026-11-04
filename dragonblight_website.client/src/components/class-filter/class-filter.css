@@ -3,7 +3,7 @@
   flex-direction: 
   column; gap: 10px; }
 
-.ClassRow, .SpecRow { 
+.ClassRow { 
   display: flex; 
   flex-wrap: wrap; 
   gap: 10px; 
@@ -24,8 +24,6 @@
 .ClassButton:hover, .SpecButton:hover { opacity: 0.8; }
 .ClassButton.selected, .SpecButton.selected { opacity: 1; }
 
-.AllButton { color: white; padding: 0 10px; height: 40px; }
-
 /* several classes can be open at once, so each class's specs stack under it instead of spreading sideways */
 .MultiClass .ClassSlot {
   display: flex;
@@ -37,38 +35,6 @@
   transform: none;
   margin-bottom: -46px;
 }
-.ClassIcon {
-  width: 20px; /* Set a fixed width for the icons */
-  height: 20px; /* Set a fixed height for the icons */
-  margin-right: 8px; /* Space between icon and text */
-}
-
-.ClassItem {
-  display: flex;
-  align-items: center;
-}
-
-.CustomButton {
-    background-color: #292c31; /* Transparent gray */
-    cursor: pointer;
-    display: flex;
-    margin-left: 0px !important;
-    align-items: center;
-    justify-content: space-between; /* Ensure space between text and arrow */
-    outline: none; /* Remove focus outline */
-  }
-  .CustomButton:hover {
-    background-color: #3a3d42; /* Darken background on hover */
-  }
-  
-  .DropdownArrow {
-    margin-left: 8px; /* Space between text and arrow */
-    transition: transform 0.3s ease; /* Smooth transition for rotation */
-  }
-  
-  .DropdownArrow.open {
-    transform: rotate(180deg); /* Rotate the arrow when the dropdown is open */
-  }
 
 html body {
     overflow: auto !important;

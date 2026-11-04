@@ -116,43 +116,6 @@ export class DisplayIdClient {
         this.baseUrl = baseUrl ?? "";
     }
 
-    getDisplayInfo(item_id: number | undefined): Promise<ItemDisplayInfo> {
-        let url_ = this.baseUrl + "/api/DisplayId/GetDisplayInfo?";
-        if (item_id === null)
-            throw new globalThis.Error("The parameter 'item_id' cannot be null.");
-        else if (item_id !== undefined)
-            url_ += "item_id=" + encodeURIComponent("" + item_id) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processGetDisplayInfo(_response);
-        });
-    }
-
-    protected processGetDisplayInfo(response: Response): Promise<ItemDisplayInfo> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ItemDisplayInfo;
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<ItemDisplayInfo>(null as any);
-    }
-
     getDisplayInfos(item_ids: number[] | undefined): Promise<ItemDisplayInfo[]> {
         let url_ = this.baseUrl + "/api/DisplayId/GetDisplayInfos?";
         if (item_ids === null)
@@ -1076,53 +1039,6 @@ export class PvpLeaderboardClient {
         return Promise.resolve<PvpSeasonRewardWithRank[]>(null as any);
     }
 
-    getRankFromCutoffs(cutoff: number | undefined, bracketType: string | undefined, region: string | undefined, specId: number | null | undefined): Promise<number> {
-        let url_ = this.baseUrl + "/api/PvpLeaderboard/GetRankFromCutoffs?";
-        if (cutoff === null)
-            throw new globalThis.Error("The parameter 'cutoff' cannot be null.");
-        else if (cutoff !== undefined)
-            url_ += "cutoff=" + encodeURIComponent("" + cutoff) + "&";
-        if (bracketType === null)
-            throw new globalThis.Error("The parameter 'bracketType' cannot be null.");
-        else if (bracketType !== undefined)
-            url_ += "bracketType=" + encodeURIComponent("" + bracketType) + "&";
-        if (region === null)
-            throw new globalThis.Error("The parameter 'region' cannot be null.");
-        else if (region !== undefined)
-            url_ += "region=" + encodeURIComponent("" + region) + "&";
-        if (specId !== undefined && specId !== null)
-            url_ += "specId=" + encodeURIComponent("" + specId) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processGetRankFromCutoffs(_response);
-        });
-    }
-
-    protected processGetRankFromCutoffs(response: Response): Promise<number> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as number;
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<number>(null as any);
-    }
-
     getEstimatedCutoffs(region: string | undefined): Promise<EstimatedCutoff[]> {
         let url_ = this.baseUrl + "/api/PvpLeaderboard/GetEstimatedCutoffs?";
         if (region === null)
@@ -1953,6 +1869,7 @@ export interface SpecRatingCounts {
     className: string;
     specName: string;
     playersAtRating: { [key: string]: number; };
+    racesAtRating: { [key: string]: { [key: string]: number; }; };
 }
 
 export interface PvpLeaderboardEntry {
@@ -2374,12 +2291,19 @@ export interface EstimateInsideEntry {
     realm: string;
     rank: number;
     rating: number;
+    won: number;
+    lost: number;
+    className: string;
+    specName: string;
+    raceName: string;
+    gender: string;
     mainName: string;
 }
 
 export interface EstimateDetail {
     estimate?: EstimatedCutoff | undefined;
     history: EstimateHistoryPoint[];
+    qualifiedAtCutoff: EstimateInsideEntry[];
 }
 
 export interface EstimateHistoryPoint {
