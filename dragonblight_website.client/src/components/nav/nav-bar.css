@@ -27,14 +27,31 @@
 .mobile-nav {
   display: none
 }
-/* the larger text needs this much room beside the logo, so narrower screens get the mobile menu */
-@media only screen and (max-width: 1180px) {
+/* the logo, tabs and Discord button need this much room on one row, so narrower screens get the mobile menu */
+@media only screen and (max-width: 1250px) {
 .desktop-nav-menu{
   display: none 
 }
 .mobile-nav {
   display: flex
 }
+}
+/* the tab for the page you're on stays lit, with the blue line under it */
+.blue-bottom-border.nav-tab-active {
+  border-bottom-width: 2px;
+  padding-bottom: 6px;
+  opacity: 1;
+}
+.nav-new-badge {
+  margin-left: 6px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: #4dc4fd33;
+  color: #4dc4fd;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  vertical-align: middle;
 }
 /* each nav tab is a button inside a link, and buttons keep the arrow cursor unless told otherwise */
 nav button {
