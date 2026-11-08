@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
+import { useSearchParams } from "react-router";
 import { Card, Popover } from "@radix-ui/themes";
 import * as Accordion from "@radix-ui/react-accordion";
 import { ChevronDownIcon, UpdateIcon } from "@radix-ui/react-icons";
 import { Dragonblight } from "../../clients/Dragonblight";
 import { ClassColor } from "../../helpers/classColorHelper";
 import { specIcon } from "../../helpers/classIconHelper";
-import { getFlavor } from "../../helpers/game-flavor";
+import { GameFlavor, getFlavor } from "../../helpers/game-flavor";
 import MetaCard from "./meta-card";
 import RichText from "./rich-text";
 import { baseWeight, CompositionScore, RowEffect, scoreComposition, SpecProfile, specsForFlavor, specSummary } from "../../helpers/composition-score";
@@ -18,6 +19,9 @@ const baseColor = "#4dc4fd";
 const ringRadius = 52;
 const ringLength = 2 * Math.PI * ringRadius;
 const healerSlot = 2;
+const emptySlotColor = "#3a3e45";
+//The URL keeps each slot's pick, like ?dps1=Death+Knight:Unholy, so a refresh or a shared link shows the same team
+const slotParams = ["dps1", "dps2", "healer"];
 //label | bar | value, the column layout of every breakdown line
 const breakdownGrid = "mt-2 grid grid-cols-[minmax(0,8.5rem)_minmax(0,1fr)_2.75rem] items-start gap-x-3";
 const region = "us";
@@ -58,6 +62,9 @@ function addsUpParts(result: CompositionScore): AddsUpPart[] {
     { label: "Live data", raw: result.live, color: effectColors.neutral, title: "Recent 3v3 win rates" },
   ];
   const points = parts.map((part) => {
+    if (result.bestRawScore <= 0) {
+      return 0;
+    }
     return Math.round(part.raw / result.bestRawScore * 100);
   });
   //Rounding can leave the parts a point off the score, so the largest part takes up the difference
@@ -80,39 +87,46 @@ function addsUpParts(result: CompositionScore): AddsUpPart[] {
   });
 }
 
-function findSpec(specs: SpecProfile[], className: string, specName: string, fallbackRole: "Healer" | "DPS"): SpecProfile {
-  const found = specs.find((s) => s.className === className && s.specName === specName);
-  if (found) {
-    return found;
-  }
-  if (fallbackRole === "Healer") {
-    return specs.find((s) => s.role === "Healer")!;
-  }
-  return specs.find((s) => s.role !== "Healer")!;
-}
-
-const SpecPicker: React.FC<{ options: SpecProfile[]; selected: SpecProfile; slotLabel: string; onSelect: (spec: SpecProfile) => void }> = (props) => {
+//An empty slot shows a placeholder until a spec is picked
+const SpecPicker: React.FC<{ options: SpecProfile[]; selected?: SpecProfile; slotLabel: string; onSelect: (spec: SpecProfile) => void }> = (props) => {
   const [open, setOpen] = useState(false);
   const classNames = [...new Set(props.options.map((s) => s.className))].sort();
-  let subtitle = `${props.slotLabel} · ${props.selected.role}`;
-  if (props.slotLabel === props.selected.role) {
-    subtitle = props.slotLabel;
+  const selected = props.selected;
+  let borderColor = emptySlotColor;
+  let icon = <div className="h-10 w-10 shrink-0 rounded border border-black bg-[#17191c]" />;
+  let placeholder = "Choose a damage spec";
+  if (props.slotLabel === "Healer") {
+    placeholder = "Choose a healer";
+  }
+  let title = <div className="truncate font-bold text-gray-400">{placeholder}</div>;
+  let subtitle = props.slotLabel;
+  let buttonLabel = `Choose ${props.slotLabel}`;
+  if (selected !== undefined) {
+    borderColor = ClassColor.get(selected.className) ?? emptySlotColor;
+    icon = <img className="h-10 w-10 shrink-0 rounded border border-black" src={specIcon(selected.className, selected.specName)} alt="" />;
+    title = (
+      <div className="truncate font-bold" style={{ color: ClassColor.get(selected.className) }}>
+        {selected.specName} {selected.className}
+      </div>
+    );
+    if (props.slotLabel !== selected.role) {
+      subtitle = `${props.slotLabel} · ${selected.role}`;
+    }
+    buttonLabel = `Change ${props.slotLabel}`;
   }
   return (
-    <Card className={`${cardClass} border-l-[3px]!`} style={{ borderLeftColor: ClassColor.get(props.selected.className) }}>
+    <Card className={`${cardClass} border-l-[3px]!`} style={{ borderLeftColor: borderColor }}>
       <div className="flex items-center gap-3">
-        <img className="h-10 w-10 shrink-0 rounded border border-black" src={specIcon(props.selected.className, props.selected.specName)} alt="" />
+        {icon}
         <div className="min-w-0 flex-1">
-          <div className="truncate font-bold" style={{ color: ClassColor.get(props.selected.className) }}>
-            {props.selected.specName} {props.selected.className}
-          </div>
+          {title}
           <div className="text-xs text-gray-300">{subtitle}</div>
         </div>
         <Popover.Root open={open} onOpenChange={setOpen}>
           <Popover.Trigger>
             <button
               type="button"
-              aria-label={`Change ${props.slotLabel}`}
+              aria-label={buttonLabel}
               className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded border border-black bg-[#3a3e45] text-white hover:bg-[#4a4f57]"
             >
               <UpdateIcon />
@@ -162,21 +176,18 @@ const DetailSection: React.FC<{ value: string; title: string; children: React.Re
   );
 };
 
-//Pick two damage specs and a healer to see how the composition scores. The rules are in helpers/composition-score.ts.
-//The last slot only offers healers, so a team always has exactly one.
-function CompositionScorePage() {
-  const flavor = getFlavor();
-  const specs = specsForFlavor(flavor);
-  const damageSpecs = specs.filter((s) => s.role !== "Healer");
-  const healerSpecs = specs.filter((s) => s.role === "Healer");
-  const [team, setTeam] = useState<SpecProfile[]>([
-    findSpec(specs, "Death Knight", "Unholy", "DPS"),
-    findSpec(specs, "Warrior", "Arms", "DPS"),
-    findSpec(specs, "Paladin", "Holy", "Healer"),
-  ]);
-  const [winRates, setWinRates] = useState<Dragonblight.SpecWinRates>();
-  const [winRatesLoading, setWinRatesLoading] = useState(true);
-  const result = scoreComposition(team, flavor, winRates?.specs);
+//The score, breakdown and cards for a full team: two damage specs and a healer
+const ScoreResults: React.FC<{
+  team: SpecProfile[];
+  specs: SpecProfile[];
+  flavor: GameFlavor;
+  winRates?: Dragonblight.SpecWinRates;
+  winRatesLoading: boolean;
+}> = (props) => {
+  const team = props.team;
+  const specs = props.specs;
+  const flavor = props.flavor;
+  const result = scoreComposition(team, flavor, props.winRates?.specs);
   //Live data is shown in the breakdown and the meta card, so it stays out of both bullet lists
   const goodRows = result.rows.filter((row) => row.effect === "good" && row.label !== "Live data");
   //General points are always shown. The ones that name specific spells and teammates sit behind a details button.
@@ -221,72 +232,13 @@ function CompositionScorePage() {
     compName = result.namedComp.name;
   }
 
-  //Recent 3v3 win rates feed the score's live data and the meta card
-  useEffect(() => {
-    let cancelled = false;
-    new Dragonblight.LeaderboardAnalyticsClient()
-      .getSpecWinRates(region, bracket)
-      .then((data) => {
-        if (!cancelled) {
-          setWinRates(data ?? undefined);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setWinRates(undefined);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setWinRatesLoading(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [flavor]);
-
   //Wowhead's script only finds the buff links when told to, so it runs after every render
   useEffect(() => {
     $WowheadPower.refreshLinks();
   });
 
-  function selectSpec(slot: number, spec: SpecProfile) {
-    setTeam(team.map((current, index) => {
-      if (index === slot) {
-        return spec;
-      }
-      return current;
-    }));
-  }
-
-  function slotLabel(slot: number): string {
-    if (slot === healerSlot) {
-      return "Healer";
-    }
-    return `DPS ${slot + 1}`;
-  }
-
-  function slotOptions(slot: number): SpecProfile[] {
-    if (slot === healerSlot) {
-      return healerSpecs;
-    }
-    return damageSpecs;
-  }
-
   return (
-    <div className="w-[95vw] max-w-[1100px] pb-5">
-      <h1 className="text-2xl font-bold text-white">Composition Viability Score</h1>
-      <p className="mb-4 text-sm text-gray-300">
-        Pick two damage specs and a healer to score how well they work together in 3v3. This is an estimate from spec ratings and synergy, adjusted a little by recent 3v3 win rates.
-      </p>
-
-      <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-        {team.map((spec, slot) => (
-          <SpecPicker key={slot} options={slotOptions(slot)} selected={spec} slotLabel={slotLabel(slot)} onSelect={(next) => selectSpec(slot, next)} />
-        ))}
-      </div>
-
+    <>
       <div className="mb-4 flex flex-col gap-3">
         <Card className={cardClass}>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3 p-1">
@@ -398,7 +350,7 @@ function CompositionScorePage() {
       </div>
 
       <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-2">
-        <MetaCard team={team} flavor={flavor} winRates={winRates} loading={winRatesLoading} className={cardClass} />
+        <MetaCard team={team} flavor={flavor} winRates={props.winRates} loading={props.winRatesLoading} className={cardClass} />
 
         <Card className={cardClass}>
           <div className="p-1 text-sm text-gray-200">
@@ -434,8 +386,118 @@ function CompositionScorePage() {
           </div>
         </Card>
       </div>
+    </>
+  );
+};
+
+//Pick two damage specs and a healer to see how the composition scores. The rules are in helpers/composition-score.ts.
+//The last slot only offers healers, so a team always has exactly one. Every slot starts empty, and the score shows
+//once all three are picked.
+function CompositionScoreContent() {
+  const flavor = getFlavor();
+  const specs = specsForFlavor(flavor);
+  const damageSpecs = specs.filter((s) => s.role !== "Healer");
+  const healerSpecs = specs.filter((s) => s.role === "Healer");
+  const [params, setParams] = useSearchParams();
+  //A pick only counts if it names a spec the slot offers on this flavor, so an old or edited link just leaves the slot empty
+  const team = slotParams.map((param, slot) => {
+    const value = params.get(param);
+    if (value === null) {
+      return undefined;
+    }
+    return slotOptions(slot).find((s) => `${s.className}:${s.specName}` === value);
+  });
+  const [winRates, setWinRates] = useState<Dragonblight.SpecWinRates>();
+  const [winRatesLoading, setWinRatesLoading] = useState(true);
+  const picked = team.filter((spec): spec is SpecProfile => spec !== undefined);
+
+  //Recent 3v3 win rates feed the score's live data and the meta card
+  useEffect(() => {
+    let cancelled = false;
+    new Dragonblight.LeaderboardAnalyticsClient()
+      .getSpecWinRates(region, bracket)
+      .then((data) => {
+        if (!cancelled) {
+          setWinRates(data ?? undefined);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setWinRates(undefined);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setWinRatesLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [flavor]);
+
+  //replace keeps each pick out of the back button's history
+  function selectSpec(slot: number, spec: SpecProfile) {
+    const next = new URLSearchParams(params);
+    next.set(slotParams[slot], `${spec.className}:${spec.specName}`);
+    setParams(next, { replace: true });
+  }
+
+  function slotLabel(slot: number): string {
+    if (slot === healerSlot) {
+      return "Healer";
+    }
+    return `DPS ${slot + 1}`;
+  }
+
+  function slotOptions(slot: number): SpecProfile[] {
+    if (slot === healerSlot) {
+      return healerSpecs;
+    }
+    return damageSpecs;
+  }
+
+  let results = (
+    <Card className={cardClass}>
+      <p className="p-2 text-sm text-gray-300">Pick two damage specs and a healer to see how they score.</p>
+    </Card>
+  );
+  if (picked.length === team.length) {
+    results = <ScoreResults team={picked} specs={specs} flavor={flavor} winRates={winRates} winRatesLoading={winRatesLoading} />;
+  }
+
+  return (
+    <div className="w-[95vw] max-w-[1100px] pb-5">
+      <h1 className="text-2xl font-bold text-white">Composition Viability Score</h1>
+      <p className="mb-4 text-sm text-gray-300">
+        Pick two damage specs and a healer to score how well they work together in 3v3. This is an estimate from spec ratings and synergy, adjusted a little by recent 3v3 win rates.
+      </p>
+
+      <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+        {team.map((spec, slot) => (
+          <SpecPicker key={slot} options={slotOptions(slot)} selected={spec} slotLabel={slotLabel(slot)} onSelect={(next) => selectSpec(slot, next)} />
+        ))}
+      </div>
+
+      {results}
     </div>
   );
+}
+
+//Comp Score is retail only for now. MoP Classic's spec table hasn't been tuned, so the page says so instead.
+//This sits outside the page itself, which uses hooks that can't be skipped.
+function CompositionScorePage() {
+  if (getFlavor() !== "retail") {
+    return (
+      <div className="w-[95vw] max-w-[1100px] pb-5">
+        <h1 className="text-2xl font-bold text-white">Composition Viability Score</h1>
+        <Card className={`${cardClass} mt-4`}>
+          <p className="p-2 text-sm text-gray-300">The composition score isn't available for MoP Classic yet. Switch to Retail to use it.</p>
+        </Card>
+      </div>
+    );
+  }
+  return <CompositionScoreContent />;
 }
 
 export default CompositionScorePage;

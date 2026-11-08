@@ -89,24 +89,25 @@ function healer(
   };
 }
 
-//One signature peel per spec, by "Class:Spec". Classic overrides the specs whose peel differs there.
+//One signature peel per spec, by "Class:Spec". Classic overrides the specs whose peel differs there, like Death
+//Knights, since Blinding Sleet doesn't exist in MoP.
 const retailPeels: Record<string, string> = {
   "Warrior:Arms": "Disarm",
   "Warrior:Fury": "Disarm",
-  "Druid:Feral": "Maim",
-  "Druid:Balance": "Typhoon",
-  "Druid:Restoration": "Incapacitating Roar",
-  "Rogue:Subtlety": "Gouge",
-  "Rogue:Assassination": "Gouge",
-  "Rogue:Outlaw": "Gouge",
-  "Rogue:Combat": "Gouge",
+  "Druid:Feral": "Cyclone",
+  "Druid:Balance": "Cyclone",
+  "Druid:Restoration": "Cyclone",
+  "Rogue:Subtlety": "Dismantle",
+  "Rogue:Assassination": "Dismantle",
+  "Rogue:Outlaw": "Dismantle",
+  "Rogue:Combat": "Dismantle",
   "Hunter:Beast Mastery": "Intimidation",
   "Hunter:Marksmanship": "Binding Shot",
   "Hunter:Survival": "Intimidation",
   "Monk:Windwalker": "Grapple Weapon",
   "Monk:Mistweaver": "Ring of Peace",
-  "Death Knight:Unholy": "Asphyxiate",
-  "Death Knight:Frost": "Asphyxiate",
+  "Death Knight:Unholy": "Blinding Sleet",
+  "Death Knight:Frost": "Chains of Ice",
   "Mage:Fire": "Dragon's Breath",
   "Mage:Frost": "Frost Nova",
   "Mage:Arcane": "Ring of Frost",
@@ -129,10 +130,8 @@ const retailPeels: Record<string, string> = {
 };
 
 const classicPeelOverrides: Record<string, string> = {
-  "Druid:Restoration": "Disorienting Roar",
   "Hunter:Survival": "Wyvern Sting",
   "Death Knight:Unholy": "Strangulate",
-  "Death Knight:Frost": "Strangulate",
   "Paladin:Retribution": "Hand of Protection",
 };
 
@@ -248,7 +247,7 @@ const retailSpellIds: Record<string, number> = {
   "Earthen Wall Totem": 198838, "Ray of Hope": 197268, "Symbol of Hope": 64901, "Capacitor Totem": 192058,
   "Chaos Nova": 179057, "Fel Eruption": 211881, "Imprison": 217832, "Sigil of Misery": 207684,
   "Concussive Shot": 5116, "Wing Buffet": 357214, "Tail Swipe": 368970, "Landslide": 358385, "Blinding Light": 115750,
-  "Hamstring": 1715, "Storm Bolt": 107570, "Piercing Howl": 12323, "Disarm": 236077, "Grapple Weapon": 233759,
+  "Hamstring": 1715, "Dismantle": 207777, "Blinding Sleet": 207167, "Storm Bolt": 107570, "Piercing Howl": 12323, "Disarm": 236077, "Grapple Weapon": 233759,
   "Supernova": 157980, "Earthbind Totem": 2484, "Skyfury": 462854, "Hunter's Mark": 257284, "Mystic Touch": 8647,
   "Chaos Brand": 1490, "Blessing of the Bronze": 364342, "Arcane Intellect": 1459, "Devotion Aura": 465,
   "Concentration Aura": 317920, "Zen Spheres": 410777, "Sphere of Despair": 411038,
@@ -263,7 +262,7 @@ const classicSpellIds: Record<string, number> = {
   "Deep Freeze": 44572, "Arcane Power": 12042, "Presence of Mind": 12043, "Havoc": 80240, "Metamorphosis": 103958,
   "Unstable Affliction": 30108, "Celestial Alignment": 112071, "Lava Burst": 51505, "Ascendance": 114049,
   "Grounding Totem": 8177, "Feral Spirit": 51533, "Hand of Protection": 1022, "Hand of Freedom": 1044, "Freedom": 1044,
-  "Hand of Sacrifice": 6940, "Dispersion": 47585, "Disorienting Roar": 99, "Hymn of Hope": 64901,
+  "Hand of Sacrifice": 6940, "Dismantle": 51722, "Dispersion": 47585, "Disorienting Roar": 99, "Hymn of Hope": 64901,
   "Capacitor Totem": 108269, "Disarm": 676, "Grapple Weapon": 117368, "Arcane Brilliance": 1459,
   "Legacy of the Emperor": 115921, "Blessing of Kings": 20217, "Horn of Winter": 57330,
 };
@@ -292,7 +291,7 @@ const retailSpecs: SpecProfile[] = withSpells([
   dps("Mage", "Fire", "Caster", [0, 3, 2, 3, 3, 3, 3], true, "Late burst", ["Incapacitate", "Disorient", "Root"], "Combustion one-shots a target when it lands, and Polymorph, Ring of Frost and Dragon's Breath lock the healer out while it does."),
   dps("Warlock", "Destruction", "Caster", [1, 3, 2, 3, 2, 2, 3], true, "Late burst", ["Disorient", "Horror"], "Chaos Bolt burst that crits through absorbs, Fear on the healer, and Fel Fissure's healing reduction when enemies stand in it."),
   dps("Demon Hunter", "Havoc", "Melee", [2, 3, 3, 1, 1, 3, 2], true, "Mixed", ["Stun", "Incapacitate"], "The Hunt and Eye Beam frontload burst from very high mobility, and Darkness protects the team, but it's weak to roots."),
-  dps("Rogue", "Outlaw", "Melee", [3, 1, 3, 2, 2, 3, 2], false, "Sustain", ["Stun", "Incapacitate", "Disorient"], "Adrenaline Rush cleave pressure with Between the Eyes stuns and Gouge, and it stays efficient in long games."),
+  dps("Rogue", "Outlaw", "Melee", [3, 1, 3, 2, 2, 3, 2], false, "Sustain", ["Stun", "Incapacitate", "Disorient"], "Adrenaline Rush provides heavy single target pressure, with Kidney Shot stuns and Gouge, and it stays efficient in long games."),
   dps("Druid", "Balance", "Caster", [0, 3, 2, 3, 3, 3, 3], false, "Mixed", ["Disorient", "Root"], "Celestial Alignment burst from range, Cyclone and Mass Entanglement control, and Innervate for the healer's mana."),
   dps("Mage", "Frost", "Caster", [0, 2, 2, 3, 3, 3, 3], true, "Sustain", ["Incapacitate", "Disorient", "Root"], "Shatter combos off Frost Nova and Ring of Frost, Polymorph chains on the healer, and Ice Block and Ice Barrier to survive."),
   dps("Warlock", "Demonology", "Caster", [3, 1, 2, 3, 2, 2, 2], false, "Sustain", ["Disorient", "Horror"], "Demonic Tyrant pet burst, Fear, Mortal Coil and Axe Toss control, and a healing reduction."),
