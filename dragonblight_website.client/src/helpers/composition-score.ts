@@ -1502,9 +1502,6 @@ function rawScoreOf(team: SpecProfile[], records: SpecRecord[] | undefined) {
     penalty = doubleHealerPenalty;
     category = "Double healer";
   }
-  if (category) {
-    rows.unshift(row("Healer check", -penalty, category, "A 3v3 team needs exactly one healer."));
-  }
   const viability = viabilityRow(team);
   if (viability) {
     penalty -= viability.points;
