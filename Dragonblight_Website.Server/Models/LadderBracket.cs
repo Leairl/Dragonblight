@@ -47,6 +47,32 @@ public class CompositionCounts
     public required Dictionary<int, int> CountsAtRating { get; init; }
 }
 
+//wins and losses one spec gained across the activity still kept
+public class SpecWinRate
+{
+    [JsonPropertyName("className")]
+    public required string ClassName { get; init; }
+    [JsonPropertyName("specName")]
+    public required string SpecName { get; init; }
+    [JsonPropertyName("wins")]
+    public int Wins { get; set; }
+    [JsonPropertyName("losses")]
+    public int Losses { get; set; }
+    //activity entries counted, one per player per sync
+    [JsonPropertyName("players")]
+    public int Players { get; set; }
+}
+
+public class SpecWinRates
+{
+    [JsonPropertyName("from")]
+    public DateTime? From { get; init; }
+    [JsonPropertyName("to")]
+    public DateTime? To { get; init; }
+    [JsonPropertyName("specs")]
+    public required List<SpecWinRate> Specs { get; init; }
+}
+
 public class WowClass
 {
     [JsonPropertyName("id")]

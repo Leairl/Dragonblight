@@ -21,6 +21,8 @@ import News from "./components/news/news.tsx";
 import ClassAnalytics from './components/class-leaderboard-analytics/class-leaderboard-analytic.tsx';
 import CutoffsPage from "./components/cutoffs-page/cutoffs-page.tsx";
 import ProfileCompare from "./components/compare/compare.tsx";
+import CompositionScorePage from "./components/composition-score/composition-score.tsx";
+import { ContactPage, CookiePage, PrivacyPage, SupportPage, TermsPage } from "./components/site-footer/site-pages.tsx";
 
 // every /api/ call carries the current flavor
 installFlavorHeader()
@@ -52,6 +54,12 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route path='activity' element={<ActivityPage />}></Route>
             <Route path="cutoffs/:URLregion" element={<CutoffsPage />} />
             <Route path="cutoffs" element={<CutoffsPage />} />
+            <Route path="composition-score" element={<CompositionScorePage />} />
+            <Route path="terms" element={<TermsPage />} />
+            <Route path="cookies" element={<CookiePage />} />
+            <Route path="privacy" element={<PrivacyPage />} />
+            <Route path="contact" element={<ContactPage />} />
+            <Route path="support" element={<SupportPage />} />
             <Route path="*" element={<div />} />
           </Route>
         </Routes>

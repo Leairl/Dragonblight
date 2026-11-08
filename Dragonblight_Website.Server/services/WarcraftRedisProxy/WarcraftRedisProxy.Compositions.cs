@@ -54,6 +54,7 @@ partial class WarcraftRedisProxy
         for (var daysAgo = 0; daysAgo < 7; daysAgo++)
         {
             var key = CompositionKey(bracket, region, flavor, DateTime.UtcNow.AddDays(-daysAgo));
+            //finds all the compositions that have been played in the last 7 days and counts them by rating
             foreach (var entry in await db.HashGetAllAsync(key))
             {
                 //each field reads "rating|composition", like "1800|Frost:Mage,Holy:Priest"
@@ -66,8 +67,9 @@ partial class WarcraftRedisProxy
                 {
                     countsByName[compositionName] = new Dictionary<int, int>();
                 }
+                // Dictionary<int, int>
                 var countsAtRating = countsByName[compositionName];
-
+                //value of dict
                 countsAtRating[rating] = countsAtRating.GetValueOrDefault(rating) + teamsThatDay;
             }
         }
