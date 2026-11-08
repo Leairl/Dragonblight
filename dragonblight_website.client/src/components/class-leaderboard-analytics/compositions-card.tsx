@@ -3,10 +3,41 @@ import { Card, Skeleton } from "@radix-ui/themes";
 import { Dragonblight } from "../../clients/Dragonblight";
 import { ClassColor } from "../../helpers/classColorHelper";
 import { specIcon } from "../../helpers/classIconHelper";
+import { specsForFlavor } from "../../helpers/composition-score";
+import { getFlavor } from "../../helpers/game-flavor";
 
 const compositionColumns = "grid grid-cols-[1.5rem_minmax(0,1fr)_3.5rem_3.5rem] gap-2 items-center";
 const barColor = "#4dc4fd33";
 const shownCompositions = 25;
+
+//Healers always go last. In 2v2 the damage specs share one group, and in bigger teams casters and other
+//ranged specs go before melee. Tanks and anything unknown sit with melee.
+function roleOrder(spec: Dragonblight.CompositionSpec, teamSize: number): number {
+  const profile = specsForFlavor(getFlavor()).find((s) => s.className === spec.className && s.specName === spec.specName);
+  if (profile?.role === "Healer") {
+    return 2;
+  }
+  if (profile?.role === "Ranged DPS" && teamSize > 2) {
+    return 1;
+  }
+  return 0;
+}
+
+//Compared by character code rather than locale, so specs in the same role read in ASCII order
+function compareAscii(a: string, b: string): number {
+  if (a < b) {
+    return -1;
+  }
+  if (a > b) {
+    return 1;
+  }
+  return 0;
+}
+
+function sortSpecs(specs: Dragonblight.CompositionSpec[]): Dragonblight.CompositionSpec[] {
+  return [...specs].sort((a, b) =>
+    roleOrder(a, specs.length) - roleOrder(b, specs.length) || compareAscii(a.specName, b.specName) || compareAscii(a.className, b.className));
+}
 
 interface CompositionsCardProps {
   region: string;
@@ -47,7 +78,7 @@ const CompositionsCard: React.FC<CompositionsCardProps> = (props) => {
   }, [props.region, props.bracket]);
 
   const rows = compositions
-    .map((composition) => ({ specs: composition.specs, count: composition.countsAtRating[props.rating] ?? 0 }))
+    .map((composition) => ({ specs: sortSpecs(composition.specs), count: composition.countsAtRating[props.rating] ?? 0 }))
     .filter((row) => row.count > 0)
     .sort((a, b) => b.count - a.count);
   const total = rows.reduce((sum, row) => sum + row.count, 0);
