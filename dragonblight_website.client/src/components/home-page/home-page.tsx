@@ -10,6 +10,7 @@ import { UsRealms, EuRealms } from "../../clients/ServerNames";
 import { Link, Outlet } from "react-router";
 import { flavorHref, getFlavor } from "../../helpers/game-flavor";
 import { realmDisplayName, realmSlug } from "../../helpers/realmNameHelper";
+import SiteFooter from "../site-footer/site-footer";
 
 
 function HomePage() {
@@ -29,7 +30,7 @@ function HomePage() {
         className="fixed opacity-50 -z-10 object-top-left w-full h-full inset-0 object-cover "
         src={`/Background/background.png`}
       ></img>
-      <Container height="100vh">
+      <Container minHeight="100vh">
         <Flex direction="column" gap="5" className=" w-full items-center">
           <Card className="mb-5 m-20 max-w-[70vw] w-full">
             <Select
@@ -68,6 +69,7 @@ function HomePage() {
       </div>
         </Flex>
       </Container>
+      <SiteFooter />
     </div>
   );
 
