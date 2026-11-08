@@ -1,6 +1,6 @@
 import { FC, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { Card, Heading, SegmentedControl, Table } from "@radix-ui/themes";
+import { Card, Heading, SegmentedControl, Skeleton, Table } from "@radix-ui/themes";
 import { Dragonblight } from "../../clients/Dragonblight";
 import { SoloSpecIcon } from "../../helpers/solo-bracket-specs";
 import { TitleColors, cleanTitle } from "../../helpers/ratingTierHelper";
@@ -52,6 +52,37 @@ function rowTitle(row: CutoffRow): string {
   return row.titles.join(" / ");
 }
 
+//Placeholder tables while the cutoffs load, shaped like the bracket tables they stand in for
+function CutoffsSkeleton() {
+  return (
+    <>
+      {[0, 1, 2].map((section) => (
+        <section key={section} className="w-full mb-6">
+          <Heading size="4" className="mb-2"><Skeleton>Rated Battlegrounds</Skeleton></Heading>
+          <Table.Root variant="surface" size="1" className="cutoff-bracket-table">
+            <Table.Header>
+              <Table.Row>
+                <Table.ColumnHeaderCell>Title</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell justify="end" className="cutoff-rating-col">Rating Cutoff</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell justify="end" className="cutoff-ranks-col">Ranks</Table.ColumnHeaderCell>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
+              {[0, 1, 2, 3].map((row) => (
+                <Table.Row key={row}>
+                  <Table.Cell><Skeleton>Hero of the Alliance: Gladiator</Skeleton></Table.Cell>
+                  <Table.Cell justify="end"><Skeleton>2400</Skeleton></Table.Cell>
+                  <Table.Cell justify="end"><Skeleton>1 - 1000</Skeleton></Table.Cell>
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </Table.Root>
+        </section>
+      ))}
+    </>
+  );
+}
+
 const CutoffsPage: FC = () => {
   const { URLregion } = useParams();
   const region = URLregion ?? "us";
@@ -63,10 +94,16 @@ const CutoffsPage: FC = () => {
   const [specLadders, setSpecLadders] = useState<Map<string, string>>(new Map());
   const [estimates, setEstimates] = useState<Dragonblight.EstimatedCutoff[]>([]);
   const [selectedClasses, setSelectedClasses] = useState<string[]>([all_classes]);
+  //the region whose rewards have arrived, so switching regions shows the skeleton again until the new ones do
+  const [loadedRegion, setLoadedRegion] = useState<string>();
+  const loading = loadedRegion !== region;
 
   useEffect(() => {
     const client = new Dragonblight.PvpLeaderboardClient();
-    client.getPvPRewards(region).then((r) => setRewards(r ?? [])).catch(() => setRewards([]));
+    client.getPvPRewards(region)
+      .then((r) => setRewards(r ?? []))
+      .catch(() => setRewards([]))
+      .finally(() => setLoadedRegion(region));
     //the ratings still show without an estimate, they just can't be opened
     client.getEstimatedCutoffs(region).then((e) => setEstimates(e ?? [])).catch(() => setEstimates([]));
     client.getLadderBrackets(region).then((ladders) => {
@@ -173,8 +210,10 @@ const CutoffsPage: FC = () => {
         </SegmentedControl.Root>
       </header>
 
+      {loading && <CutoffsSkeleton />}
+
       {/* 3v3, RBG (and classic's tiers): one bar per title */}
-      {[...tables].filter(([type]) => !soloTypes.includes(type)).sort(([a], [b]) => bracketPosition(a) - bracketPosition(b)).map(([type, rows]) => (
+      {!loading && [...tables].filter(([type]) => !soloTypes.includes(type)).sort(([a], [b]) => bracketPosition(a) - bracketPosition(b)).map(([type, rows]) => (
         <section key={type} className="w-full mb-6">
           <Heading size="4" className="mb-2">{bracketNames[type] ?? type}</Heading>
           <Table.Root variant="surface" size="1" className="cutoff-bracket-table">
@@ -199,7 +238,7 @@ const CutoffsPage: FC = () => {
       ))}
 
 
-      {soloSorted.length > 0 && (
+      {!loading && soloSorted.length > 0 && (
         <section className="w-full mb-6">
           <div className="solo-heading-row">
             <Heading size="4">Solo Shuffle &amp; Blitz</Heading>
@@ -278,7 +317,7 @@ const CutoffsPage: FC = () => {
       )}
 
       {/* only Shuffle and Blitz have per spec cutoffs, and MoP has neither */}
-      {soloSorted.length > 0 && (
+      {!loading && soloSorted.length > 0 && (
         <p className="cutoffs-footnote">
           Titles are displayed once per bracket; rating cutoffs and rank ranges vary by specialization.
         </p>
