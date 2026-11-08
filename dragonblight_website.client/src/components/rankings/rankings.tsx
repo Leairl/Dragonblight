@@ -100,8 +100,18 @@ function Rankings() {
     const DragonblightClient = new Dragonblight.PvpLeaderboardClient();
     //a failed lookup just leaves the ratings uncolored
     DragonblightClient.getPvPRewards(region).then((r) => setRewards(r ?? [])).catch(() => setRewards([]));
-    DragonblightClient.getLadderBrackets(region).then(
-      (result) => {
+    //the playable classes come back in Blizzard's class order, which the class filter uses, so the solo filter sorts by it too
+    Promise.all([DragonblightClient.getLadderBrackets(region), DragonblightClient.getPlayableClasses(region)]).then(
+      ([result, playableClasses]) => {
+        const classOrder = (playableClasses ?? []).map((c) => c.name);
+        //where a class sits in that order, with any class the list doesn't have going last
+        function classPosition(className: string): number {
+          const position = classOrder.indexOf(className);
+          if (position === -1) {
+            return classOrder.length;
+          }
+          return position;
+        }
         setLadders(result ?? [])
         const soloLadders = result?.filter((l) => isShuffleBracket(l.slug) || isBlitzBracket(l.slug)) ?? [];
         const soloSpecsFromLadders = soloLadders.map((l) => {
@@ -113,9 +123,9 @@ function Rankings() {
           }
           return newSoloSpec;
         })
-        // uses ascii to sort the classes alphabetically, so that the order is consistent with the class filter
-        setShuffleSpecs(soloSpecsFromLadders.filter((s) => isShuffleBracket(s.slug)).sort((a, b) => a.className.localeCompare(b.className)));
-        setBlitzSpecs(soloSpecsFromLadders.filter((s) => isBlitzBracket(s.slug)).sort((a, b) => a.className.localeCompare(b.className)));
+        //classes in the same order as the class filter on the other brackets; within a class the specs keep the ladders' order
+        setShuffleSpecs(soloSpecsFromLadders.filter((s) => isShuffleBracket(s.slug)).sort((a, b) => classPosition(a.className) - classPosition(b.className)));
+        setBlitzSpecs(soloSpecsFromLadders.filter((s) => isBlitzBracket(s.slug)).sort((a, b) => classPosition(a.className) - classPosition(b.className)));
       });
   }, [region]);
   //when page changes, call useeffect and update the skip amount
