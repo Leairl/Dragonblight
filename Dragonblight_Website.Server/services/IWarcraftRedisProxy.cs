@@ -18,6 +18,7 @@ public interface IWarcraftRedisProxy
     Task RefreshCharacterSpec(string server, string characterName, string region, GameFlavor flavor);
     Task RecordCompositions(string bracket, string region, List<List<SyncedPlayer>> teams, GameFlavor flavor);
     Task<List<CompositionCounts>> GetCompositions(string bracket, string region, GameFlavor flavor);
+    Task<SpecWinRates> GetSpecWinRates(string bracket, string region, GameFlavor flavor);
     Task<PvpLeaderboard> GetLeaderboard(string region, string bracket, GameFlavor flavor);
     Task InsertCacheCharacter(string characterName, string server, string region, GameFlavor flavor);
     Task InsertCacheClassCharacter(string bracket, PvpLeaderboardEntry player, CharacterProfileSummary summary, string specName, string region, GameFlavor flavor);

@@ -51,5 +51,19 @@ namespace Dragonblight_Website.Server.Controllers
                 return StatusCode(500, "An error occurred while processing your request.");
             }
         }
+
+        [HttpGet("SpecWinRates")]
+        public async Task<ActionResult<SpecWinRates>> GetSpecWinRates(string region, string bracket)
+        {
+            try
+            {
+                return Ok(await _warcraftCachedData.GetSpecWinRates(bracket, region, HttpContext.GetGameFlavor()));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting spec win rates.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
     }
 }

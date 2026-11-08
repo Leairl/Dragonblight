@@ -11,7 +11,7 @@ function NavBar() {
     <Theme radius="none">
     <Card className="flex items-center w-full h-20">
       {/* this side and the empty one after the menu grow equally, which keeps the menu in the middle of the bar */}
-      <div className="flex flex-1 items-center">
+      <div className="flex flex-1 min-w-max items-center pr-6 max-[1180px]:pr-0">
         <Link
           to="/"
           className="flex-none flex h-[45px] w-[240px] max-[500px]:h-auto max-[500px]:w-[130px]"
@@ -66,6 +66,15 @@ function NavBar() {
               <NavigationMenu.Trigger className="group flex select-none items-center gap-[2px] rounded-[4px] text-[15px] font-medium leading-none outline-hidden">
                 <div className="blue-bottom-border cls-1">
                   <span className="nav-text">Stats</span>
+                </div>
+              </NavigationMenu.Trigger>
+            </Link>
+          </NavigationMenu.Item>
+          <NavigationMenu.Item>
+            <Link to="/composition-score">
+              <NavigationMenu.Trigger className="group flex select-none items-center gap-[2px] rounded-[4px] text-[15px] font-medium leading-none outline-hidden">
+                <div className="blue-bottom-border cls-1">
+                  <span className="nav-text">Comp Score</span>
                 </div>
               </NavigationMenu.Trigger>
             </Link>
@@ -199,6 +208,20 @@ function NavBar() {
                 <div className="mobile-nav-frame">
                   <div className="mobile-nav-inner">
                     <span className="nav-text text-white">Stats</span>
+                  </div>
+                </div>
+              </NavigationMenu.Trigger>
+            </a>
+            </div>
+          </NavigationMenu.Item>
+          <NavigationMenu.Item>
+            <div className="px-3 py-2 w-full">
+            <a onClick={() => { window.location.href = flavorHref("/composition-score") }}>
+            {/* acts as a button */}
+              <NavigationMenu.Trigger className=" h-12  w-full group flex select-none items-center gap-[2px] rounded-[4px] text-[15px] font-medium leading-none outline-hidden">
+                <div className="mobile-nav-frame">
+                  <div className="mobile-nav-inner">
+                    <span className="nav-text text-white">Comp Score</span>
                   </div>
                 </div>
               </NavigationMenu.Trigger>

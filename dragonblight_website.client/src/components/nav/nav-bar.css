@@ -28,7 +28,7 @@
   display: none
 }
 /* the larger text needs this much room beside the logo, so narrower screens get the mobile menu */
-@media only screen and (max-width: 1050px) {
+@media only screen and (max-width: 1180px) {
 .desktop-nav-menu{
   display: none 
 }
