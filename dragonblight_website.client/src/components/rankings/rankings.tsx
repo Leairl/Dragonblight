@@ -42,7 +42,7 @@ function Rankings() {
   const [ladders, setLadders] = useState<Dragonblight.LadderBracket[]>([]);
   const [rewards, setRewards] = useState<Dragonblight.PvpSeasonRewardWithRank[]>([]);
   const [hoveredAlts, setHoveredAlts] = useState<Dragonblight.CharacterIdentity[]>([]);
-  const timeoutRef = useRef(0);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   function ratingClass(entry: Dragonblight.PvpCharacterSummary): string {
     return rankOneRatingClass(

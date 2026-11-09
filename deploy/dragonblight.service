@@ -1,0 +1,30 @@
+[Unit]
+Description=Dragonblight website
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=exec
+WorkingDirectory=/opt/dragonblight/current/app
+ExecStart=/opt/dragonblight/current/app/Dragonblight_Website.Server
+# Redis__ConnectionString, ConnectionStrings__Postgres, POSTGRES_PASSWORD - see deploy/README.md
+EnvironmentFile=/etc/dragonblight/dragonblight.env
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=ASPNETCORE_URLS=http://127.0.0.1:5000
+Environment=DOTNET_NOLOGO=1
+Environment=HOME=/var/lib/dragonblight
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+SyslogIdentifier=dragonblight
+
+# run as a throwaway user with a read-only filesystem; the app only writes logs to the console
+DynamicUser=yes
+StateDirectory=dragonblight
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

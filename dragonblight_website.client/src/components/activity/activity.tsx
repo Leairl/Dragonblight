@@ -44,7 +44,7 @@ function Activity() {
   const [ladders, setLadders] = useState<Dragonblight.LadderBracket[]>([]);
   const [rewards, setRewards] = useState<Dragonblight.PvpSeasonRewardWithRank[]>([]);
   const [hoveredPlayer, setHoveredPlayer] = useState<Dragonblight.ActivityCharacterSummary | null>(null);
-  const timeoutRef = useRef(0);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   //rewards and ladders only change with the region, and a failed lookup just leaves the ratings uncolored
   useEffect(() => {

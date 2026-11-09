@@ -1,0 +1,91 @@
+# Builds a Release, self-contained linux-x64 bundle and deploys it to the new production server.
+# The server runs the app as a systemd service with Redis and Postgres from docker-compose.yml.
+# One-time server setup and the secrets this needs are in deploy/README.md.
+
+name: Deploy
+
+on:
+  workflow_dispatch:
+
+# never run two deploys against the same server at once
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 10.0.x
+
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: npm
+        cache-dependency-path: dragonblight_website.client/package-lock.json
+
+    - name: Install client packages
+      working-directory: dragonblight_website.client
+      run: npm ci
+
+    - name: Fill in secrets
+      uses: cschleiden/replace-tokens@v1
+      with:
+        tokenPrefix: '{'
+        tokenSuffix: '}'
+        files: 'Dragonblight_Website.Server/appsettings.json'
+      env:
+        BattlenetClients: ${{ secrets.BATTLENETAPICLIENTS }}
+        TwitchApiClientId: ${{ secrets.TWITCHAPICLIENTID }}
+        TwitchApiClientSecret: ${{ secrets.TWITCHAPICLIENTSECRET }}
+
+    # a missing or malformed secret leaves broken JSON, which would only show up as a crash on the server
+    - name: Check appsettings.json
+      run: jq empty Dragonblight_Website.Server/appsettings.json
+
+    - name: Publish
+      run: >
+        dotnet publish Dragonblight_Website.Server/Dragonblight_Website.Server.csproj
+        -c Release -r linux-x64 --self-contained true -o out/app
+
+    - name: Bundle
+      run: |
+        mkdir -p out/deploy
+        cp deploy/dragonblight.service docker-compose.yml out/deploy/
+        tar -czf dragonblight.tgz -C out .
+
+    - name: Setup SSH
+      env:
+        SSH_KEY: ${{ secrets.DEPLOY_KEY }}
+        KNOWN_HOSTS: ${{ secrets.PROD_KNOWN_HOSTS }}
+      run: |
+        mkdir -p ~/.ssh
+        chmod 700 ~/.ssh
+        printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+        chmod 600 ~/.ssh/id_deploy
+        printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+    - name: Upload and deploy
+      env:
+        HOST: ${{ secrets.DEPLOY_HOST }}
+        USER: ${{ secrets.DEPLOY_USER }}
+      run: |
+        ssh_opts=(-i ~/.ssh/id_deploy -o StrictHostKeyChecking=yes -o BatchMode=yes)
+        bundle="/tmp/dragonblight-${GITHUB_SHA}.tgz"
+        scp "${ssh_opts[@]}" dragonblight.tgz "$USER@$HOST:$bundle"
+        scp "${ssh_opts[@]}" deploy/remote-deploy.sh "$USER@$HOST:/tmp/dragonblight-deploy.sh"
+        ssh "${ssh_opts[@]}" "$USER@$HOST" "sudo bash /tmp/dragonblight-deploy.sh '$GITHUB_SHA' '$bundle'"
+
+    - name: Remove SSH key
+      if: always()
+      run: rm -f ~/.ssh/id_deploy
