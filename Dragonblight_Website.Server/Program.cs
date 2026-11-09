@@ -22,6 +22,9 @@ var battlenetClient = configuration.GetSection("BattlenetApi")["clientId"];
 var battlenetSecret = configuration.GetSection("BattlenetApi")["clientSecret"];
 
 builder.Services.AddSerilog((services, lc) => lc
+    //ASP.NET Core logs about 7 lines per request at Information, most of the journal on the server.
+    //Set before the configuration so Serilog:MinimumLevel:Override in appsettings can still change it
+    .MinimumLevel.Override("Microsoft.AspNetCore", Serilog.Events.LogEventLevel.Warning)
     .ReadFrom.Configuration(configuration)
     .ReadFrom.Services(services)
     .Enrich.FromLogContext()

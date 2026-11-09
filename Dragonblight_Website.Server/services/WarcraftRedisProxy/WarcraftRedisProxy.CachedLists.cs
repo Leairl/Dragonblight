@@ -56,7 +56,10 @@ partial class WarcraftRedisProxy
             await BracketClassPlayerExpiration(bracket, region, wowClass, flavor);
         }
     }
-    public async Task SavePvpCharacterSummary(PvpCharacterSummary newPvpCharacterSummary, string bracket, string region, GameFlavor flavor)
+    //specLadderEntries: each Shuffle/Blitz spec ladder of this sync, by character id. The overall ladders look a
+    //player's spec up here; reading the spec ladders from Redis for every player was several MB per read.
+    public async Task SavePvpCharacterSummary(PvpCharacterSummary newPvpCharacterSummary, string bracket, string region, GameFlavor flavor,
+        IReadOnlyDictionary<string, Dictionary<int, PvpLeaderboardEntry>> specLadderEntries)
     {
         //add spec and class of character from pvpleaderboardentries to dbleaderboardentries 
         var db = redis.GetDatabase();
@@ -75,9 +78,9 @@ partial class WarcraftRedisProxy
             var soloOverallEntry = newPvpCharacterSummary.PvpEntry;
             foreach (var soloBracket in brackets)
             {
-                // connects to snapshotted ladder to fetch all spec ladder data at once
-                PvpLeaderboard ladder = await GetLeaderboard(region, soloBracket.Name, flavor);
-                PvpLeaderboardEntry? specEntry = ladder.Entries.FirstOrDefault(e => e?.Character.Id == soloOverallEntry.Character.Id);
+                //a spec ladder that failed to snapshot has no entries to match against
+                if (!specLadderEntries.TryGetValue(soloBracket.Name, out var ladderEntries)) continue;
+                ladderEntries.TryGetValue(soloOverallEntry.Character.Id, out var specEntry);
                 if (specEntry?.Rating == soloOverallEntry.Rating &&
                 specEntry.SeasonMatchStatistics.Played == soloOverallEntry.SeasonMatchStatistics.Played &&
                 specEntry.SeasonMatchStatistics.Won == soloOverallEntry.SeasonMatchStatistics.Won &&

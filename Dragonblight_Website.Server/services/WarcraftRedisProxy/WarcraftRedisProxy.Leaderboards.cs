@@ -171,11 +171,19 @@ partial class WarcraftRedisProxy
         }, TimeSpan.FromDays(1));
     }
 
-    public async Task ClearLeaderboard(string bracket, string region, GameFlavor flavor)
+    //Fetches the ladder from Blizzard and only then replaces the cached copy. Deleting the cached copy
+    //first left the ladder empty for the site whenever the fetch failed.
+    public async Task<PvpLeaderboard> RefreshLeaderboard(string region, string bracket, GameFlavor flavor)
     {
-        region = GetDynamicRegion(region, flavor);
-        string key = "getLeaderboard" + bracket + region;
-        var db = redis.GetDatabase();
-        await db.KeyDeleteAsync(VersionedKey(key));
+        var ns = GetDynamicRegion(region, flavor);
+        return await GetBlizzardData<PvpLeaderboard>("getLeaderboard" + bracket + ns, async () =>
+        {
+            var currLeaderboard = await warcraftClient.GetPvpLeaderboardAsync(await GetSeason(region, flavor), bracket, ns, GetRegion(ns), GetLocale(ns));
+            if (!currLeaderboard.Success || currLeaderboard.Value == null)
+            {
+                throw new InvalidOperationException("Blizzard did not return the " + bracket + " " + ns + " ladder: " + currLeaderboard.Error?.Detail);
+            }
+            return currLeaderboard.Value;
+        }, TimeSpan.FromHours(3));
     }
 }

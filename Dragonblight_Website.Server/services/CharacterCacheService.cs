@@ -24,6 +24,20 @@ partial class CharacterCacheService(IWarcraftRedisProxy warcraftRedisProxy, ILog
         var clientSecret = Config[flavor.KeyPrefix() + region.ToLower() + keyGroup + "bracket-battlenetApi:clientSecret"];
         var warcraftClient = new WarcraftClient(clientId, clientSecret, Region.US, Locale.en_US, RateLimitedHttpClient);
         warcraftRedisProxy.overrideClient = warcraftClient;
+        //the client is disposed when this returns, and the proxy lives for the whole sync pass: left set after an
+        //error, every later Blizzard call in the pass failed with ObjectDisposedException
+        try
+        {
+            await SyncLadder(bracket, region, oldarray, newarray, batchSize, flavor, soloSnapshots, keyGroup);
+        }
+        finally
+        {
+            warcraftRedisProxy.overrideClient = null;
+        }
+    }
+
+    private async Task SyncLadder(string bracket, string region, PvpLeaderboardEntry[] oldarray, PvpLeaderboardEntry[] newarray, int batchSize, GameFlavor flavor, Dictionary<string, (PvpLeaderboard Old, PvpLeaderboard New)> soloSnapshots, string keyGroup)
+    {
         await warcraftRedisProxy.ClearAllCachedClassCharacters(bracket, region, flavor);
         await warcraftRedisProxy.ClearPvpCharacterSummary(bracket, region, flavor);
         //Shuffle and Blitz keep a ladder per spec, 80 of them a region, so only each spec's top players
@@ -41,6 +55,10 @@ partial class CharacterCacheService(IWarcraftRedisProxy warcraftRedisProxy, ILog
         var teamSize = TeamDetector.TeamSize(bracket);
         var season = await warcraftRedisProxy.GetSeason(region, flavor);
         var ladderBrackets = await warcraftRedisProxy.GetLadderBrackets(region, flavor);
+        //only the overall Shuffle and Blitz ladders look players up in the spec ladders
+        var specLadderEntries = bracket.EndsWith("-overall")
+            ? soloSnapshots.ToDictionary(s => s.Key, s => SpecEntriesById(s.Value.New))
+            : new Dictionary<string, Dictionary<int, PvpLeaderboardEntry>>();
         for (int i = 0; i < batchAmount; i++)
         {
             var slice = newarray.Skip(i * batchSize).Take(batchSize);
@@ -79,7 +97,7 @@ partial class CharacterCacheService(IWarcraftRedisProxy warcraftRedisProxy, ILog
                         spec = talents
                     };
                     var specName = flavor == GameFlavor.Retail ? summary.ActiveSpec?.Name ?? "" : talents;
-                    await warcraftRedisProxy.SavePvpCharacterSummary(newPvpCharSummary, bracket, region, flavor);
+                    await warcraftRedisProxy.SavePvpCharacterSummary(newPvpCharSummary, bracket, region, flavor, specLadderEntries);
                     var activitySpec = specName;
                     //filters by ladder spec name or default to the active spec
                     var specLadder = LadderNames.ForSpec(keyGroup, summary.CharacterClass?.Name, newPvpCharSummary.spec);
@@ -176,9 +194,6 @@ partial class CharacterCacheService(IWarcraftRedisProxy warcraftRedisProxy, ILog
         {
             logger.LogError(ex, "Error saving rating history for " + bracket);
         }
-
-
-        warcraftRedisProxy.overrideClient = null;
     }
     public async Task CacheLadder(string region, string bracket, PvpLeaderboard OldLeaderboard, PvpLeaderboard NewLeaderboard, GameFlavor flavor, Dictionary<string, (PvpLeaderboard Old, PvpLeaderboard New)> soloSnapshots)
     {
@@ -203,11 +218,24 @@ partial class CharacterCacheService(IWarcraftRedisProxy warcraftRedisProxy, ILog
         }
     }
 
+    //first entry per character, as the ladder search this replaces took the first match
+    private static Dictionary<int, PvpLeaderboardEntry> SpecEntriesById(PvpLeaderboard ladder)
+    {
+        var byId = new Dictionary<int, PvpLeaderboardEntry>();
+        foreach (var entry in ladder.Entries ?? [])
+        {
+            if (entry?.Character != null)
+            {
+                byId.TryAdd(entry.Character.Id, entry);
+            }
+        }
+        return byId;
+    }
+
     private async Task<(PvpLeaderboard Old, PvpLeaderboard New)> SnapshotLadder(string region, string bracket, GameFlavor flavor)
     {
         var oldLeaderboard = await warcraftRedisProxy.GetLeaderboard(region, bracket, flavor);
-        await warcraftRedisProxy.ClearLeaderboard(bracket, region, flavor);
-        var newLeaderboard = await warcraftRedisProxy.GetLeaderboard(region, bracket, flavor);
+        var newLeaderboard = await warcraftRedisProxy.RefreshLeaderboard(region, bracket, flavor);
         return (oldLeaderboard, newLeaderboard);
     }
     public async Task CacheAllLadders(string region, GameFlavor flavor)
