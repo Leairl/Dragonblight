@@ -131,6 +131,11 @@
     padding-left: 8px;
     padding-right: 0;
   }
+  .header-developer {
+    flex: 1 1 100%;
+    justify-content: center;
+    margin-left: 0;
+  }
   /* no model placeholder here, so the gear columns sit at the edges while loading */
   .model-skeleton {
     display: none;

@@ -343,6 +343,18 @@ const ProfileEquipment: FC<profileEquipmentProps> = (props) => {
       .then(setTiers)
       .catch(() => setTiers([]));
   }, [region, server, characterName]);
+  //every character on the site developer's account carries the developer badge
+  const [isDeveloper, setIsDeveloper] = useState<boolean>(false);
+  useEffect(() => {
+    setIsDeveloper(false);
+    if (region == null || server == null || characterName == null) {
+      return;
+    }
+    new Dragonblight.AltClient()
+      .isDeveloper(server.replace(" ", "-"), characterName, region)
+      .then((result) => setIsDeveloper(result == true))
+      .catch(() => setIsDeveloper(false));
+  }, [region, server, characterName]);
   //only Gladiator and Rank 1 have custom icons
   const customAchievements = tiers.filter((a) => ["Gladiator", "RankOne", "LegendRankOne", "BlitzRankOne"].includes(a.tier ?? ""));
 
@@ -382,6 +394,7 @@ const ProfileEquipment: FC<profileEquipmentProps> = (props) => {
                   {customAchievements.map(getAchievementIcon)}
                 </div>
               )}
+              {isDeveloper && <div className="header-developer ml-auto flex items-center pr-1">{getDeveloperBadge()}</div>}
             </div>
           )}
         </Card>
@@ -1004,6 +1017,33 @@ const ProfileEquipment: FC<profileEquipmentProps> = (props) => {
                 style={{ maxHeight: "34px", maxWidth: "34px" }}
               ></img>
             </div>
+          </Tooltip.Trigger>
+        </Tooltip.Root>
+      </Tooltip.Provider>
+    );
+  }
+
+  function getDeveloperBadge() {
+    return (
+      <Tooltip.Provider delayDuration={100}>
+        <Tooltip.Root>
+          <Tooltip.Portal>
+            <Tooltip.Content
+              side="top"
+              avoidCollisions={false}
+              className="block max-w-sm p-2 rounded-lg shadow-sm bg-neutral-800 border border-neutral-950 z-100">
+              Developer of Dragonblight
+            </Tooltip.Content>
+          </Tooltip.Portal>
+          <Tooltip.Trigger className="cursor-default">
+            <img
+              className="my-1"
+              src="/Badges/developer.png"
+              alt="Developer of Dragonblight"
+              height="34px"
+              width="34px"
+              style={{ maxHeight: "34px", maxWidth: "34px" }}
+            ></img>
           </Tooltip.Trigger>
         </Tooltip.Root>
       </Tooltip.Provider>
