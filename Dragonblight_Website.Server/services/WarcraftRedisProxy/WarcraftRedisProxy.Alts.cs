@@ -107,6 +107,10 @@ partial class WarcraftRedisProxy
 //falls back to the achievements payload when that has expired; it can be up to a day behind
     public async Task<List<CharacterIdentity>> GetAlts(string server, string characterName, string region, GameFlavor flavor)
     {
+        //the alt keys are filed lowercase, and a name as typed ("Petkick") also cached a second multi-MB
+        //achievements payload beside the lowercase one
+        server = server.ToLowerInvariant();
+        characterName = characterName.ToLowerInvariant();
         var db = redis.GetDatabase();
         var altKey = await db.StringGetAsync(VersionedKey("AltKey" + server + characterName + region + flavor.KeyPrefix()));
         string? key = "";
