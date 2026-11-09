@@ -4,7 +4,6 @@ const footerLinks = [
   { to: "/terms", label: "Terms of Use" },
   { to: "/cookies", label: "Cookie Policy" },
   { to: "/privacy", label: "Privacy Policy" },
-  { to: "/contact", label: "Contact Me" },
   { to: "/support", label: "Support Me" },
 ];
 
