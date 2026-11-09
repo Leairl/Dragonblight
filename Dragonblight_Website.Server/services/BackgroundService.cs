@@ -40,7 +40,7 @@ public class BgService : BackgroundService
             await charService.CacheAllLadders("us", GameFlavor.MistsClassic);
             await charService.CacheAllLadders("eu", GameFlavor.MistsClassic);
             await charService.CacheAllLadders("us", GameFlavor.Retail);
-            // await charService.CacheAllLadders("eu", GameFlavor.Retail);
+            await charService.CacheAllLadders("eu", GameFlavor.Retail);
         } 
         catch (Exception ex) 
         {
