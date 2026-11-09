@@ -84,6 +84,25 @@ partial class WarcraftRedisProxy
         await db.StringSetAsync(marker, "1", TimeSpan.FromDays(1));
     }
 
+    //the alt list key fingerprints a battle.net account, so matching it marks every character on the
+    //developer's account. It is built from achievement timestamps, so it changes if the account earns
+    //one of the AltAchievements it has not earned yet - read the new value from redis if the badge vanishes.
+    private const string DeveloperAltListKey = "retail_AltList-us-2801E6F1A202D046";
+
+    public async Task<bool> IsDeveloper(string server, string characterName, string region, GameFlavor flavor)
+    {
+        server = server.ToLowerInvariant();
+        characterName = characterName.ToLowerInvariant();
+        var db = redis.GetDatabase();
+        var altKey = await db.StringGetAsync(VersionedKey("AltKey" + server + characterName + region + flavor.KeyPrefix()));
+        if (altKey.HasValue)
+        {
+            return altKey.ToString() == DeveloperAltListKey;
+        }
+        var achievements = await GetCharacterAchievements(server, characterName, region, flavor);
+        return AltListKey(achievements, region, flavor) == DeveloperAltListKey;
+    }
+
 //the account's other characters - the alt key comes from the copy InsertAltList saved, and only
 //falls back to the achievements payload when that has expired; it can be up to a day behind
     public async Task<List<CharacterIdentity>> GetAlts(string server, string characterName, string region, GameFlavor flavor)

@@ -59,6 +59,7 @@ public interface IWarcraftRedisProxy
     Task InsertAltList(string server, string characterName, string region, CharacterAchievementsSummary achievements, GameFlavor flavor);
     Task IndexAltList(string server, string characterName, string region, GameFlavor flavor);
     Task<List<CharacterIdentity>> GetAlts(string server, string characterName, string region, GameFlavor flavor);
+    Task<bool> IsDeveloper(string server, string characterName, string region, GameFlavor flavor);
     Task<RealmsIndex?> GetRealms(string region, GameFlavor flavor);
     Task ReplacePvpCharacterSummary(int index, PvpCharacterSummary summary, string bracket, string region, GameFlavor flavor);
     Task<List<WowClass>> GetPlayableClasses(string region, GameFlavor flavor);

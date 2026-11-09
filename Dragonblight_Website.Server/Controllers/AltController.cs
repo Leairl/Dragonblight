@@ -99,6 +99,21 @@ namespace Dragonblight_Website.Server.Controllers
             }
         }
 
+        //true for every character on the site developer's battle.net account, which shows the developer badge
+        [HttpGet("IsDeveloper")]
+        public async Task<ActionResult<bool>> IsDeveloper(string server, string characterName, string region)
+        {
+            try
+            {
+                return Ok(await _warcraftCachedData.IsDeveloper(server, characterName, region, HttpContext.GetGameFlavor()));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while checking the developer badge for {CharacterName} in {Region}", characterName, region);
+                return Ok(false);
+            }
+        }
+
         //an unplayed bracket comes back as an empty statistics object, which reads as rating 0
         private async Task<int> BracketRating(string server, string characterName, string bracket, string region, GameFlavor flavor, int season)
         {
