@@ -219,7 +219,8 @@ const ScoreResults: React.FC<{
   //Rows about one class's own strengths count toward the score but aren't listed as attributes
   const attributeRows = result.rows.filter((row) => !row.classBenefit);
   const scoredRows = attributeRows.filter((row) => row.points !== 0).sort((a, b) => b.points - a.points);
-  const neutralRows = attributeRows.filter((row) => row.points === 0);
+  //a row with nothing to say doesn't apply to this team, like Duplicate DPS when no class is doubled, so it isn't listed
+  const neutralRows = attributeRows.filter((row) => row.points === 0 && row.reason !== "");
   const [showNeutral, setShowNeutral] = useState(false);
   let neutralState = "closed";
   if (showNeutral) {

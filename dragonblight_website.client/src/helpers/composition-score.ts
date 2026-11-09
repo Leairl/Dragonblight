@@ -36,7 +36,7 @@ export interface SpecProfile {
   peel: Rating; //peel and control
   mobility: Rating;
   dampening: Rating;
-  purge: boolean; //an offensive dispel or immunity removal
+  purge: boolean; //an offensive dispel, or for Warriors Shattering Throw's immunity removal
   profile: DamageProfile;
   controls: Control[]; //main crowd control diminishing returns categories. Not tagged for healers yet
   extraDispels: string[]; //healers only, the dispel types beyond magic
@@ -535,24 +535,39 @@ function healingReductionRow(team: SpecProfile[]): ScoreRow {
   return row(label, best.points, detail, `${bestName}'s healing reduction depends on positioning, so it's less reliable than Arms.`);
 }
 
+//Stripping buffs and breaking immunities are scored apart, since most purges can't touch Ice Block or Divine
+//Shield. Together they are worth what the one combined row was: 4 points either way.
+const purgePoints = 2;
+
+//Purge: an offensive dispel that strips buffs. Warriors are flagged as a purge for Shattering Throw, which only
+//breaks immunities, so they count in the immunity row instead.
 function purgeRow(team: SpecProfile[]): ScoreRow {
-  const label = "Purge / immunity removal";
-  const sources = team.filter((s) => s.purge);
+  const label = "Purge";
+  const sources = team.filter((s) => s.purge && s.className !== "Warrior");
   if (sources.length > 0) {
-    const names = sources.map(specLabel).join(", ");
-    //Warriors only break immunities, with Shattering Throw. Everyone else can also dispel buffs.
-    const warriors = sources.filter((s) => s.className === "Warrior");
-    const dispellers = sources.filter((s) => s.className !== "Warrior");
-    const sentences: string[] = [];
-    if (dispellers.length > 0) {
-      sentences.push(`${joinLabels(dispellers)} can strip enemy buffs or immunities.`);
-    }
-    if (warriors.length > 0) {
-      sentences.push(`${joinLabels(warriors)} can break immunities with Shattering Throw.`);
-    }
-    return row(label, 4, names, sentences.join(" "));
+    return row(label, purgePoints, sources.map(specLabel).join(", "), `${joinLabels(sources)} can strip enemy buffs.`);
   }
-  return row(label, -4, "", "Nothing on the team answers Ice Block, Divine Shield or Blessing of Protection.");
+  return row(label, -purgePoints, "", "Nobody on the team can strip enemy buffs.");
+}
+
+//Immunity removal: Mass Dispel (every Priest) and Shattering Throw (every Warrior) break Ice Block, Divine Shield
+//and Blessing of Protection. Other purges can't.
+function immunityRemovalRow(team: SpecProfile[]): ScoreRow {
+  const label = "Immunity removal";
+  const priests = team.filter((s) => s.className === "Priest");
+  const warriors = team.filter((s) => s.className === "Warrior");
+  const sources = [...priests, ...warriors];
+  if (sources.length === 0) {
+    return row(label, -purgePoints, "", "Nothing on the team answers Ice Block, Divine Shield or Blessing of Protection.");
+  }
+  const sentences: string[] = [];
+  if (priests.length > 0) {
+    sentences.push(`${joinLabels(priests)} can break immunities with Mass Dispel.`);
+  }
+  if (warriors.length > 0) {
+    sentences.push(`${joinLabels(warriors)} can break immunities with Shattering Throw.`);
+  }
+  return row(label, purgePoints, sources.map(specLabel).join(", "), sentences.join(" "));
 }
 
 //Sharing a DR doesn't waste a setup, but it can leave the team fewer ways to peel outside its burst windows.
@@ -1333,11 +1348,13 @@ function dampeningRow(team: SpecProfile[]): ScoreRow {
       points += 3;
       healerLasts = true;
       notes.push("high-throughput healer");
-    } else if (healerSpec.dampening === 3 || healerSpec.mana === 3) {
+    //only the dampening rating says a healer keeps up as healing falls off. A full mana bar alone doesn't:
+    //Mistweaver and Holy Paladin rarely run dry, but their healing still falls behind late
+    } else if (healerSpec.dampening === 3) {
       points += 2;
       healerLasts = true;
       notes.push("healer lasts");
-    } else if (healerSpec.mana === 1 || healerSpec.throughput === 1) {
+    } else if (healerSpec.mana === 1 || healerSpec.throughput === 1 || healerSpec.dampening === 1) {
       points -= 3;
       notes.push("healer falls behind");
     }
@@ -1484,7 +1501,7 @@ function rawScoreOf(team: SpecProfile[], records: SpecRecord[] | undefined) {
 
   const ms = healingReductionRow(team);
   const rows = [
-    ms, purgeRow(team), overlapRow(team), mobilityRow(team), healerThroughputRow(team), healerControlRow(team), buffRow(team), burstRow(team),
+    ms, purgeRow(team), immunityRemovalRow(team), overlapRow(team), mobilityRow(team), healerThroughputRow(team), healerControlRow(team), buffRow(team), burstRow(team),
     paladinDefensivesRow(team), evokerImmunitiesRow(team), duplicateDpsRow(team), peelRow(team), manaRow(team), dampeningRow(team),
   ];
   const synergy = Math.min(synergyCap, synergyWeight * rows.reduce((sum, r) => sum + r.points, 0));
