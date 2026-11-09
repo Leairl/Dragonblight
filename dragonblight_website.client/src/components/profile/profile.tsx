@@ -22,7 +22,6 @@ const Profile: FC = () => {
   const [specName, setSpecName] = useState<string>();
   const [previousNames, setPreviousNames] = useState<Dragonblight.PreviousCharacterName[]>();
   const [characterEquipmentSummary, setCharacterEquipmentSummary] = useState<Dragonblight.CharacterEquipmentSummary>();
-  const [achievementsSummary, setAchievementsSummary] = useState<Dragonblight.CharacterAchievementsSummary>();
   const [characterNotFound, setCharacterNotFound] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [cookies, setCookie] = useCookies(["showModelViewer"]);
@@ -68,7 +67,6 @@ const Profile: FC = () => {
       return;
     }
     const CharacterClient = new Dragonblight.ProfileClient();
-    const CharacterAchievementClient = new Dragonblight.AchievementClient();
     const PvpLeaderboardClient = new Dragonblight.PvpLeaderboardClient();
     const slug = server?.replace(" ", "-")
 
@@ -98,9 +96,6 @@ const Profile: FC = () => {
       CharacterClient.getEquipment(slug, characterName, region).then((dataEquip) => {
         setCharacterEquipmentSummary(dataEquip);
         getPvpItemLevels(dataEquip).then(setPvpLevels).catch(() => setPvpLevels(new Map()));
-        CharacterAchievementClient.getCharacterAchievements(slug, characterName, region).then((data) => {
-          setAchievementsSummary(data);
-        })
         setLoading(false)
       })
     }).catch(() => {
@@ -231,7 +226,6 @@ const Profile: FC = () => {
             currTab={currTab}
             characterProfileSummary={characterSummary}
             characterEquipmentSummary={characterEquipmentSummary}
-            characterAchievementsSummary={achievementsSummary}
             specName={specName}
             previousNames={previousNames}
             characterImage={shownImage}

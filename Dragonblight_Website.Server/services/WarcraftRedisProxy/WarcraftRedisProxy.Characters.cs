@@ -155,6 +155,27 @@ partial class WarcraftRedisProxy
         }
         return result;
     }
+    //Blizzard's achievements payload is 1-4 MB a character, nearly all of it criteria progress and
+    //unfinished achievements. Everything that reads it (seasonal PvP titles, the alt list key) only looks
+    //at finished achievements' id, name and completion time, so only those are cached.
+    private static CharacterAchievementsSummary? SlimAchievements(CharacterAchievementsSummary? full)
+    {
+        if (full == null)
+        {
+            return null;
+        }
+        return new CharacterAchievementsSummary
+        {
+            Character = full.Character,
+            TotalPoints = full.TotalPoints,
+            TotalQuantity = full.TotalQuantity,
+            Achievements = (full.Achievements ?? [])
+                .Where(a => a.CompletedTimestamp != null)
+                .Select(a => new AchievementProgress { Id = a.Id, Achievement = a.Achievement, CompletedTimestamp = a.CompletedTimestamp })
+                .ToArray(),
+        };
+    }
+
     // get character summary in redis for character appearance
     public async Task<CharacterAchievementsSummary> GetCharacterAchievements(string server, string characterName, string region, GameFlavor flavor)
     {
@@ -169,7 +190,7 @@ partial class WarcraftRedisProxy
             if (GetCharacter != null)
             {
                 //call method to insert char name in cache
-                return GetCharacter.Value;
+                return SlimAchievements(GetCharacter.Value)!;
             }
             return new CharacterAchievementsSummary();
         }, TimeSpan.FromDays(1)); //uses getredisproxy generic type of characterprofilesummer to get profile summary + region from redis
@@ -184,7 +205,7 @@ partial class WarcraftRedisProxy
                 if (GetCharacter != null)
                 {
                     //call method to insert char name in cache
-                    return GetCharacter.Value;
+                    return SlimAchievements(GetCharacter.Value)!;
                 }
                 return new CharacterAchievementsSummary();
             }, TimeSpan.FromDays(1)); //uses getredisproxy generic type of characterprofilesummer to get profile summary + region from redis
