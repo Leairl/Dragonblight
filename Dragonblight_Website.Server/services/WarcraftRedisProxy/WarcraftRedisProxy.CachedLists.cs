@@ -91,8 +91,8 @@ partial class WarcraftRedisProxy
                 }
             }
         }
-        var serializedPvPCharSummary = JsonSerializer.Serialize(newPvpCharacterSummary);
-        await db.ListRightPushAsync(key, serializedPvPCharSummary);
+        //gzipped: each entry carries the character's whole profile, and the list is ~20 MB for a big ladder
+        await db.ListRightPushAsync(key, RedisCompression.Pack(newPvpCharacterSummary));
 
     }
     public async Task ClearPvpCharacterSummary(string bracket, string region, GameFlavor flavor)
@@ -145,7 +145,7 @@ partial class WarcraftRedisProxy
         return characterList.Where(p => p.HasValue).Select(player =>
         {
             //deserialized out of json to become an object.
-            return JsonSerializer.Deserialize<PvpCharacterSummary>(player!.ToString());
+            return RedisCompression.Unpack<PvpCharacterSummary>(player);
         }).ToList();
     }
     public async Task InsertCacheClassCharacter(string bracket, PvpLeaderboardEntry player, CharacterProfileSummary characterClass, string specName, string region, GameFlavor flavor)
@@ -168,6 +168,6 @@ partial class WarcraftRedisProxy
     {
         var db = redis.GetDatabase();
         string key = flavor.KeyPrefix() + bracket + "_" + region + "_LADDER_COMBINED";
-        await db.ListSetByIndexAsync(key, index, JsonSerializer.Serialize(summary));
+        await db.ListSetByIndexAsync(key, index, RedisCompression.Pack(summary));
     }
 }

@@ -9,7 +9,9 @@ services:
     #maxmemory keeps Redis from growing into swap. volatile-lru only evicts keys that have an expiry (the
     #Blizzard caches, which reload on demand), never activity history or the ladder lists, which have none.
     #Keep maxmemory above the size of the keys without an expiry, or Redis refuses writes and the sync fails.
-    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "1gb", "--maxmemory-policy", "volatile-lru"]
+    #save "" turns off the timed snapshots: the append-only file already keeps every write, and each snapshot
+    #forks Redis and reads all of its data, which froze the site on a server where that data was in swap.
+    command: ["redis-server", "--appendonly", "yes", "--save", "", "--maxmemory", "1gb", "--maxmemory-policy", "volatile-lru"]
     restart: unless-stopped
     ports:
       - "127.0.0.1:6379:6379"
