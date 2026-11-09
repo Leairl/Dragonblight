@@ -38,6 +38,21 @@ namespace Dragonblight_Website.Server.Controllers
             }
         }
 
+        //the character's all-time highest arena ratings, keyed by bracket ("2v2", "3v3")
+        [HttpGet("GetHighestRatings")]
+        public async Task<ActionResult<Dictionary<string, int>>> GetHighestRatings(string server, string characterName, string region)
+        {
+            try
+            {
+                return Ok(await _warcraftCachedData.GetHighestRatings(server.ToLower(), characterName.ToLower(), region, HttpContext.GetGameFlavor()));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching highest ratings.");
+                return Ok(new Dictionary<string, int>());
+            }
+        }
+
         /* 
         "dynamic-classic-us" is static name for region in us, need to find other static region names in developer.battle.net
         */

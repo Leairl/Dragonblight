@@ -116,6 +116,43 @@ export class DisplayIdClient {
         this.baseUrl = baseUrl ?? "";
     }
 
+    getDisplayInfo(item_id: number | undefined): Promise<ItemDisplayInfo> {
+        let url_ = this.baseUrl + "/api/DisplayId/GetDisplayInfo?";
+        if (item_id === null)
+            throw new globalThis.Error("The parameter 'item_id' cannot be null.");
+        else if (item_id !== undefined)
+            url_ += "item_id=" + encodeURIComponent("" + item_id) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetDisplayInfo(_response);
+        });
+    }
+
+    protected processGetDisplayInfo(response: Response): Promise<ItemDisplayInfo> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ItemDisplayInfo;
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ItemDisplayInfo>(null as any);
+    }
+
     getDisplayInfos(item_ids: number[] | undefined): Promise<ItemDisplayInfo[]> {
         let url_ = this.baseUrl + "/api/DisplayId/GetDisplayInfos?";
         if (item_ids === null)
@@ -503,6 +540,23 @@ export class LeaderboardAnalyticsClient {
         });
     }
 
+    protected processGetSpecStatistics(response: Response): Promise<SpecRatingCounts[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as SpecRatingCounts[];
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SpecRatingCounts[]>(null as any);
+    }
+
     getCompositions(region: string | undefined, bracket: string | undefined): Promise<CompositionCounts[]> {
         let url_ = this.baseUrl + "/api/LeaderboardAnalytics/Compositions?";
         if (region === null)
@@ -583,23 +637,6 @@ export class LeaderboardAnalyticsClient {
             });
         }
         return Promise.resolve<SpecWinRates>(null as any);
-    }
-
-    protected processGetSpecStatistics(response: Response): Promise<SpecRatingCounts[]> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as SpecRatingCounts[];
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<SpecRatingCounts[]>(null as any);
     }
 }
 
@@ -973,43 +1010,6 @@ export class PvpLeaderboardClient {
         return Promise.resolve<PvpCharacterSummary[]>(null as any);
     }
 
-    getLeaderboardIndex(region: string | undefined): Promise<PvpLeaderboardsIndex> {
-        let url_ = this.baseUrl + "/api/PvpLeaderboard/GetLeaderboardIndex?";
-        if (region === null)
-            throw new globalThis.Error("The parameter 'region' cannot be null.");
-        else if (region !== undefined)
-            url_ += "region=" + encodeURIComponent("" + region) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processGetLeaderboardIndex(_response);
-        });
-    }
-
-    protected processGetLeaderboardIndex(response: Response): Promise<PvpLeaderboardsIndex> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as PvpLeaderboardsIndex;
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<PvpLeaderboardsIndex>(null as any);
-    }
-
     getLadderBrackets(region: string | undefined): Promise<LadderBracket[]> {
         let url_ = this.baseUrl + "/api/PvpLeaderboard/GetLadderBrackets?";
         if (region === null)
@@ -1361,6 +1361,51 @@ export class PvpStatClient {
             });
         }
         return Promise.resolve<RatingHistoryPoint[]>(null as any);
+    }
+
+    getHighestRatings(server: string | undefined, characterName: string | undefined, region: string | undefined): Promise<{ [key: string]: number; }> {
+        let url_ = this.baseUrl + "/api/PvpStat/GetHighestRatings?";
+        if (server === null)
+            throw new globalThis.Error("The parameter 'server' cannot be null.");
+        else if (server !== undefined)
+            url_ += "server=" + encodeURIComponent("" + server) + "&";
+        if (characterName === null)
+            throw new globalThis.Error("The parameter 'characterName' cannot be null.");
+        else if (characterName !== undefined)
+            url_ += "characterName=" + encodeURIComponent("" + characterName) + "&";
+        if (region === null)
+            throw new globalThis.Error("The parameter 'region' cannot be null.");
+        else if (region !== undefined)
+            url_ += "region=" + encodeURIComponent("" + region) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetHighestRatings(_response);
+        });
+    }
+
+    protected processGetHighestRatings(response: Response): Promise<{ [key: string]: number; }> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as { [key: string]: number; };
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<{ [key: string]: number; }>(null as any);
     }
 
     getPvPCurrentRating(server: string | undefined, characterName: string | undefined, region: string | undefined): Promise<CharacterPvpBracketStatistics[]> {
@@ -1947,14 +1992,27 @@ export interface PreviousCharacterName {
     changed_at: Date;
 }
 
-export interface CompositionSpec {
+export interface SpecRatingCounts {
     className: string;
     specName: string;
+    playersAtRating: { [key: string]: number; };
+    racesAtRating: { [key: string]: { [key: string]: number; }; };
 }
 
 export interface CompositionCounts {
     specs: CompositionSpec[];
     countsAtRating: { [key: string]: number; };
+}
+
+export interface CompositionSpec {
+    className: string;
+    specName: string;
+}
+
+export interface SpecWinRates {
+    from?: Date | undefined;
+    to?: Date | undefined;
+    specs: SpecWinRate[];
 }
 
 export interface SpecWinRate {
@@ -1963,28 +2021,6 @@ export interface SpecWinRate {
     wins: number;
     losses: number;
     players: number;
-}
-
-export interface SpecWinRates {
-    from?: string | undefined;
-    to?: string | undefined;
-    specs: SpecWinRate[];
-}
-
-export interface SpecRatingCounts {
-    className: string;
-    specName: string;
-    playersAtRating: { [key: string]: number; };
-    racesAtRating: { [key: string]: { [key: string]: number; }; };
-}
-
-export interface PvpLeaderboardEntry {
-    character?: Profile | undefined;
-    faction?: EnumTypeWithoutName | undefined;
-    rank: number;
-    rating: number;
-    season_match_statistics?: SeasonMatchStatistics | undefined;
-    tier?: PvpTierReferenceWithoutName | undefined;
 }
 
 export interface CharacterProfileSummaryAndSpec {
@@ -2328,21 +2364,13 @@ export interface PvpCharacterSummary {
     spec: string;
 }
 
-export interface PvpLeaderboardsIndex {
-    _links?: Links | undefined;
-    season?: PvpSeasonReference | undefined;
-    leaderboards?: PvpLeaderboardReference[] | undefined;
-}
-
-export interface PvpSeasonReference {
-    key?: Self | undefined;
-    id: number;
-}
-
-export interface PvpLeaderboardReference {
-    key?: Self | undefined;
-    name?: string | undefined;
-    id: number;
+export interface PvpLeaderboardEntry {
+    character?: Profile | undefined;
+    faction?: EnumTypeWithoutName | undefined;
+    rank: number;
+    rating: number;
+    season_match_statistics?: SeasonMatchStatistics | undefined;
+    tier?: PvpTierReferenceWithoutName | undefined;
 }
 
 export interface LadderBracket {
@@ -2449,6 +2477,11 @@ export interface CharacterPvpBracketStatistics {
     weekly_match_statistics?: PvpMatchStatistics | undefined;
     specialization?: PlayableSpecializationReference | undefined;
     season_round_statistics?: PvpMatchStatistics | undefined;
+}
+
+export interface PvpSeasonReference {
+    key?: Self | undefined;
+    id: number;
 }
 
 export interface PvpMatchStatistics {
