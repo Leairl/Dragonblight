@@ -6,7 +6,10 @@ services:
   redis:
     image: redis:7-alpine
     container_name: dragonblight_redis_container
-    command: ["redis-server", "--appendonly", "yes"]
+    #maxmemory keeps Redis from growing into swap. volatile-lru only evicts keys that have an expiry (the
+    #Blizzard caches, which reload on demand), never activity history or the ladder lists, which have none.
+    #Keep maxmemory above the size of the keys without an expiry, or Redis refuses writes and the sync fails.
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "1gb", "--maxmemory-policy", "volatile-lru"]
     restart: unless-stopped
     ports:
       - "127.0.0.1:6379:6379"
@@ -20,7 +23,8 @@ services:
       interval: 2s
       timeout: 3s
       retries: 5
-      start_period: 120s
+      #reading back a ~1 GB append-only file on a small server can take minutes
+      start_period: 600s
 
   postgres:
     image: postgres:17
