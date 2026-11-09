@@ -29,7 +29,7 @@ chmod +x "$target/app/Dragonblight_Website.Server"
 if command -v docker >/dev/null 2>&1; then
     mkdir -p "$app_dir/compose"
     cp "$target/deploy/docker-compose.yml" "$app_dir/compose/docker-compose.yml"
-    docker compose -f "$app_dir/compose/docker-compose.yml" --env-file "$env_file" up -d --wait --wait-timeout 180
+    docker compose -f "$app_dir/compose/docker-compose.yml" --env-file "$env_file" up -d --wait --wait-timeout 600
 else
     echo "docker not installed - skipping redis/postgres, assuming they're already running" >&2
 fi
