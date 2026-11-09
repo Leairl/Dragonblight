@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Dragonblight_Website.Server.Helpers;
 using ArgentPonyWarcraftClient;
 using Microsoft.Extensions.Caching.Memory;
 using StackExchange.Redis;
@@ -38,20 +39,14 @@ partial class WarcraftRedisProxy(WarcraftClient _warcraftClient, IConnectionMult
     public async Task<T?> GetRedisData<T>(string key)
     {  //async call to return data (of generic type), second type is to define the type.
         var db = redis.GetDatabase(); //var to redis database
-        var StringRedis = await db.StringGetAsync(key); //var to get jsonstring from redis of key
-        if (!StringRedis.HasValue) //return null if nothing for key
-        {
-            return default(T);
-        }
-        var result = JsonSerializer.Deserialize<T>(StringRedis!.ToString()); //deserialize jsonstring redis to obj of key
-        return result;
+        var StringRedis = await db.StringGetAsync(key); //json from redis, gzipped if it was large
+        return RedisCompression.Unpack<T>(StringRedis); //null if nothing for key
     }
 
     public async Task SaveToRedis<T>(string key, T value, TimeSpan? expiration) //no inital generic type T since it's not needed to show saved redis data
     {
         var db = redis.GetDatabase(); //var to redis database
-        var res = JsonSerializer.Serialize(value); //serializes warcraftclient to string
-        await db.StringSetAsync(key, res, expiration); //saves string in redis database
+        await db.StringSetAsync(key, RedisCompression.Pack(value), expiration); //saves json in redis, gzipped if it is large
     }
 
     public async Task<T> GetBlizzardData<T>(string key, Func<Task<T>> BlizzardCall, TimeSpan expiration)
