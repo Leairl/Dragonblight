@@ -72,8 +72,8 @@ const ProfileExperience: FC<ProfileExperienceProps> = ({ characterNotFound }) =>
         <Card key={expansion} className=" border-card dropdown-accordionCard">
           <Accordion.Item value={expansion}>
             <Accordion.Header className="flex">
-              <Accordion.Trigger className="group flex h-[45px] flex-1 items-center justify-between cursor-pointer">
-                <Heading size="2">{expansion}</Heading>
+              <Accordion.Trigger className="group flex h-[45px] flex-1 min-w-0 items-center justify-between cursor-pointer">
+                <Heading size="2" className="truncate">{expansion}</Heading>
                 <ChevronDownIcon
                   className="transition-transform duration-300 group-data-[state=open]:rotate-180"
                   aria-hidden

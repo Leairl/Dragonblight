@@ -3,41 +3,28 @@ import { Dragonblight } from "../../../clients/Dragonblight";
 import { useParams } from "react-router";
 import { Card, Heading, Separator, Skeleton, HoverCard, DataList } from "@radix-ui/themes";
 import "./profile-rating.css";
-import { brackets, getFlavor } from "../../../helpers/game-flavor";
-import { bestReward, ratingColor, RatingTier, RetailTiers } from "../../../helpers/ratingTierHelper";
+import { brackets } from "../../../helpers/game-flavor";
+import { bestReward, ratingColor } from "../../../helpers/ratingTierHelper";
 import { SoloSpecIcon } from "../../../helpers/solo-bracket-specs";
 import RatingHistoryDialog from "./rating-history-dialog";
 
 
 interface ProfileRatingProps {
-  // Arrives after the ratings, so a Gladiator title can appear a moment after the card.
-  achievements?: Dragonblight.CharacterAchievementsSummary;
   characterNotFound?: boolean;
   characterClass: string | undefined;
   characterFaction: string | undefined;
   rewards: Dragonblight.PvpSeasonRewardWithRank[] | [];
 }
 
-const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound, characterClass, characterFaction, rewards }) => {
+const ProfileRating: FC<ProfileRatingProps> = ({ characterNotFound, characterClass, characterFaction, rewards }) => {
   // pulls dictionary of keys from pvp bracket
   const [characterRatings, setcharacterRatings] = useState<
     Dragonblight.CharacterPvpBracketStatistics[]
   >(); //calls schema from argentponywarcraft client
   const [loading, setLoading] = useState<boolean>();
-  const [seasonStart, setSeasonStart] = useState<Date | null>();
   const { region, server, characterName } = useParams();
   const [soloMode, setSoloMode] = useState<"shuffle" | "blitz">("shuffle");
-
-  async function CutoffData() {
-    const DragonblightClient = new Dragonblight.PvpLeaderboardClient();
-    if (getFlavor() === "retail") {
-      // Only the retail Gladiator check needs it; failing leaves it null, which turns the check off.
-      DragonblightClient.getSeasonStart(region)
-        .then(setSeasonStart)
-        .catch(() => setSeasonStart(null));
-    }
-    setLoading(false);
-  }
+  const [highestRatings, setHighestRatings] = useState<{ [key: string]: number }>({});
 
   //activates useEffect from change in region / server / charactername (when we load new character data)
   //pulls all pvpbracket data from blizzard (or redis) and placing inside of data
@@ -49,57 +36,36 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
       //saves data from get controller
       (data) => {
         setcharacterRatings(data); //updates characterRatings data
-        CutoffData();
+        setLoading(false);
       }
     );
   }, [region, server, characterName]);
+  useEffect(() => {
+    setHighestRatings({});
+    new Dragonblight.PvpStatClient()
+      .getHighestRatings(server?.replace(" ", "-"), characterName, region)
+      .then((data) => {
+        if (data) {
+          setHighestRatings(data);
+        }
+      })
+      .catch(() => setHighestRatings({}));
+  }, [region, server, characterName]);
 
-
-  function getRetailTier(bracket: string, current_rating: number, specId?: number): RatingTier | undefined {
-    const rank1 = bestReward(rewards, bracket, current_rating, specId, characterFaction);
-    if (rank1 && current_rating >= rank1.rating_cutoff) {
-      return {
-        // "Venomous Gladiator: Midnight Season 2" -> "Venomous Gladiator"
-        title: rank1.achievement?.name?.split(":")[0] ?? "Rank 1",
-        label: "Predicted Title:",
-      };
-    }
-    const tier = RetailTiers.find(([minimum]) => current_rating >= minimum)?.[1];
-    if (tier?.title === "Elite" && bracket === "ARENA_3v3" && hasSeasonGladiator()) {
-      return { ...tier, title: "Gladiator" };
-    }
-    return tier;
-  }
-
-  // Every season has its own "Gladiator: <season>" achievement, so the one earned since
-  // the current season began is this season's. The "Venomous Gladiator" rank 1 title
-  // doesn't match the prefix. Dates arrive as ISO strings despite the generated Date type.
-  function hasSeasonGladiator(): boolean {
-    if (!seasonStart) return false;
-    const start = new Date(seasonStart).getTime();
-    return (
-      achievements?.achievements?.some(
-        (a) =>
-          a.achievement?.name?.startsWith("Gladiator: ") &&
-          a.completed_timestamp &&
-          new Date(a.completed_timestamp).getTime() >= start
-      ) ?? false
-    );
-  }
-
-  // The title line under a card, label included, or "" when the rating earns none.
+  // The title line under a card, label included, or "" when the rating earns none. Retail's reward list
+  // only holds rank 1 titles, so retail shows a line only for those; classic's has every title.
   function getTitleLine(
     bracket: string,
     current_rating: number,
     specId?: number
   ): string {
-    if (getFlavor() === "retail") {
-      const tier = getRetailTier(bracket, current_rating, specId);
-      return tier ? `${tier.label} ${tier.title}` : "";
-    }
     const reward = bestReward(rewards, bracket, current_rating, specId, characterFaction);
+    // "Venomous Gladiator: Midnight Season 2" -> "Venomous Gladiator"
     const title = reward?.achievement?.name?.split(":")[0];
-    return title ? `Predicted Title: ${title}` : "";
+    if (!title) {
+      return "";
+    }
+    return `Predicted Title: ${title}`;
   }
 
   return (
@@ -144,7 +110,12 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
     }
     return `${specName} Shuffle`;
   }
-
+  function highestFor(BracketStatistics: Dragonblight.CharacterPvpBracketStatistics | null, index: number): number {
+    if (BracketStatistics?.specialization?.id != null) {
+      return 0;
+    }
+    return highestRatings[brackets()[index] ?? ""] ?? 0;
+  }
   function getRatingCard(BracketStatistics: Dragonblight.CharacterPvpBracketStatistics | null, index: number): ReactElement {
     const stats = (BracketStatistics?.specialization?.id != null ? BracketStatistics?.season_round_statistics : undefined)
       ?? BracketStatistics?.season_match_statistics;
@@ -214,21 +185,29 @@ const ProfileRating: FC<ProfileRatingProps> = ({ achievements, characterNotFound
           ) : (
             ""
           )}
-          {/* mt-auto fills all space vertically from the top, pushing the prediction text to the bottom */}
+          {/* pinned to the card's top right corner, outside the column below */}
           {(BracketStatistics?.rating ?? 0) > 0 && (
-            <RatingHistoryDialog
-              title={historyTitle(BracketStatistics, index)}
-              bracketType={BracketStatistics?.bracket?.type ?? ""}
-              specId={BracketStatistics?.specialization?.id}
-            />
+            <div className="rating-history-corner">
+              <RatingHistoryDialog
+                title={historyTitle(BracketStatistics, index)}
+                bracketType={BracketStatistics?.bracket?.type ?? ""}
+                specId={BracketStatistics?.specialization?.id}
+              />
+            </div>
           )}
-          <span className="text-xs italic mt-2 text-center">
+          {/* mt-auto fills all space vertically from the top, pushing the title text to the bottom */}
+          <span className="text-xs italic mt-auto pt-2 text-center">
             {getTitleLine(
               BracketStatistics?.bracket?.type ?? "",
               BracketStatistics?.rating ?? 0,
               BracketStatistics?.specialization?.id
             )}
           </span>
+                    {highestFor(BracketStatistics, index) > 0 && (
+            <span className="text-xs text-center text-gray-400 mt-1">
+              Highest Rating: {highestFor(BracketStatistics, index)}
+            </span>
+          )}
         </Card>
       </div>
     );

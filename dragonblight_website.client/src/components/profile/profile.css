@@ -13,6 +13,30 @@
       flex-direction: row;
       flex-wrap: wrap;
         }
+  /* Side by side, both columns give up width as the page narrows. The dropdowns shrink three times as
+     fast, and the bracket cards go from 180px down to 150px. A card only wraps onto a new row once
+     three of them no longer fit at 150px. Phones (800px and under) keep the stacked layout below. */
+  @media only screen and (min-width: 801px) {
+    .experience-rating-row .profile-experience {
+      flex: 0 3 400px;
+      min-width: 200px;
+    }
+    .experience-rating-row .profile-rating-column {
+      flex: 1 1 540px;
+      min-width: 0;
+    }
+    /* the column lines its rows up on the right and lets each be only as wide as its content, which
+       counts the cards at their 150px minimum and wraps RBG even with room to spare. Full width fixes that */
+    .experience-rating-row .rating-bracket-row {
+      width: 100%;
+      justify-content: flex-end;
+    }
+    .experience-rating-row .rating-bracket-row .rating-card {
+      flex: 1 1 150px;
+      width: auto;
+      max-width: 180px;
+    }
+  }
   @media only screen and (max-width: 950px) {
     .grow { 
       flex-grow: 0;
