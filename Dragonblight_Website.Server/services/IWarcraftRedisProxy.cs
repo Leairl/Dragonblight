@@ -38,7 +38,7 @@ public interface IWarcraftRedisProxy
     Task<CharacterStatisticsSummary> GetCharacterStats(string server, string characterName, string region, GameFlavor flavor);
     Task<CharacterAchievementsSummary> GetCharacterAchievements(string server, string characterName, string region, GameFlavor flavor);
     Task<Dictionary<string, int>> GetHighestRatings(string server, string characterName, string region, GameFlavor flavor);
-    Task ClearLeaderboard(string bracket, string region, GameFlavor flavor);
+    Task<PvpLeaderboard> RefreshLeaderboard(string region, string bracket, GameFlavor flavor);
     Task<IEnumerable<PlayerActivity?>> GetBracketClassFilteredActivityPage(string bracket, string region, string characterClass, GameFlavor flavor);
     Task<string> GetCharacterSpecName(string server, string characterName, string region, GameFlavor flavor);
     WarcraftClient? overrideClient { get; set; }
@@ -54,7 +54,8 @@ public interface IWarcraftRedisProxy
     Task BracketClassPlayerExpiration(string bracket, string region, string characterClass, GameFlavor flavor);
     Task<int> GetSeason(string region, GameFlavor flavor);
     Task<DateTimeOffset?> GetSeasonStart(string region, GameFlavor flavor);
-    Task SavePvpCharacterSummary(PvpCharacterSummary newPvpCharacterSummary, string bracket, string region, GameFlavor flavor);
+    Task SavePvpCharacterSummary(PvpCharacterSummary newPvpCharacterSummary, string bracket, string region, GameFlavor flavor,
+        IReadOnlyDictionary<string, Dictionary<int, PvpLeaderboardEntry>> specLadderEntries);
     Task<List<PvpCharacterSummary?>> GetPvpLeaderSummaries(string bracket, string region, GameFlavor flavor);
     Task ClearPvpCharacterSummary(string bracket, string region, GameFlavor flavor);
     Task InsertAltList(string server, string characterName, string region, CharacterAchievementsSummary achievements, GameFlavor flavor);
