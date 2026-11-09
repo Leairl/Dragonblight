@@ -1,5 +1,6 @@
 using System.Text.Json;
 using ArgentPonyWarcraftClient;
+using Microsoft.Extensions.Caching.Memory;
 using StackExchange.Redis;
 
 //The Redis-backed front for the Blizzard API, split across files by area:
@@ -13,7 +14,7 @@ using StackExchange.Redis;
 //  .Alts                  - grouping characters by battle.net account
 //  .Estimates             - live cutoff estimates for the percentage titles, and their history
 //  .GameData              - items and realms
-partial class WarcraftRedisProxy(WarcraftClient _warcraftClient, IConnectionMultiplexer redis, ILogger<WarcraftRedisProxy> logger) : IWarcraftRedisProxy
+partial class WarcraftRedisProxy(WarcraftClient _warcraftClient, IConnectionMultiplexer redis, IMemoryCache memoryCache, ILogger<WarcraftRedisProxy> logger) : IWarcraftRedisProxy
 {
     public WarcraftClient? overrideClient{get; set;}
     private WarcraftClient warcraftClient{get {

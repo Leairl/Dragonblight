@@ -1,6 +1,7 @@
 using System.Text.Json;
 using ArgentPonyWarcraftClient;
 using Dragonblight_Website.Server.Helpers;
+using Microsoft.Extensions.Caching.Memory;
 //The lists the site builds for itself: characters that have been looked up, ladder players by
 //class, and the combined ladder summaries. Redis only - nothing here calls Blizzard.
 partial class WarcraftRedisProxy
@@ -95,9 +96,46 @@ partial class WarcraftRedisProxy
     {
         var db = redis.GetDatabase();
         await db.KeyDeleteAsync(flavor.KeyPrefix() + bracket + "_" + region + "_LADDER_COMBINED");
-
+        //a new sync starts from an empty ladder, so the copy in memory goes with it
+        memoryCache.Remove(CombinedLadderMemoryKey(bracket, region, flavor));
     }
+
+    //A combined ladder is several MB in Redis (about 8 MB for classic 3v3 US, 20 MB for retail), and every
+    //command shares one Redis connection, so reading it for every page of 50 made the small reads queue
+    //behind it until they timed out. The ladder is read once and kept in memory for every request for
+    //this long. A sync pushes players one at a time, so the copy is not kept longer: the rankings page
+    //still fills in during a sync, and a profile refresh that rewrites an entry shows up within this time.
+    private static readonly TimeSpan CombinedLadderLifetime = TimeSpan.FromSeconds(30);
+
+    private static string CombinedLadderMemoryKey(string bracket, string region, GameFlavor flavor)
+    {
+        return "CombinedLadder:" + flavor.KeyPrefix() + bracket + "_" + region;
+    }
+
     public async Task<List<PvpCharacterSummary?>> GetPvpLeaderSummaries(string bracket, string region, GameFlavor flavor)
+    {
+        var memoryKey = CombinedLadderMemoryKey(bracket, region, flavor);
+        //Lazy so requests that arrive while the ladder is loading wait on the same read instead of each starting one
+        var load = memoryCache.GetOrCreate(memoryKey, entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = CombinedLadderLifetime;
+            return new Lazy<Task<List<PvpCharacterSummary?>>>(() => ReadPvpLeaderSummaries(bracket, region, flavor));
+        })!;
+        try
+        {
+            var ladder = await load.Value;
+            //callers get their own list, kept in Redis order: the profile page rewrites an entry by its index
+            return new List<PvpCharacterSummary?>(ladder);
+        }
+        catch
+        {
+            //a failed read is not kept, so the next request tries Redis again
+            memoryCache.Remove(memoryKey);
+            throw;
+        }
+    }
+
+    private async Task<List<PvpCharacterSummary?>> ReadPvpLeaderSummaries(string bracket, string region, GameFlavor flavor)
     {
         var db = redis.GetDatabase(); //var to redis database
         var characterList = await db.ListRangeAsync(flavor.KeyPrefix() + bracket + "_" + region + "_LADDER_COMBINED");
