@@ -1,0 +1,28 @@
+/* wide screens show these titles as icons in the profile header instead */
+.profile-title-rows {
+    display: none;
+}
+
+@media only screen and (max-width: 800px) {
+    .profile-title-rows {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+        padding-bottom: 12px;
+        --color-panel: #292c31;
+    }
+    .profile-title-row-trigger {
+        width: 100%;
+        text-align: left;
+    }
+    .profile-title-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 12px;
+    }
+    .profile-title-row-text {
+        font-size: 15px;
+    }
+}

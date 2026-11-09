@@ -7,6 +7,7 @@ import { brackets } from "../../../helpers/game-flavor";
 import { bestReward, ratingColor } from "../../../helpers/ratingTierHelper";
 import { SoloSpecIcon } from "../../../helpers/solo-bracket-specs";
 import RatingHistoryDialog from "./rating-history-dialog";
+import TapPopover from "../../tap-popover/tap-popover";
 
 
 interface ProfileRatingProps {
@@ -52,9 +53,9 @@ const ProfileRating: FC<ProfileRatingProps> = ({ characterNotFound, characterCla
       .catch(() => setHighestRatings({}));
   }, [region, server, characterName]);
 
-  // The title line under a card, label included, or "" when the rating earns none. Retail's reward list
-  // only holds rank 1 titles, so retail shows a line only for those; classic's has every title.
-  function getTitleLine(
+  // The title the rating is eligible for, or "" when it earns none. Retail's reward list only holds
+  // rank 1 titles, so retail shows one only for those; classic's has every title.
+  function getEligibleTitle(
     bracket: string,
     current_rating: number,
     specId?: number
@@ -65,7 +66,7 @@ const ProfileRating: FC<ProfileRatingProps> = ({ characterNotFound, characterCla
     if (!title) {
       return "";
     }
-    return `Predicted Title: ${title}`;
+    return title;
   }
 
   return (
@@ -120,6 +121,21 @@ const ProfileRating: FC<ProfileRatingProps> = ({ characterNotFound, characterCla
     const stats = (BracketStatistics?.specialization?.id != null ? BracketStatistics?.season_round_statistics : undefined)
       ?? BracketStatistics?.season_match_statistics;
     const winRate = stats?.played ? `${Math.round(((stats.won ?? 0) / stats.played) * 100)}%` : "-";
+    const eligibleTitle = getEligibleTitle(
+      BracketStatistics?.bracket?.type ?? "",
+      BracketStatistics?.rating ?? 0,
+      BracketStatistics?.specialization?.id
+    );
+    const ratingClass = ratingColor(rewards,
+      BracketStatistics?.bracket?.type ?? "",
+      BracketStatistics?.rating ?? 0,
+      BracketStatistics?.specialization?.id) +
+      " " +
+      "rating-value font-bold text-3xl flex justify-center text-shadow-md text-shadow-black";
+    let ratingText = "0";
+    if (BracketStatistics?.rating) {
+      ratingText = String(BracketStatistics.rating);
+    }
     return (
       <div className={"pb-10 rating-card"} key={"GetRating" + index}>
 
@@ -142,18 +158,16 @@ const ProfileRating: FC<ProfileRatingProps> = ({ characterNotFound, characterCla
             {!BracketStatistics?.specialization?.name && brackets()[index]?.replace("rbg", "RBG")}
           </Heading>
           <div>
-            <div
-              className={ratingColor(rewards,
-                BracketStatistics?.bracket?.type ?? "",
-                BracketStatistics?.rating ?? 0,
-                BracketStatistics?.specialization?.id) +
-                " " +
-                "rating-value font-bold text-3xl flex justify-center text-shadow-md text-shadow-black"
-
-              }
-            >
-              {BracketStatistics?.rating ? BracketStatistics?.rating : "0"}
-            </div>
+            {/* a rating that earns a title opens it on hover or tap, rather than a line that stretches the card */}
+            {eligibleTitle !== "" && (
+              <TapPopover
+                triggerClassName="w-full cursor-help"
+                trigger={<div className={ratingClass}>{ratingText}</div>}
+              >
+                <div className="text-sm">Eligible for <span className="font-bold">{eligibleTitle}</span></div>
+              </TapPopover>
+            )}
+            {eligibleTitle === "" && <div className={ratingClass}>{ratingText}</div>}
           </div>
           {BracketStatistics?.rating ? (
             <HoverCard.Root openDelay={150} closeDelay={100}>
@@ -185,29 +199,21 @@ const ProfileRating: FC<ProfileRatingProps> = ({ characterNotFound, characterCla
           ) : (
             ""
           )}
-          {/* pinned to the card's top right corner, outside the column below */}
-          {(BracketStatistics?.rating ?? 0) > 0 && (
-            <div className="rating-history-corner">
+          {/* mt-auto pushes the history button and the highest rating under it to the bottom of the card */}
+          <div className="mt-auto pt-2 flex flex-col items-center">
+            {(BracketStatistics?.rating ?? 0) > 0 && (
               <RatingHistoryDialog
                 title={historyTitle(BracketStatistics, index)}
                 bracketType={BracketStatistics?.bracket?.type ?? ""}
                 specId={BracketStatistics?.specialization?.id}
               />
-            </div>
-          )}
-          {/* mt-auto fills all space vertically from the top, pushing the title text to the bottom */}
-          <span className="text-xs italic mt-auto pt-2 text-center">
-            {getTitleLine(
-              BracketStatistics?.bracket?.type ?? "",
-              BracketStatistics?.rating ?? 0,
-              BracketStatistics?.specialization?.id
             )}
-          </span>
-                    {highestFor(BracketStatistics, index) > 0 && (
-            <span className="text-xs text-center text-gray-400 mt-1">
-              Highest Rating: {highestFor(BracketStatistics, index)}
-            </span>
-          )}
+            {highestFor(BracketStatistics, index) > 0 && (
+              <span className="text-xs text-center text-gray-400 mt-1">
+                Highest Rating: {highestFor(BracketStatistics, index)}
+              </span>
+            )}
+          </div>
         </Card>
       </div>
     );

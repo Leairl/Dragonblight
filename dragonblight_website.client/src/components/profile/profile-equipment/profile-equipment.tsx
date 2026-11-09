@@ -2,7 +2,8 @@ import { FC, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router";
 import "./profile-equipment.css";
 import { Button, Callout, Card, ChevronDownIcon, DropdownMenu, Flex, Heading, Skeleton } from "@radix-ui/themes";
-import * as Tooltip from "@radix-ui/react-tooltip";
+import TapPopover from "../../tap-popover/tap-popover";
+import { customAchievementTiers, numberedIcon } from "../../../helpers/achievement-icons";
 import { Dragonblight } from "../../../clients/Dragonblight";
 import { RandEnchant } from "../../../helpers/randomEnchantHelper";
 declare const $WowheadPower: { refreshLinks: () => void };
@@ -356,7 +357,7 @@ const ProfileEquipment: FC<profileEquipmentProps> = (props) => {
       .catch(() => setIsDeveloper(false));
   }, [region, server, characterName]);
   //only Gladiator and Rank 1 have custom icons
-  const customAchievements = tiers.filter((a) => ["Gladiator", "RankOne", "LegendRankOne", "BlitzRankOne"].includes(a.tier ?? ""));
+  const customAchievements = customAchievementTiers(tiers);
 
   return (
     <div className={props.characterNotFound ? "page-container not-found" : "page-container"}>
@@ -982,71 +983,55 @@ const ProfileEquipment: FC<profileEquipmentProps> = (props) => {
       </Skeleton>
     );
   }
-  function numberedIcon(a: Dragonblight.TierAchievements): string {
-    const color: Record<string, string> = { Gladiator: "blue", RankOne: "red", LegendRankOne: "purple", BlitzRankOne: "green" };
-    const prefix = color[a.tier ?? ""];
-    const number = a.achievements?.length;
-    return `/numberedAchievementIcons/${prefix}_${number}.png`;
-  }
-  //pushes the correct achievement icon onto the page
+  //pushes the correct achievement icon onto the page; it opens on hover, or on tap on a phone
   function getAchievementIcon(a: Dragonblight.TierAchievements) {
     return (
-      <Tooltip.Provider delayDuration={100} key={"achievementIcon" + a.tier}>
-        <Tooltip.Root>
-          <Tooltip.Portal>
-            <Tooltip.Content
-              side="top"
-              avoidCollisions={false}
-              className="block max-w-sm max-h-64 overflow-y-auto p-2 rounded-lg shadow-sm bg-neutral-800 border border-neutral-950 z-100">
-              {a.achievements?.map((x) => (
-                <div key={x.id}>{x.name}</div>
-              ))}
-            </Tooltip.Content>
-          </Tooltip.Portal>
-          <Tooltip.Trigger className="cursor-default">
-            <div className="pr-1">
-              <img
-                className="mr-1 my-1"
-                src={numberedIcon(a)}
-                onError={(e) => {
-                  //no image for this season yet - hide it instead of showing a broken icon
-                  e.currentTarget.parentElement!.style.display = "none";
-                }}
-                height="34px"
-                width="34px"
-                style={{ maxHeight: "34px", maxWidth: "34px" }}
-              ></img>
-            </div>
-          </Tooltip.Trigger>
-        </Tooltip.Root>
-      </Tooltip.Provider>
+      <TapPopover
+        key={"achievementIcon" + a.tier}
+        side="top"
+        triggerClassName="cursor-default"
+        contentClassName="max-h-64 overflow-y-auto"
+        trigger={
+          <div className="pr-1">
+            <img
+              className="mr-1 my-1"
+              src={numberedIcon(a)}
+              onError={(e) => {
+                //no image for this season yet - hide it instead of showing a broken icon
+                e.currentTarget.closest("button")!.style.display = "none";
+              }}
+              height="34px"
+              width="34px"
+              style={{ maxHeight: "34px", maxWidth: "34px" }}
+            ></img>
+          </div>
+        }
+      >
+        {a.achievements?.map((x) => (
+          <div key={x.id}>{x.name}</div>
+        ))}
+      </TapPopover>
     );
   }
 
   function getDeveloperBadge() {
     return (
-      <Tooltip.Provider delayDuration={100}>
-        <Tooltip.Root>
-          <Tooltip.Portal>
-            <Tooltip.Content
-              side="top"
-              avoidCollisions={false}
-              className="block max-w-sm p-2 rounded-lg shadow-sm bg-neutral-800 border border-neutral-950 z-100">
-              Developer of Dragonblight
-            </Tooltip.Content>
-          </Tooltip.Portal>
-          <Tooltip.Trigger className="cursor-default">
-            <img
-              className="my-1"
-              src="/Badges/developer.png"
-              alt="Developer of Dragonblight"
-              height="34px"
-              width="34px"
-              style={{ maxHeight: "34px", maxWidth: "34px" }}
-            ></img>
-          </Tooltip.Trigger>
-        </Tooltip.Root>
-      </Tooltip.Provider>
+      <TapPopover
+        side="top"
+        triggerClassName="cursor-default"
+        trigger={
+          <img
+            className="my-1"
+            src="/Badges/developer.png"
+            alt="Developer of Dragonblight"
+            height="34px"
+            width="34px"
+            style={{ maxHeight: "34px", maxWidth: "34px" }}
+          ></img>
+        }
+      >
+        Developer of Dragonblight
+      </TapPopover>
     );
   }
 
