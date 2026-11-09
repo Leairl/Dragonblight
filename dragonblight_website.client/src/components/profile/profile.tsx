@@ -1,6 +1,7 @@
 import React, { FC, useEffect, useState } from 'react';
 import ProfileEquipment from './profile-equipment/profile-equipment';
 import ProfileRating from './profile-rating/profile-rating';
+import ProfileTitleRows from './profile-title-rows/profile-title-rows';
 import ProfileStats from './profile-stats/profile-stats';
 import ProfileExperience from './profile-experience/profile-experience';
 import { Dragonblight } from '../../clients/Dragonblight';
@@ -245,6 +246,7 @@ const Profile: FC = () => {
             <ProfileExperience characterNotFound={characterNotFound}></ProfileExperience>
             <div className='profile-rating-column flex-1'>
               <ProfileRating characterNotFound={characterNotFound} characterClass={characterSummary?.character_class?.name} characterFaction={characterSummary?.faction?.type} rewards={rewards}></ProfileRating>
+              <ProfileTitleRows characterNotFound={characterNotFound}></ProfileTitleRows>
 
             </div>
           </div>

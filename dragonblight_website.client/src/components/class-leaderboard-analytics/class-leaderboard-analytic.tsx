@@ -281,8 +281,14 @@ const ClassAnalytics: React.FC = () => {
     viewValue = "compositions";
   }
 
+  //the bracket picker shrinks to fit a phone, up to its full 300px
+  let bracketControlClass = "w-full max-w-[300px]";
+  if (loading) {
+    bracketControlClass = "div-disabled " + bracketControlClass;
+  }
+
   const ratingSlider = (
-    <Card className="flex items-center gap-3 w-[300px] h-8 py-0 px-3 [--card-background-color:#292c31]">
+    <Card className="flex items-center gap-3 w-full max-w-[300px] h-8 py-0 px-3 [--card-background-color:#292c31]">
       <span className="whitespace-nowrap text-sm">Min Rating: {rating}</span>
       <Slider
         min={minRating}
@@ -299,15 +305,15 @@ const ClassAnalytics: React.FC = () => {
     <div className="mobileOnlyFull w-[80vw] min-h-[90vh]">
       <div className="flex-col">
         <div className="flex justify-center max-[950px]:justify-start pt-3">
-          <SegmentedControl.Root className="slider-border w-[300px]" value={viewValue} onValueChange={ViewClick}>
+          <SegmentedControl.Root className="slider-border w-full max-w-[300px]" value={viewValue} onValueChange={ViewClick}>
             <SegmentedControl.Item value="stats">Stats</SegmentedControl.Item>
             <SegmentedControl.Item value="compositions">Compositions</SegmentedControl.Item>
           </SegmentedControl.Root>
         </div>
         <div className="flex-row justify-center max-[950px]:justify-start items-center flex gap-3 px-0 py-3 flex-wrap">
-          <div className={loading ? "div-disabled" : ""}>
+          <div className={bracketControlClass}>
             <SegmentedControl.Root
-              className="slider-border w-[300px] grow-0"
+              className="stats-bracket-toggle slider-border w-full grow-0"
               value={shownBracket}
             >
               {shownBrackets.map((name) => (

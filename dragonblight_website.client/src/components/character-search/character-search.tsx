@@ -30,7 +30,9 @@ function GetAddCharacterOption(characterName: string, server: string, region: st
         <div className="pr-1">
           <img src={`/Radix/plus.svg`} height="25px" width="25px" style={{ maxHeight: "25px", maxWidth: "25px" }}></img>
         </div>
-        <span className="pl-2 grow">
+        {/* not "grow": several stylesheets make .grow a 5px-tall spacer on phones, which squeezed the
+            name into a sliver that spilled over the next row */}
+        <span className="pl-2 flex-1 min-w-0 break-words">
           {characterName}-{server}
         </span>
         <img src={`/Regions/${region}.svg`} className="flex" height="25px" width="25px" style={{ maxHeight: "25px", maxWidth: "25px" }}></img>
@@ -113,7 +115,7 @@ function CharacterSearch(props: { placeholder: string; className?: string }) {
                   width="25px"
                   style={{ maxHeight: "25px", maxWidth: "25px" }}
                 ></img>
-                <span className="pl-2 grow" style={{ color: `${ClassColor.get(characterSummary.character_class?.name ?? "")}` }}>
+                <span className="pl-2 flex-1 min-w-0 break-words" style={{ color: `${ClassColor.get(characterSummary.character_class?.name ?? "")}` }}>
                   {characterSummary.name}-{characterSummary.realm?.name}
                 </span>
                 <img src={GetRegionImage(characterSummary)} className="flex" height="25px" width="25px" style={{ maxHeight: "25px", maxWidth: "25px" }}></img>

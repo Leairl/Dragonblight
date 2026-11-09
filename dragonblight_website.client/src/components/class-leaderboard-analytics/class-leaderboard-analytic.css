@@ -2,5 +2,20 @@
   @media only screen and (max-width: 950px) {
     .mobileOnlyFull {
         width: 90vw;
+        /* nothing on this page should be swiped to sideways: past its edge there is only the bare background */
+        overflow-x: clip;
   }
   }
+
+/* Radix gives each tab 80px, so retail's five brackets ran past the 300px slot and cut off Blitz.
+   The tabs share the slot instead, with less padding, as the rankings page's bracket-toggle does */
+.stats-bracket-toggle {
+    min-width: 0;
+    grid-auto-columns: minmax(0, 1fr);
+}
+.stats-bracket-toggle .rt-SegmentedControlItem {
+    min-width: 0;
+}
+.stats-bracket-toggle .rt-SegmentedControlItemLabel {
+    padding-inline: 4px;
+}

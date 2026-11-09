@@ -25,6 +25,18 @@ const SoloSpecFilter: React.FC<SoloSpecFilterProps> = (props) => {
   const openClass = props.selectedClass ?? (current?.specName ? current.className : undefined);
   const openSpecs = specList.filter((s) => s.className === openClass && s.specName !== '');
   const isOverall = props.selected === overallSlug && props.selectedClass === null;
+
+  function pickSpec(spec: typeof specList[number]) {
+    if (spec.slug === props.selected) {
+      //clicking the spec that is already showing goes back to that class from the overall ladder
+      props.onClassSelect(spec.className);
+      props.onSelect(overallSlug);
+    } else {
+      props.onClassSelect(null);
+      props.onSelect(spec.slug);
+    }
+  }
+
   return (
     <div className="ClassFilter SpecSpace">
       <div className="ClassRow">
@@ -49,16 +61,7 @@ const SoloSpecFilter: React.FC<SoloSpecFilterProps> = (props) => {
                   <button
                     key={spec.slug}
                     className={`SpecButton ${spec.slug === props.selected ? 'selected' : ''}`}
-                    onClick={() => {
-                      if (spec.slug === props.selected) {
-                        //clicking the spec that is already showing goes back to that class from the overall ladder
-                        props.onClassSelect(spec.className);
-                        props.onSelect(overallSlug);
-                      } else {
-                        props.onClassSelect(null);
-                        props.onSelect(spec.slug);
-                      }
-                    }}
+                    onClick={() => pickSpec(spec)}
                     title={`${spec.specName} ${spec.className}`}
                     style={{ borderColor: 'black' }}
                   >
@@ -70,6 +73,24 @@ const SoloSpecFilter: React.FC<SoloSpecFilterProps> = (props) => {
           </div>
         ))}
       </div>
+      {/* Phones: the popout above is centred on its class, so for a class at the edge of the screen it
+          ran off it. Here the specs get their own row instead, one per button like the bracket bar */}
+      {openSpecs.length > 0 && (
+        <div className="SpecRow">
+          {openSpecs.map((spec) => {
+            let rowClass = "SpecRowButton";
+            if (spec.slug === props.selected) {
+              rowClass = "SpecRowButton selected";
+            }
+            return (
+              <button key={spec.slug} className={rowClass} onClick={() => pickSpec(spec)} title={`${spec.specName} ${spec.className}`}>
+                <img src={SoloSpecIcon(spec)} alt="" />
+                <span>{spec.specName}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Button, Callout, SegmentedControl, Select, Text } from "@radix-ui/themes";
 import { useSearchParams } from "react-router";
 import { CheckIcon, CopyIcon, InfoCircledIcon } from "@radix-ui/react-icons";
@@ -43,6 +43,16 @@ const RetailTalentViewer: React.FC<RetailTalentViewerProps> = (props) => {
   // spec's loadout in use is shown
   const [picked, setPicked] = useState<{ specId: number; index: number }>();
   const [copied, setCopied] = useState(false);
+  // the width a tree has to fit in. A class tree is about 450px wide, more than a phone has, and
+  // the page can't be swiped sideways to see the rest of it, so a wider tree is scaled down to fit
+  const [treesWidth, setTreesWidth] = useState(0);
+  const treesObserver = useRef<ResizeObserver | undefined>(undefined);
+  const treesRef = useCallback((el: HTMLDivElement | null) => {
+    treesObserver.current?.disconnect();
+    if (el == null) { return; }
+    treesObserver.current = new ResizeObserver(([entry]) => setTreesWidth(entry.contentRect.width));
+    treesObserver.current.observe(el);
+  }, []);
   // the spec on screen lives in the url (?spec=261), so a link opens on it
   const [params, setParams] = useSearchParams();
 
@@ -178,7 +188,7 @@ const RetailTalentViewer: React.FC<RetailTalentViewerProps> = (props) => {
         )}
       </div>
       {/* class, then hero, then spec - the order the in-game talent screen puts them in */}
-      <div className="retailTalentTrees">
+      <div className="retailTalentTrees" ref={treesRef}>
         {Panel(className, classNodes, loadout.selected_class_talents)}
         {Panel(heroTree?.name ?? "Hero", heroTree?.hero_talent_nodes, loadout.selected_hero_talents)}
         {Panel(specName || "Specialization", specNodes, loadout.selected_spec_talents, capstoneNodeId(specNodes))}
@@ -206,6 +216,13 @@ const RetailTalentViewer: React.FC<RetailTalentViewerProps> = (props) => {
     const width = (Math.max(...nodes.map(n => n.display_col)) - minCol) * CELL + ICON;
     const height = (Math.max(...nodes.map(n => n.display_row)) - minRow) * CELL + ICON;
 
+    // shrinks a tree wider than the space it has, keeping its shape; the frame takes the shrunk size
+    // so the page lays out around what is actually drawn
+    let scale = 1;
+    if (treesWidth > 0 && width > treesWidth) {
+      scale = treesWidth / width;
+    }
+
     const x = (n: Dragonblight.TalentNode) => (n.display_col - minCol) * CELL;
     const y = (n: Dragonblight.TalentNode) => (n.display_row - minRow) * CELL;
     const pickOf = (n: Dragonblight.TalentNode) => picks?.find(p => p.id === n.id);
@@ -223,7 +240,8 @@ const RetailTalentViewer: React.FC<RetailTalentViewerProps> = (props) => {
           <Text size="1" color="gray">{spent} points</Text>
         </div>
         <div className="retailTalentPanelBody">
-          <div className="retailTalentGrid" style={{ width, height }}>
+          <div style={{ width: width * scale, height: height * scale }}>
+          <div className="retailTalentGrid" style={{ width, height, transform: `scale(${scale})`, transformOrigin: "top left" }}>
             <TalentArrows width={width} height={height} icon={ICON}
               arrows={nodes.flatMap(from => (from.unlocks ?? []).flatMap(id => {
                 const to = nodes.find(n => n.id === id);
@@ -239,6 +257,7 @@ const RetailTalentViewer: React.FC<RetailTalentViewerProps> = (props) => {
                 }];
               }))} />
             {nodes.map(node => Node(node, pickOf(node), x(node), y(node), maxRankOf(node, capstoneId)))}
+          </div>
           </div>
         </div>
       </div>

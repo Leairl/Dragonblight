@@ -16,3 +16,57 @@
   border-radius: 6px;
   z-index: 10;
 }
+/* the phone-only spec row, in place of the popout */
+.SpecRow {
+  display: none;
+}
+@media only screen and (max-width: 800px) {
+  .SpecPopout {
+    display: none;
+  }
+  /* the popout needed room kept free under the classes; the row takes its own */
+  .SpecSpace {
+    padding-bottom: 12px;
+  }
+  .SpecRow {
+    display: flex;
+    width: 95vw;
+    max-width: 420px;
+    align-self: center;
+    border: 1px solid #000;
+    border-radius: 6px;
+    background: #292c31;
+    overflow: hidden;
+  }
+  .SpecRowButton {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 2px;
+    font-size: 12px;
+    line-height: 1.2;
+    opacity: 0.5;
+    cursor: pointer;
+  }
+  .SpecRowButton + .SpecRowButton {
+    border-left: 1px solid #00000080;
+  }
+  .SpecRowButton img {
+    width: 26px;
+    height: 26px;
+    border-radius: 2px;
+  }
+  .SpecRowButton span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .SpecRowButton.selected {
+    opacity: 1;
+    background: #ffffff1a;
+  }
+}

@@ -124,12 +124,9 @@
     flex: 1 1 100%;
     min-width: 0;
   }
+  /* on a phone the titles get their own rows under the rating cards instead (profile-title-rows) */
   .header-achievements {
-    flex: 1 1 100%;
-    justify-content: center;
-    /* balances the 8px each icon keeps on its right, so the row is truly centered */
-    padding-left: 8px;
-    padding-right: 0;
+    display: none !important;
   }
   .header-developer {
     flex: 1 1 100%;

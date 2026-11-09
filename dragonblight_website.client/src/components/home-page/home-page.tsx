@@ -13,7 +13,8 @@ function HomePage() {
       ></img>
       <Container minHeight="100vh">
         <Flex direction="column" gap="5" className=" w-full items-center">
-          <Card className="mb-5 m-20 max-w-[70vw] w-full">
+          {/* phones drop the side margins, or the search and its results get squeezed into a third of the screen */}
+          <Card className="mb-5 m-20 max-[800px]:mx-0 max-w-[70vw] max-[800px]:max-w-[90vw] w-full">
             <CharacterSearch placeholder="Search WoW Character" />
           </Card>
           <div className="flex flex-row justify-center items-center z-10">
