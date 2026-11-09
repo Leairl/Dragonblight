@@ -10,10 +10,11 @@ import { realmDisplayName } from "../../helpers/realmNameHelper";
 import { classIcon, specIcon } from "../../helpers/classIconHelper";
 import { isBlitzBracket, isShuffleBracket } from "../../helpers/solo-bracket-specs";
 import { MobileDetailRow, MobileDetailsDialog } from "../ladder-controls/ladder-controls";
+import { getFlavor } from "../../helpers/game-flavor";
 
 //a character needs this many wins in the season to be able to earn the title
 function requiredWins(bracket: string): number {
-  if (isShuffleBracket(bracket) || isBlitzBracket(bracket)) {
+  if (getFlavor() === "classic" || isShuffleBracket(bracket) || isBlitzBracket(bracket)) {
     return 50;
   }
   return 150;
