@@ -30,9 +30,6 @@ interface profileEquipmentProps {
   currTab: string | undefined;
   specName: string | undefined;
   previousNames: Dragonblight.PreviousCharacterName[] | undefined
-  characterAchievementsSummary:
-  | Dragonblight.CharacterAchievementsSummary
-  | undefined;
   characterImage: string | undefined;
   showModelViewer: boolean;
   loading: boolean;
