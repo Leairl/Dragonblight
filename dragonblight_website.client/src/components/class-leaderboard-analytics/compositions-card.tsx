@@ -20,7 +20,7 @@ function roleOrder(spec: Dragonblight.CompositionSpec, teamSize: number): number
   if (profile?.role === "Ranged DPS" && teamSize > 2) {
     return 1;
   }
-  return 0;
+  return 0; 
 }
 
 //Compared by character code rather than locale, so specs in the same role read in ASCII order

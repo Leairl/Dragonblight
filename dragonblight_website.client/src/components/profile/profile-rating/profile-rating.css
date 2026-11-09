@@ -61,6 +61,15 @@
     opacity: 1;
     border-bottom-color: currentColor;
 }
+/* the history button sits in the card's top right corner, out of the centered column */
+.rating-padding {
+  position: relative;
+}
+.rating-history-corner {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
 .rating-history-button {
   align-self: center;
   margin-top: auto;

@@ -244,7 +244,7 @@ const Profile: FC = () => {
           <div className='experience-rating-row flex flex-row w-0 min-w-full'>
             <ProfileExperience characterNotFound={characterNotFound}></ProfileExperience>
             <div className='profile-rating-column flex-1'>
-              <ProfileRating achievements={achievementsSummary} characterNotFound={characterNotFound} characterClass={characterSummary?.character_class?.name} characterFaction={characterSummary?.faction?.type} rewards={rewards}></ProfileRating>
+              <ProfileRating characterNotFound={characterNotFound} characterClass={characterSummary?.character_class?.name} characterFaction={characterSummary?.faction?.type} rewards={rewards}></ProfileRating>
 
             </div>
           </div>

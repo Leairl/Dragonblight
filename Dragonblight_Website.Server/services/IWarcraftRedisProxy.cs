@@ -37,6 +37,7 @@ public interface IWarcraftRedisProxy
     Task<CharacterPvpBracketStatistics> GetPvpBracketRating(string server, string characterName, string pvpBracket, string region, GameFlavor flavor);
     Task<CharacterStatisticsSummary> GetCharacterStats(string server, string characterName, string region, GameFlavor flavor);
     Task<CharacterAchievementsSummary> GetCharacterAchievements(string server, string characterName, string region, GameFlavor flavor);
+    Task<Dictionary<string, int>> GetHighestRatings(string server, string characterName, string region, GameFlavor flavor);
     Task ClearLeaderboard(string bracket, string region, GameFlavor flavor);
     Task<IEnumerable<PlayerActivity?>> GetBracketClassFilteredActivityPage(string bracket, string region, string characterClass, GameFlavor flavor);
     Task<string> GetCharacterSpecName(string server, string characterName, string region, GameFlavor flavor);

@@ -8,7 +8,8 @@ import { latestTuning, TuningDirection, tuningFor } from "../../helpers/tuning-n
 
 const directionColors: Record<TuningDirection, string> = { Buff: "#3fb950", Nerf: "#e5484d", Mixed: "#e3b341", "PvE only": "#9ca3af" };
 
-function formatTime(value: string | undefined): string {
+//typed Date by NSwag, but the generated client never parses dates, so an ISO string arrives at runtime
+function formatTime(value: Date | string | undefined): string {
   if (!value) {
     return "";
   }

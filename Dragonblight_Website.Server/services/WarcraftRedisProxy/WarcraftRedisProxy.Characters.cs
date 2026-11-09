@@ -194,6 +194,44 @@ partial class WarcraftRedisProxy
         await InsertAltList(server, characterName, region, result, flavor);
         return result;
     }
+    //all-time highs from the in-game Statistics tab. Blizzard only keeps them for the arena brackets,
+    //not Shuffle, Blitz or RBG. The payload is large, so only the numbers are cached.
+    public async Task<Dictionary<string, int>> GetHighestRatings(string server, string characterName, string region, GameFlavor flavor)
+    {
+        var ns = GetProfileRegion(region, flavor);
+        var key = VersionedKey("HighestRatings" + server + characterName + ns);
+        var cached = await GetRedisData<Dictionary<string, int>>(key);
+        if (cached != null)
+        {
+            return cached;
+        }
+        var highest = new Dictionary<string, int>();
+        var response = await warcraftClient.GetCharacterAchievementStatisticsAsync(server, characterName, ns, GetRegion(region), GetLocale(region));
+        if (response == null || !response.Success)
+        {
+            //not cached, so a failed call is tried again on the next visit
+            return highest;
+        }
+        //370 and 595 confirmed on Awakenx; 596 is the classic 5v5 id and has not been checked
+        var statBrackets = new Dictionary<int, string> { [370] = "2v2", [595] = "3v3", [596] = "5v5" };
+        void Collect(Category[]? categories)
+        {
+            foreach (var category in categories ?? [])
+            {
+                foreach (var stat in category.Statistics ?? [])
+                {
+                    if (statBrackets.TryGetValue(stat.Id, out var bracket))
+                    {
+                        highest[bracket] = (int)stat.Quantity;
+                    }
+                }
+                Collect(category.SubCategories);
+            }
+        }
+        Collect(response.Value.Categories);
+        await SaveToRedis(key, highest, TimeSpan.FromHours(2));
+        return highest;
+    }
     // get character summary in redis for character equipment
     public async Task<CharacterEquipmentSummary> GetCharEquipment(string server, string characterName, string region, GameFlavor flavor)
     {
