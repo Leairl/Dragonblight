@@ -12,11 +12,13 @@ namespace Dragonblight_Website.Server.Controllers
     {
         private readonly ILogger<ForeverCharacterController> _logger;
         private readonly IWarcraftRedisProxy _warcraftCachedData;
+        private readonly ForeverStatsQueue _statsQueue;
 
-        public ForeverCharacterController(ILogger<ForeverCharacterController> logger, IWarcraftRedisProxy warcraftCachedData)
+        public ForeverCharacterController(ILogger<ForeverCharacterController> logger, IWarcraftRedisProxy warcraftCachedData, ForeverStatsQueue statsQueue)
         {
             _logger = logger;
             _warcraftCachedData = warcraftCachedData;
+            _statsQueue = statsQueue;
         }
 
         //a name, a hyphen and a surname, each made of letters (accented ones included)
@@ -37,9 +39,10 @@ namespace Dragonblight_Website.Server.Controllers
             return true;
         }
 
-        //Everything the Forever character page shows, in one call. 404 when Blizzard has no
-        //such character, which includes characters under level 10 and ones that haven't
-        //logged out since reaching it.
+        //Everything the Forever character page shows, in one call. Blizzard's API has no profile
+        //for some characters its guild rosters and the Armory already show, so when the profile
+        //is missing the page gets what the stats crawl last saw of the character in a roster
+        //instead. 404 only when there is neither.
         [HttpGet("GetCharacter")]
         public async Task<ActionResult<ForeverCharacterPage>> GetCharacter(string region, string characterSlug)
         {
@@ -63,12 +66,23 @@ namespace Dragonblight_Website.Server.Controllers
                 var profile = profileTask.Result;
                 if (profile == null)
                 {
-                    return NotFound();
+                    var rosterCharacter = await _warcraftCachedData.GetForeverStatsCharacter(characterSlug, region);
+                    if (rosterCharacter == null)
+                    {
+                        return NotFound();
+                    }
+                    return Ok(new ForeverCharacterPage
+                    {
+                        rosterCharacter = rosterCharacter,
+                    });
                 }
                 //found characters become suggestions in the Forever search box. Blizzard finds
                 //"lucid-dreamx" for "Lucid Ðreamx" too, so the list records the name as Blizzard
                 //spells it rather than as it was typed, or one character would be listed twice
                 await _warcraftCachedData.InsertForeverCachedCharacter((profile.Name + "-" + profile.Surname).ToLowerInvariant(), region);
+                //their guild joins the stats sample now rather than at the next hourly run, which
+                //also lets guildmates Blizzard has no profile for show from the roster right away
+                _statsQueue.QueueGuild(region, ForeverStatsService.GuildSlugOf(profile.Guild));
                 return Ok(new ForeverCharacterPage
                 {
                     profile = profile,
@@ -88,7 +102,7 @@ namespace Dragonblight_Website.Server.Controllers
         private static readonly Dictionary<char, string> PlainLetters = new()
         {
             ['ð'] = "d", ['đ'] = "d", ['ø'] = "o", ['ł'] = "l", ['ı'] = "i",
-            ['æ'] = "ae", ['œ'] = "oe", ['þ'] = "th", ['ß'] = "ss",
+            ['æ'] = "ae", ['œ'] = "oe", ['þ'] = "th", ['ß'] = "b",
         };
 
         //a name reduced to plain lowercase letters: accents stripped, alt-code letters mapped,
@@ -157,7 +171,11 @@ namespace Dragonblight_Website.Server.Controllers
 
     public class ForeverCharacterPage
     {
-        public required ForeverCharacterProfile profile { get; set; }
+        //null when Blizzard's API has no profile for the character; rosterCharacter is set then
+        public ForeverCharacterProfile? profile { get; set; }
+        //what the stats crawl last saw of the character in a guild roster, sent only when the
+        //profile is missing
+        public ForeverStatsCharacter? rosterCharacter { get; set; }
         //null when Blizzard returned nothing; the page shows the profile without gear
         public CharacterEquipmentSummary? equipment { get; set; }
         //null while Blizzard's render of a new character is still missing

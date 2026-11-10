@@ -640,6 +640,50 @@ export class ForeverCharacterClient {
     }
 }
 
+export class ForeverStatsClient {
+    private http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
+    private baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, http?: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> }) {
+        this.http = http ? http : window as any;
+        this.baseUrl = baseUrl ?? "";
+    }
+
+    getStats(): Promise<ForeverStatsSummary> {
+        let url_ = this.baseUrl + "/api/ForeverStats/GetStats";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetStats(_response);
+        });
+    }
+
+    protected processGetStats(response: Response): Promise<ForeverStatsSummary> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ForeverStatsSummary;
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ForeverStatsSummary>(null as any);
+    }
+}
+
 export class LeaderboardAnalyticsClient {
     private http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
     private baseUrl: string;
@@ -2080,6 +2124,7 @@ export interface GuildReference {
     id: number;
     realm?: RealmReference | undefined;
     faction?: EnumType | undefined;
+    slug?: string | undefined;
 }
 
 export interface TitleReferenceWithDisplayString {
@@ -2127,7 +2172,8 @@ export interface PreviousCharacterName {
 }
 
 export interface ForeverCharacterPage {
-    profile: ForeverCharacterProfile;
+    profile?: ForeverCharacterProfile | undefined;
+    rosterCharacter?: ForeverStatsCharacter | undefined;
     equipment?: CharacterEquipmentSummary | undefined;
     media?: CharacterMediaSummary | undefined;
 }
@@ -2142,6 +2188,24 @@ export interface ForeverRulesetReference {
     key?: Self | undefined;
     name?: string | undefined;
     id: number;
+}
+
+export interface ForeverStatsCharacter {
+    region: string;
+    slug: string;
+    name: string;
+    surname: string;
+    guildName: string;
+    rulesetId: number;
+    rulesetName: string;
+    faction: string;
+    className: string;
+    raceName: string;
+    specName: string;
+    specChecked: boolean;
+    level: number;
+    guildSlug: string;
+    seenAt: Date;
 }
 
 export interface CharacterEquipmentSummary {
@@ -2395,6 +2459,25 @@ export interface Asset {
     key?: string | undefined;
     value?: string | undefined;
     file_data_id: number;
+}
+
+export interface ForeverStatsSummary {
+    updatedAt?: Date | undefined;
+    characters: number;
+    guilds: number;
+    specsPending: number;
+    groups: ForeverStatsGroup[];
+}
+
+export interface ForeverStatsGroup {
+    region: string;
+    rulesetId: number;
+    rulesetName: string;
+    faction: string;
+    className: string;
+    specName: string;
+    raceName: string;
+    count: number;
 }
 
 export interface SpecRatingCounts {

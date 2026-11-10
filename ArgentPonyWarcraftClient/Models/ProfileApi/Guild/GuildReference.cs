@@ -34,4 +34,10 @@ public record GuildReference
     /// </summary>
     [JsonPropertyName("faction")]
     public EnumType Faction { get; init; }
+
+    /// <summary>
+    /// Gets the guild's slug. Sent for WoW: Forever guilds, which have no realm to look them up by.
+    /// </summary>
+    [JsonPropertyName("slug")]
+    public string Slug { get; init; }
 }
