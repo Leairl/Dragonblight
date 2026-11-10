@@ -40,7 +40,12 @@ function NavBar() {
   //basename has already stripped the flavor, so this is the page's own path
   const { pathname } = useLocation();
   const isRetail = getFlavor() === "retail";
-  const shownTabs = tabs.filter((tab) => isRetail || !tab.retailOnly);
+  //Forever only has its landing page so far; the ladder pages have no Forever data
+  const isForever = getFlavor() === "forever";
+  let shownTabs = tabs.filter((tab) => isRetail || !tab.retailOnly);
+  if (isForever) {
+    shownTabs = tabs.filter((tab) => tab.to === "/");
+  }
   return (
     <Theme radius="none">
     <Card className="w-full">
@@ -134,6 +139,8 @@ function NavBar() {
             </a>
             </div>
           </NavigationMenu.Item>
+          {/* the ladder pages have no Forever data yet */}
+          {!isForever && (<>
           <NavigationMenu.Item>
             <div className="px-3 py-2 w-full">
             <a onClick={() => { window.location.href = flavorHref("/rankings") }}>
@@ -190,6 +197,7 @@ function NavBar() {
             </a>
             </div>
           </NavigationMenu.Item>
+          </>)}
           {/* Comp Score is retail only for now */}
           {isRetail && (
             <NavigationMenu.Item>

@@ -4,7 +4,8 @@
 <head>
   <script>
     // Resolved here rather than in React: tooltips.js reads whTooltips as soon as
-    // it loads, which is before the app mounts. Mirrors getFlavor() in helpers/game-flavor.ts.
+    // it loads, which is before the app mounts. Mirrors getFlavor() in helpers/game-flavor.ts,
+    // except that WoW: Forever has no tooltips or models yet and gets the MoP Classic ones.
     var whFlavor = window.location.pathname.split("/")[1] === "retail" ? "retail" : "classic";
     const whTooltips = { colorLinks: true, iconizeLinks: true, renameLinks: false, iconSize: "large", domain: whFlavor === "retail" ? "www" : "mop-classic" };
   </script>
