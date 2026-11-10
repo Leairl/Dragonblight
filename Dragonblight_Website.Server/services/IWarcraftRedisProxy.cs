@@ -7,6 +7,11 @@ public interface IWarcraftRedisProxy
     Task<T?> GetRedisData<T>(string key);
     Task SaveToRedis<T>(string key, T value, TimeSpan? expiration);
     Task<CharacterMediaSummary?> GetCharMedia(string server, string characterName, string region, GameFlavor flavor);
+    Task<ForeverCharacterProfile?> GetForeverCharacter(string characterSlug, string region);
+    Task<CharacterEquipmentSummary?> GetForeverEquipment(string characterSlug, string region);
+    Task<CharacterMediaSummary?> GetForeverMedia(string characterSlug, string region);
+    Task<List<string>> ForeverCachedCharacters();
+    Task InsertForeverCachedCharacter(string characterSlug, string region);
     Task RecordCharacter(int id, string name, string realm, string region, GameFlavor flavor);
     Task<CharacterIdentity?> GetCharacterIdentity(int id, string region, GameFlavor flavor);
     Task<PlayableSpecializationsIndex?> PlayableSpecializationsIndex(string region, GameFlavor flavor);
