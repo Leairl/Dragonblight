@@ -57,6 +57,7 @@ public interface IWarcraftRedisProxy
     Task SavePvpCharacterSummary(PvpCharacterSummary newPvpCharacterSummary, string bracket, string region, GameFlavor flavor,
         IReadOnlyDictionary<string, Dictionary<int, PvpLeaderboardEntry>> specLadderEntries);
     Task<List<PvpCharacterSummary?>> GetPvpLeaderSummaries(string bracket, string region, GameFlavor flavor);
+    Task<List<PvpCharacterSummary?>> GetPvpLeaderSummariesPage(string bracket, string region, GameFlavor flavor, int skip, int take);
     Task ClearPvpCharacterSummary(string bracket, string region, GameFlavor flavor);
     Task InsertAltList(string server, string characterName, string region, CharacterAchievementsSummary achievements, GameFlavor flavor);
     Task IndexAltList(string server, string characterName, string region, GameFlavor flavor);

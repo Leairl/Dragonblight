@@ -138,6 +138,21 @@ partial class WarcraftRedisProxy
         }
     }
 
+    //One page of a combined ladder, read straight from Redis. The sync writes the ladder in rank order, so
+    //the page is a range of the list and the rest of the ladder is never read or held in memory.
+    public async Task<List<PvpCharacterSummary?>> GetPvpLeaderSummariesPage(string bracket, string region, GameFlavor flavor, int skip, int take)
+    {
+        if (take <= 0)
+        {
+            return [];
+        }
+        skip = Math.Max(skip, 0);
+        var db = redis.GetDatabase();
+        //LRANGE's stop index is inclusive
+        var page = await db.ListRangeAsync(flavor.KeyPrefix() + bracket + "_" + region + "_LADDER_COMBINED", skip, skip + take - 1);
+        return page.Where(p => p.HasValue).Select(player => RedisCompression.Unpack<PvpCharacterSummary>(player)).ToList();
+    }
+
     private async Task<List<PvpCharacterSummary?>> ReadPvpLeaderSummaries(string bracket, string region, GameFlavor flavor)
     {
         var db = redis.GetDatabase(); //var to redis database

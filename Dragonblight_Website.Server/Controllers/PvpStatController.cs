@@ -62,13 +62,17 @@ namespace Dragonblight_Website.Server.Controllers
             try
             {
                 //order matters: the client labels rating cards by position using the same list
-                var Brackets = HttpContext.GetGameFlavor().Brackets();
-                var Season = await _warcraftCachedData.GetSeason(region, HttpContext.GetGameFlavor());
+                var flavor = HttpContext.GetGameFlavor();
+                var Brackets = flavor.Brackets();
+                var Season = await _warcraftCachedData.GetSeason(region, flavor);
                 List<CharacterPvpBracketStatistics> results = new List<CharacterPvpBracketStatistics>();
-                foreach (var PvPBracket in Brackets)
+                //every bracket is asked for at once rather than one after another; WhenAll keeps them in
+                //the order asked, which is the order the cards are labelled by
+                var bracketRatings = await Task.WhenAll(Brackets.Select(bracket =>
+                    _warcraftCachedData.GetPvpBracketRating(server.ToLower(), characterName.ToLower(), bracket, region, flavor)));
+                foreach (var fetchedBracketRating in bracketRatings)
                 {
-                    var BracketRating = await _warcraftCachedData.GetPvpBracketRating(server.ToLower(), characterName.ToLower(), PvPBracket, region, HttpContext.GetGameFlavor());
-
+                    var BracketRating = fetchedBracketRating;
                     if (Season == (BracketRating?.Season?.Id ?? 0) && BracketRating != null)
                     {
                         results.Add(BracketRating);
@@ -90,15 +94,17 @@ namespace Dragonblight_Website.Server.Controllers
                 //Solo Shuffle keeps a rating per spec, so after the fixed brackets come the character's
                 //class's spec brackets. They go last so the cards above keep their positions, and only
                 //the ones the character has played are kept: an unplayed spec comes back null.
-                if (HttpContext.GetGameFlavor() == GameFlavor.Retail)
+                if (flavor == GameFlavor.Retail)
                 {
-                    var flavor = HttpContext.GetGameFlavor();
                     var profile = await _warcraftCachedData.GetCharSummary(server.ToLower(), characterName.ToLower(), region, flavor);
                     var ladderBrackets = await _warcraftCachedData.GetLadderBrackets(region, flavor);
-                    var specBrackets = ladderBrackets.Where(b => b.SpecName != null && b.ClassName == profile?.CharacterClass?.Name);
-                    foreach (var specBracket in specBrackets)
+                    var specBrackets = ladderBrackets.Where(b => b.SpecName != null && b.ClassName == profile?.CharacterClass?.Name).ToList();
+                    //a class has a Shuffle and a Blitz ladder per spec, up to 8 calls, so these run at once too
+                    var specRatings = await Task.WhenAll(specBrackets.Select(specBracket =>
+                        _warcraftCachedData.GetPvpBracketRating(server.ToLower(), characterName.ToLower(), specBracket.Slug, region, flavor)));
+                    foreach (var (specBracket, fetchedRating) in specBrackets.Zip(specRatings))
                     {
-                        var specRating = await _warcraftCachedData.GetPvpBracketRating(server.ToLower(), characterName.ToLower(), specBracket.Slug, region, flavor);
+                        var specRating = fetchedRating;
                         if (specRating?.Bracket == null)
                         {
                             specRating = new CharacterPvpBracketStatistics

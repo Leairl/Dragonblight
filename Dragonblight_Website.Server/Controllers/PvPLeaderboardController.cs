@@ -53,9 +53,8 @@ namespace Dragonblight_Website.Server.Controllers
         {
             try
             {
-                var ladder = await _warcraftCachedData.GetPvpLeaderSummaries(bracket, region, HttpContext.GetGameFlavor());
-                ladder = ladder.OrderBy(l => l?.PvpEntry.Rank).ToList();
-                return Ok(ladder.Skip(skip).Take(take));
+                //only the page shown is read: the list is stored in rank order by the sync
+                return Ok(await _warcraftCachedData.GetPvpLeaderSummariesPage(bracket, region, HttpContext.GetGameFlavor(), skip, take));
             }
             catch (Exception ex)
             {
@@ -98,25 +97,73 @@ namespace Dragonblight_Website.Server.Controllers
         {
             try
             {
-                var pvpRewards = await _warcraftCachedData.GetPvPRewards(region, HttpContext.GetGameFlavor());
-                if (pvpRewards != null && pvpRewards.Rewards != null && pvpRewards.Rewards.Any())
+                var flavor = HttpContext.GetGameFlavor();
+                //the ranks only move when the ladders do, so the answer is kept until the next sync clears it
+                var key = WarcraftRedisProxy.RewardRanksKey(region, flavor);
+                var cached = await _warcraftCachedData.GetRedisData<List<PvpSeasonRewardWithRank>>(key);
+                if (cached != null)
                 {
-                    var pvpSeasonRewardWithRank = pvpRewards.Rewards.Select(async r =>
-                    {
-                        return new PvpSeasonRewardWithRank
-                        {
-                            Bracket = r.Bracket,
-                            Achievement = r.Achievement,
-                            RatingCutoff = r.RatingCutoff,
-                            Faction = r.Faction,
-                            Specialization = r.Specialization,
-                            rank = await GetRankFromCutoffs(r.RatingCutoff, r.Bracket.Type, region, r.Specialization?.Id)
-                        };
-                    });
-                    var result = await Task.WhenAll(pvpSeasonRewardWithRank);
-                    return Ok(result);
+                    return Ok(cached);
                 }
-                return Ok(new List<PvpSeasonRewardWithRank>());
+                var pvpRewards = await _warcraftCachedData.GetPvPRewards(region, flavor);
+                if (pvpRewards?.Rewards == null || !pvpRewards.Rewards.Any())
+                {
+                    //not cached: an empty answer is usually Blizzard failing, and the next request should ask again
+                    return Ok(new List<PvpSeasonRewardWithRank>());
+                }
+                var rewards = pvpRewards.Rewards;
+                var ranks = new int[rewards.Length];
+                var complete = true;
+                //Retail has a reward per Shuffle and Blitz spec (two per spec for Blitz), so this is 80+ ladders.
+                //Each ladder is read once for all of its rewards, and one at a time, so only one is held in memory.
+                var byLadder = new Dictionary<string, List<int>>();
+                for (var i = 0; i < rewards.Length; i++)
+                {
+                    var ladder = await _warcraftCachedData.RewardLadder(rewards[i].Bracket.Type, region, rewards[i].Specialization?.Id, flavor);
+                    if (!byLadder.TryGetValue(ladder, out var indexes))
+                    {
+                        byLadder[ladder] = indexes = [];
+                    }
+                    indexes.Add(i);
+                }
+                foreach (var (ladder, indexes) in byLadder)
+                {
+                    try
+                    {
+                        var entries = (await _warcraftCachedData.GetLeaderboard(region, ladder, flavor))?.Entries;
+                        if (entries == null)
+                        {
+                            complete = false;
+                            continue;
+                        }
+                        foreach (var i in indexes)
+                        {
+                            //the rank of the last player at or above the cutoff; 0 when nobody has reached it
+                            ranks[i] = entries.LastOrDefault(p => p.Rating >= rewards[i].RatingCutoff)?.Rank ?? 0;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "An error occurred while fetching the rank from cutoffs for " + ladder);
+                        complete = false;
+                    }
+                }
+                var result = rewards.Select((r, i) => new PvpSeasonRewardWithRank
+                {
+                    Bracket = r.Bracket,
+                    Achievement = r.Achievement,
+                    RatingCutoff = r.RatingCutoff,
+                    Faction = r.Faction,
+                    Specialization = r.Specialization,
+                    rank = ranks[i]
+                }).ToList();
+                //a ladder that failed to load would show rank 0 until the next sync, so a partial answer is not kept.
+                //The expiry is only a backstop in case a sync dies before clearing it.
+                if (complete)
+                {
+                    await _warcraftCachedData.SaveToRedis(key, result, TimeSpan.FromHours(6));
+                }
+                return Ok(result);
             }
             catch (Exception ex)
             {
@@ -132,21 +179,6 @@ namespace Dragonblight_Website.Server.Controllers
             public int rank { get; set; }
         }
 
-        [HttpGet("GetRankFromCutoffs")]
-        private async Task<int> GetRankFromCutoffs(int cutoff, string bracketType, string region, int? specId = null)
-        {
-            try
-            {
-
-                var bracket = await _warcraftCachedData.RewardLadder(bracketType, region, specId, HttpContext.GetGameFlavor());
-                return (await _warcraftCachedData.GetLeaderboard(region, bracket, HttpContext.GetGameFlavor())).Entries.Last(p => p.Rating >= cutoff).Rank;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred while fetching the rank from cutoffs.");
-                return 0;
-            }
-        }
         [HttpGet("GetEstimatedCutoffs")]
         public async Task<ActionResult<List<EstimatedCutoff>>> GetEstimatedCutoffs(string region)
         {
