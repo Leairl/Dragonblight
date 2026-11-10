@@ -50,20 +50,12 @@ namespace Dragonblight_Website.Server.Controllers
                 var result = await _warcraftCachedData.GetCharSummary(server.ToLower(), characterName.ToLower(), region, HttpContext.GetGameFlavor());
                 var specName = await _warcraftCachedData.GetCharacterSpecName(server.ToLower(), characterName.ToLower(), region, HttpContext.GetGameFlavor());
                 List<PreviousCharacterName> previousNames = [];
-                // spin off a background thread to update each bracket's char summary and spec name
                 var flavor = HttpContext.GetGameFlavor();
                 if (result != null)
                 {
                     await _warcraftCachedData.RecordCharacter(result.Id, result.Name, result.Realm.Slug, region, flavor);
                     var identity = await _warcraftCachedData.GetCharacterIdentity(result.Id, region, flavor);
                     previousNames = identity?.PreviousNames ?? [];
-                    _ = Task.Run(async () =>
-               {
-                   foreach (var bracket in flavor.Brackets())
-                   {
-                       await UpdateBracketSummary(bracket, region, characterName, server, result, specName, flavor);
-                   }
-               });
                 }
                 return Ok(new CharacterProfileSummaryAndSpec
                 {
@@ -118,11 +110,38 @@ namespace Dragonblight_Website.Server.Controllers
         {
             try
             {
-                var cleared = await _warcraftCachedData.ClearCharacterCache(server.ToLower(), characterName.ToLower(), region, HttpContext.GetGameFlavor());
+                var flavor = HttpContext.GetGameFlavor();
+                server = server.ToLower();
+                characterName = characterName.ToLower();
+                var cleared = await _warcraftCachedData.ClearCharacterCache(server, characterName, region, flavor);
                 if (!cleared)
                 {
                     return StatusCode(429, "This character was refreshed recently. Try again in a few minutes.");
                 }
+                //The rankings page shows the profile saved in each combined ladder. A plain profile view would
+                //write back the same cached profile the sync already saved, but after a refresh the profile is
+                //new, so the ladder entries are brought up to date here rather than waiting for the next sync.
+                //This reads whole ladders, so it only runs on a refresh, which is limited to once every few minutes.
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var result = await _warcraftCachedData.GetCharSummary(server, characterName, region, flavor);
+                        if (result == null || result.Id == 0)
+                        {
+                            return;
+                        }
+                        var specName = await _warcraftCachedData.GetCharacterSpecName(server, characterName, region, flavor);
+                        foreach (var bracket in flavor.Brackets())
+                        {
+                            await UpdateBracketSummary(bracket, region, characterName, server, result, specName, flavor);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error updating ladder entries after refreshing " + characterName);
+                    }
+                });
                 return NoContent();
             }
             catch (Exception ex)

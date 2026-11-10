@@ -42,11 +42,15 @@ partial class CharacterCacheService(IWarcraftRedisProxy warcraftRedisProxy, ILog
         await warcraftRedisProxy.ClearPvpCharacterSummary(bracket, region, flavor);
         //Shuffle and Blitz keep a ladder per spec, 80 of them a region, so only each spec's top players
         //are looked up and stored. The old ladder is left whole: it is only searched for comparisons.
+        //the combined ladder is pushed in this order, and the rankings page reads it by position, so it has
+        //to be rank order. Blizzard returns it that way but doesn't promise to; OrderBy is stable, so ties keep Blizzard's order
+        newarray = newarray.OrderBy(p => p.Rank).ToArray();
         if ((keyGroup == "shuffle" || keyGroup == "blitz") && !bracket.EndsWith("-overall"))
         {
-            newarray = newarray.OrderBy(p => p.Rank).Take(SpecLadderLimit).ToArray();
+            newarray = newarray.Take(SpecLadderLimit).ToArray();
         }
-        var batchAmount = newarray.Length / batchSize;
+        //rounded up so the last partial batch is synced too; rounding down skipped the last 1-4 players of every ladder
+        var batchAmount = (newarray.Length + batchSize - 1) / batchSize;
         decimal percent = 0;
         await redis.GetDatabase().StringSetAsync(SyncStatusKey(bracket, region, flavor), percent.ToString());
         var snapshots = new List<CharacterRatingSnapshot>();
@@ -163,7 +167,7 @@ partial class CharacterCacheService(IWarcraftRedisProxy warcraftRedisProxy, ILog
             await redis.GetDatabase().StringSetAsync(SyncStatusKey(bracket, region, flavor), percent.ToString());
         }
         ;
-        //a ladder under one batch never enters the loop, so finishing is what marks it complete
+        //an empty ladder never enters the loop, so finishing is what marks it complete
         await redis.GetDatabase().StringSetAsync(SyncStatusKey(bracket, region, flavor), "1");
         await warcraftRedisProxy.BracketPlayerExpiration(bracket, region, flavor);
         try
@@ -272,5 +276,7 @@ partial class CharacterCacheService(IWarcraftRedisProxy warcraftRedisProxy, ILog
                 logger.LogError(ex, "Error in CacheAllLadders for " + ladder);
             }
         }
+        //the reward ranks were worked out from the ladders this pass just replaced
+        await redis.GetDatabase().KeyDeleteAsync(WarcraftRedisProxy.RewardRanksKey(region, flavor));
     }
 }

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text.Json;
 using Dragonblight_Website.Server.Helpers;
 using ArgentPonyWarcraftClient;
@@ -62,10 +63,36 @@ partial class WarcraftRedisProxy(WarcraftClient _warcraftClient, IConnectionMult
         var res = await GetRedisData<T>(VersionedKey(key));
         if (res == null || res is 0)
         {
-            res = await GetBlizzardData(key, BlizzardCall, expiration);
+            res = await FetchOnce(key, () => GetBlizzardData(key, BlizzardCall, expiration));
         }
         return res;
     }
+
+    //Blizzard calls in progress, by cache key. A profile page asks for the same data from several
+    //components at once (the achievements are read by four of them), and on a cold cache each one
+    //used to make its own Blizzard call - for achievements, a 1-4 MB download each. Requests that
+    //arrive while a call is running now wait on that call. Static because the proxy is scoped per request.
+    private static readonly ConcurrentDictionary<string, object> InFlight = new();
+
+    private static async Task<T> FetchOnce<T>(string key, Func<Task<T>> fetch)
+    {
+        //the type is part of the key so a cast below can never meet a call made for another type
+        var flightKey = typeof(T).FullName + "|" + key;
+        var call = (Lazy<Task<T>>)InFlight.GetOrAdd(flightKey, _ => new Lazy<Task<T>>(fetch));
+        try
+        {
+            return await call.Value;
+        }
+        finally
+        {
+            //only removes this call, never a newer one that started after it finished
+            InFlight.TryRemove(new KeyValuePair<string, object>(flightKey, call));
+        }
+    }
+
+    //GetPvPRewards with each reward's rank on its ladder. Kept until the next sync, which deletes it.
+    public static string RewardRanksKey(string region, GameFlavor flavor)
+        => VersionedKey(flavor.KeyPrefix() + "RewardRanks-" + region.ToLowerInvariant());
 
     public Region GetRegion(string region)
     {
