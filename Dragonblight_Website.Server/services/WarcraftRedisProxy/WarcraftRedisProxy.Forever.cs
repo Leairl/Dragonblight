@@ -697,12 +697,24 @@ partial class WarcraftRedisProxy
     //the class (its specs, in the game's order), each spec (its tree's id), each tree (the talents
     //and their grid slots) and each talent's spell (its icon), so it is a few dozen calls the first
     //time. The three trees are built at once, so a cold build costs about as long as one tree.
-    //Talent trees only change with a patch, so it is kept for a week; ForeverStatsService warms it
-    //for every class each run, so a visitor rarely meets a cold build.
+    //Talent trees only change with a patch, so they're kept for a week; ForeverStatsService warms them
+    //for every class each run, so a visitor rarely meets a cold build. When an icon lookup failed
+    //(Blizzard answers some calls with an error under load), the trees are kept for 10 minutes instead,
+    //so the missing icons are filled in by the next build rather than left out for the week.
+    //Raise to rebuild every class's trees under a new key, e.g. after trees were cached with icons
+    //missing: version 2 came with the icon retry, replacing trees cached a week before it.
+    private const int ClassTalentsVersion = 2;
+
     public async Task<ForeverClassTalents?> GetForeverClassTalents(int classId, string region)
     {
         var ns = GetStaticRegion(region, GameFlavor.Forever);
-        return await GetBlizzardDataCached<ForeverClassTalents?>("GetForeverClassTalents" + classId + ns, async () =>
+        var key = VersionedKey("GetForeverClassTalents" + ClassTalentsVersion + "-" + classId + ns);
+        var cached = await GetRedisData<ForeverClassTalents>(key);
+        if (cached != null)
+        {
+            return cached;
+        }
+        return await FetchOnce(key, async () =>
         {
             var playableClass = await warcraftClient.GetPlayableClassAsync(classId, ns, GetRegion(region), GetLocale(region));
             if (playableClass == null || !playableClass.Success)
@@ -711,50 +723,69 @@ partial class WarcraftRedisProxy
             }
             var specs = playableClass.Value.Specializations ?? [];
             //Task.WhenAll keeps the specs in the game's order
-            var trees = await Task.WhenAll(specs.Select(spec => GetForeverTalentTreeLayout(spec.Id, ns, region)));
-            if (trees.Any(tree => tree == null))
+            var built = await Task.WhenAll(specs.Select(spec => GetForeverTalentTreeLayout(spec.Id, ns, region)));
+            if (built.Any(tree => tree.layout == null))
             {
                 //nothing is cached then, so the next visit builds it again; the icons fetched so far
                 //are cached on their own, so that rebuild is cheaper
                 logger.LogWarning("Forever talents: Blizzard returned no tree for a spec of class {ClassId} in {Region}.", classId, region);
                 return null;
             }
-            return new ForeverClassTalents { ClassId = classId, Trees = trees.Select(tree => tree!).ToList() };
-        }, TimeSpan.FromDays(7));
+            var talents = new ForeverClassTalents { ClassId = classId, Trees = built.Select(tree => tree.layout!).ToList() };
+            var missingIcons = built.Sum(tree => tree.missingIcons);
+            var keepFor = TimeSpan.FromDays(7);
+            if (missingIcons > 0)
+            {
+                logger.LogWarning("Forever talents: {Count} icons for class {ClassId} in {Region} couldn't be fetched; kept briefly so they're tried again.", missingIcons, classId, region);
+                keepFor = TimeSpan.FromMinutes(10);
+            }
+            await SaveToRedis(key, talents, keepFor);
+            return talents;
+        });
     }
 
-    //A spell's icon image, or "" when it has none. Kept for a month on its own, so a class's
-    //trees rebuilt after their week, or after a failed build, don't fetch every icon again.
+    //A spell's icon image, or "" when it has none; null when the lookup failed, and isn't cached then.
+    //Kept for a month on its own, so a class's trees rebuilt after their week, or after a failed
+    //build, don't fetch every icon again. A failed lookup is tried once more before giving up.
     private async Task<string?> GetForeverSpellIcon(int spellId, string ns, string region)
     {
         return await GetBlizzardDataCached<string?>("GetForeverSpellIcon" + spellId + ns, async () =>
         {
-            var media = await warcraftClient.GetSpellMediaAsync(spellId, ns, GetRegion(region), GetLocale(region));
-            if (media == null || !media.Success)
+            for (var attempt = 0; attempt < 2; attempt++)
             {
-                return null;
+                if (attempt > 0)
+                {
+                    await Task.Delay(500);
+                }
+                var media = await warcraftClient.GetSpellMediaAsync(spellId, ns, GetRegion(region), GetLocale(region));
+                if (media != null && media.Success)
+                {
+                    return media.Value.Assets?.FirstOrDefault(a => a.Key == "icon")?.Value?.ToString() ?? "";
+                }
             }
-            return media.Value.Assets?.FirstOrDefault(a => a.Key == "icon")?.Value?.ToString() ?? "";
+            return null;
         }, TimeSpan.FromDays(30));
     }
 
-    private async Task<ForeverTalentTreeLayout?> GetForeverTalentTreeLayout(int specId, string ns, string region)
+    //A spec's tree, and how many of its shown talents' icons couldn't be fetched; the layout is null
+    //when Blizzard returned no tree.
+    private async Task<(ForeverTalentTreeLayout? layout, int missingIcons)> GetForeverTalentTreeLayout(int specId, string ns, string region)
     {
         var spec = await warcraftClient.GetPlayableSpecializationAsync(specId, ns, GetRegion(region), GetLocale(region));
         if (spec == null || !spec.Success)
         {
-            return null;
+            return (null, 0);
         }
         //the spec only links its tree: .../data/wow/talent-tree/1089/playable-specialization/134
         var treeId = TalentTreeIdOf(spec.Value.SpecTalentTree?.Key?.Href);
         if (treeId == null)
         {
-            return null;
+            return (null, 0);
         }
         var tree = await warcraftClient.GetTalentTreeAsync(treeId.Value, specId, ns, GetRegion(region), GetLocale(region));
         if (tree == null || !tree.Success)
         {
-            return null;
+            return (null, 0);
         }
 
         var layout = new ForeverTalentTreeLayout { SpecId = specId, SpecName = spec.Value.Name ?? "" };
@@ -768,6 +799,7 @@ partial class WarcraftRedisProxy
             && node.DisplayColumn >= firstColumn && node.DisplayColumn < firstColumn + ShownTreeColumns;
 
         var nodes = new ConcurrentBag<ForeverTalentNode>();
+        var missingIcons = 0;
         var options = new ParallelOptions { MaxDegreeOfParallelism = ParallelIconCalls };
         await Parallel.ForEachAsync(talentNodes, options, async (node, _) =>
         {
@@ -776,7 +808,12 @@ partial class WarcraftRedisProxy
             var icon = "";
             if (spellId != 0 && IsShown(node))
             {
-                icon = await GetForeverSpellIcon(spellId, ns, region) ?? "";
+                var fetched = await GetForeverSpellIcon(spellId, ns, region);
+                if (fetched == null)
+                {
+                    Interlocked.Increment(ref missingIcons);
+                }
+                icon = fetched ?? "";
             }
             nodes.Add(new ForeverTalentNode
             {
@@ -793,7 +830,7 @@ partial class WarcraftRedisProxy
             });
         });
         layout.Nodes = nodes.OrderBy(n => n.Row).ThenBy(n => n.Column).ToList();
-        return layout;
+        return (layout, missingIcons);
     }
 
     private static int? TalentTreeIdOf(Uri? href)

@@ -168,7 +168,7 @@ function OptimizeContent({ page }: { page: Dragonblight.ForeverOptimizePage }) {
         <ConsumableGroup title="Elixirs" entries={page.elixirs} empty="No elixir at this level helps this spec." />
         <ConsumableGroup title="Flasks" entries={page.flasks} empty="No flask at this level helps this spec." />
         <ConsumableGroup title="Buff potions" entries={page.potions} empty="No buff potion at this level helps this spec." />
-        <ConsumableGroup title="Healing and mana potions" entries={restoring} empty="No healing potion at this level." />
+        <ConsumableGroup title="Healing and mana potions" entries={restoring} empty="No healing potion without a backlash at this level." />
       </div>
     </>
   );

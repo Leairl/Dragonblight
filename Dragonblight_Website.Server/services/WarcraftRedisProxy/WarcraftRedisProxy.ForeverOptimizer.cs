@@ -3,8 +3,11 @@ using ArgentPonyWarcraftClient;
 
 //The Optimize tab's catalog: Forever's potions, elixirs, flasks and permanent enhancements (enchants
 //and armor kits), each with the stats its effect text gives. Forever's game data still carries Season
-//of Discovery's items, which aren't in Forever, so only items a Forever profession makes are kept:
-//their names match a recipe outside the professions' Season of Discovery category.
+//of Discovery's items, which aren't in Forever, so an item is kept when a Forever profession makes it
+//(its name matches a recipe outside the professions' Season of Discovery category). Healing and mana
+//potions are the exception: the original Classic ones still drop and are sold in Forever although no
+//recipe makes them any more (Forever's alchemy makes Discolored healing potions instead), so those
+//are kept too.
 partial class WarcraftRedisProxy
 {
     //item subclasses of the Consumable class (0) the tab suggests from
@@ -18,7 +21,21 @@ partial class WarcraftRedisProxy
 
     //Raise when ForeverEnhancement gains a field, so a list cached by an older server (kept a week, and
     //across restarts) is rebuilt instead of serving the new field empty.
-    private const int OptimizerCatalogVersion = 2;
+    private const int OptimizerCatalogVersion = 6;
+
+    //Original Classic items have ids below this; Season of Discovery's and Forever's own start above 200000.
+    private const int LastClassicItemId = 30000;
+
+    //An original Classic healing or mana potion ("Greater Healing Potion", "Major Mana Potion").
+    private static bool IsClassicRestorePotion(int itemId, string name, string kind)
+    {
+        if (kind != "potion" || itemId >= LastClassicItemId)
+        {
+            return false;
+        }
+        return name.EndsWith("Healing Potion", StringComparison.OrdinalIgnoreCase)
+            || name.EndsWith("Mana Potion", StringComparison.OrdinalIgnoreCase);
+    }
 
     public async Task<ForeverOptimizerCatalog?> GetForeverOptimizerCatalog(string region)
     {
@@ -79,6 +96,11 @@ partial class WarcraftRedisProxy
                     if (made.TryGetValue(name, out var recipe))
                     {
                         found.Add((item.Id, name, kind, recipe.ids, recipe.profession));
+                    }
+                    else if (IsClassicRestorePotion(item.Id, name, kind))
+                    {
+                        //no Forever recipe makes it, so it has no crafting skill to limit it by
+                        found.Add((item.Id, name, kind, new List<int>(), ""));
                     }
                 }
                 if (items.Length < 1000)

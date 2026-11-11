@@ -145,12 +145,15 @@ public static class ForeverEffectParser
             var tokens = sentence
                 .Replace(",", " ").Replace(";", " ").Replace("(", " ").Replace(")", " ")
                 .Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            //A one-time restore, not "restores 4 mana every 5 seconds", which is regeneration. Read before
-            //the conditional check: Forever's Discolored healing potions heal and then "you also suffer"
-            //part of it back, and they're still the healing potions alchemists make.
+            //A one-time restore, not "restores 4 mana every 5 seconds", which is regeneration. A potion with
+            //a backlash isn't suggested: Forever's Discolored healing potions heal and then "you also
+            //suffer" most of it back over time.
             if (tokens.Length > 0 && tokens[0] == "restores" && !tokens.Contains("every") && !tokens.Contains("per"))
             {
-                ReadRestore(tokens, effect);
+                if (!sentence.Contains("you also suffer"))
+                {
+                    ReadRestore(tokens, effect);
+                }
                 continue;
             }
             if (Conditional.Any(marker => sentence.Contains(marker)))
@@ -335,22 +338,22 @@ public static class ForeverEffectParser
         return (null, false);
     }
 
-    //"Restores 455 to 585 health." or "Restores 455 to 585 mana." The middle of the range.
+    //"Restores 455 to 585 health." or "Restores 455 to 585 mana." Health potions are compared by the
+    //most they can heal, the top of the range; mana potions by the middle of theirs.
     private static void ReadRestore(string[] tokens, ForeverEffect effect)
     {
-        var numbers = tokens.Select(t => Number(t).value).Where(v => v != null).Select(v => v!.Value).ToArray();
+        var numbers = tokens.Select(t => Number(t).value).Where(v => v != null).Select(v => v!.Value).Take(2).ToArray();
         if (numbers.Length == 0)
         {
             return;
         }
-        var amount = numbers.Take(2).Average();
         if (tokens.Contains("health"))
         {
-            effect.healthRestored = amount;
+            effect.healthRestored = numbers.Max();
         }
         else if (tokens.Contains("mana"))
         {
-            effect.manaRestored = amount;
+            effect.manaRestored = numbers.Average();
         }
     }
 

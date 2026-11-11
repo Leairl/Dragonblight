@@ -30,7 +30,7 @@ const tabs: NavTab[] = [
 //Forever has no ladders, so it gets its own short list: home and the ruleset stats page
 const foreverTabs: NavTab[] = [
   { label: "Home", to: "/", match: "/" },
-  { label: "Stats", to: "/stats", match: "/stats", isNew: true },
+  { label: "Stats", to: "/stats", match: "/stats" },
 ];
 
 function isActive(tab: NavTab, pathname: string): boolean {

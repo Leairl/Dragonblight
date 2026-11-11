@@ -216,6 +216,13 @@ def source_text(info):
             parts.append(label)
     return "; ".join(parts)
 
+# Recipes still in Forever's data that no one can learn: no pattern teaches them and no trainer does
+# either (the game's recipe table doesn't mark them). The server leaves "hidden" ones out of the
+# not-learned list. Add to this by hand.
+UNOBTAINABLE = {
+    1384: "Draught of Tongues",  # Alchemy; never taught in Classic either
+}
+
 counts = Counter()
 unknown = []
 needed = {}
@@ -245,6 +252,10 @@ with open(out_path, "w", newline="") as f:
         exact = levels.get((pid, name.lower()))
         y = yellow(pid, rid)
         t = teachers.get((pid, name.lower()))
+        if rid in UNOBTAINABLE:
+            out.writerow([rid, "", "hidden", "", "", "", "Not obtainable"])
+            counts["hidden"] += 1
+            continue
         if exact is not None:
             info = needed.get(t["id"]) or {"icon": "", "source": [], "sourcemore": []}
             out.writerow([rid, exact, "pattern", t["id"], clean(t["name"]), clean(icons.get(t["id"], "")), clean(source_text(info))])
