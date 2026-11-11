@@ -29,6 +29,7 @@ public interface IWarcraftRedisProxy
     Task<string?> GetForeverMountImage(int mountId, string region);
     Task<string?> GetForeverPetIcon(int petId, string region);
     Task<string?> GetForeverToyIcon(int toyId, string region);
+    Task<int?> GetForeverToyItemId(int toyId, string region);
     Task<Dictionary<int, ForeverAppearanceName>> GetForeverAppearanceNames(IReadOnlyCollection<int> appearanceIds, string region);
     Task<string?> GetForeverAppearanceIcon(int appearanceId, int? catalogMediaId, string region);
     Task<List<string>> ForeverCachedCharacters();

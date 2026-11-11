@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router";
 import { Badge, Button, ChevronDownIcon, Flex, Heading, Progress, Skeleton, Text, TextField } from "@radix-ui/themes";
 import { Dragonblight } from "../../../clients/Dragonblight";
+import { wowheadUrl } from "../../../helpers/game-flavor";
 import { collectionIcons, loadCollectionIcons, useForeverTab } from "../forever-data";
 import CollectionPreview, { PreviewTarget } from "./collection-preview";
 import { appearanceEntries, CollectionEntry, CollectionKind, collectionProgress, creatureRender, filterEntries, mountEntries, petEntries, qualityColor, toyEntries } from "./collection-helpers";
@@ -52,8 +53,10 @@ function useCollectionIcons(kind: CollectionKind, region: string | undefined, en
   }, [kind, region, ids, key]);
   const settled = done === key;
   const icon = (id: number) => (region ? collectionIcons[kind].get(region, id)?.icon : undefined);
+  // a toy's item, for its Wowhead tooltip
+  const itemId = (id: number) => (region ? collectionIcons[kind].get(region, id)?.itemId : undefined);
   const pending = !!ids && !settled && !ids.split(",").every((id) => icon(Number(id)));
-  return { icon, pending };
+  return { icon, itemId, pending };
 }
 
 type Select = (target: PreviewTarget) => void;
@@ -69,10 +72,11 @@ function EntryContent({ entry, src, pending, render }: { entry: CollectionEntry;
 }
 
 // Mounts and pets open their creature render: a mount's thumbnail already is one, and a pet's comes
-// from its own creature display. Toys and appearances only have icons, so their rows don't open.
-function EntryList({ entries, icon, pending, render, region, onSelect }: {
-  entries: CollectionEntry[]; icon: (id: number) => string | undefined; pending: boolean; render?: boolean;
-  region: string; onSelect: Select;
+// from its own creature display. Toys link to their item on Wowhead, whose tooltip says what the toy
+// does. Appearances only have icons, so their rows don't open.
+function EntryList({ entries, icon, itemId, pending, render, region, onSelect }: {
+  entries: CollectionEntry[]; icon: (id: number) => string | undefined; itemId?: (id: number) => number | undefined;
+  pending: boolean; render?: boolean; region: string; onSelect: Select;
 }) {
   const image = (entry: CollectionEntry) => entry.kind === "mount" ? icon(entry.id) : entry.kind === "pet" ? creatureRender(region, entry.displayId) : undefined;
   return (
@@ -80,6 +84,20 @@ function EntryList({ entries, icon, pending, render, region, onSelect }: {
       {entries.map((entry) => {
         const className = entry.muted ? "forever-collection-row is-muted" : "forever-collection-row";
         const preview = image(entry);
+        let toyItem: number | undefined = undefined;
+        if (entry.kind === "toy" && itemId) {
+          toyItem = itemId(entry.id);
+        }
+        if (toyItem) {
+          return (
+            <li key={entry.key}>
+              <a className={`${className} forever-collection-link`} href={wowheadUrl(`item=${toyItem}`, "forever")} target="_blank" rel="noopener noreferrer"
+                data-wh-iconize-link="false" data-wh-rename-link="false">
+                <EntryContent entry={entry} src={icon(entry.id)} pending={pending} render={render} />
+              </a>
+            </li>
+          );
+        }
         return (
           <li key={entry.key}>
             {preview ? (
@@ -129,13 +147,13 @@ function CollectionSection({ title, empty, entries, filtered, kind, region, onSe
   title: string; empty: string; entries: CollectionEntry[]; filtered: CollectionEntry[];
   kind: CollectionKind; region: string; onSelect: Select;
 }) {
-  const { icon, pending } = useCollectionIcons(kind, region, entries);
+  const { icon, itemId, pending } = useCollectionIcons(kind, region, entries);
   return (
     <section className="forever-collection-section" aria-label={title}>
       <Heading as="h3" size="3" mb="2">{title} <Text size="2" color="gray" weight="regular">({entries.length})</Text></Heading>
       {entries.length === 0 ? <Text as="p" size="2" color="gray">{empty}</Text>
         : filtered.length === 0 ? <Text as="p" size="2" color="gray">No matches.</Text> : (
-          <EntryList entries={filtered} icon={icon} pending={pending} render={kind === "mount"} region={region} onSelect={onSelect} />
+          <EntryList entries={filtered} icon={icon} itemId={itemId} pending={pending} render={kind === "mount"} region={region} onSelect={onSelect} />
         )}
     </section>
   );
