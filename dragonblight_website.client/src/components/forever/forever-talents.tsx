@@ -1,7 +1,8 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, { useLayoutEffect, useRef, useState } from "react";
 import { CheckIcon } from "@radix-ui/react-icons";
 import { Flex, SegmentedControl, Skeleton, Text } from "@radix-ui/themes";
 import { Dragonblight } from "../../clients/Dragonblight";
+import { useForeverTab } from "./forever-data";
 import { specDisplayName, specIcon } from "../../helpers/forever-names";
 import TapPopover from "../tap-popover/tap-popover";
 
@@ -52,11 +53,11 @@ function threeAcross(cardWidth: number, oneColumn: boolean): boolean {
   return !oneColumn && cardWidth >= threeAcrossWidth;
 }
 
-interface TalentsResult {
-  key: string;
-  page?: Dragonblight.ForeverTalentsPage;
-  failed: boolean;
-}
+// what the shared tab loader shows when the request fails; the tab only opens once the profile has loaded
+const talentsMessages = {
+  missing: "Couldn't load this character's talents. Try again in a minute.",
+  failed: "Couldn't load this character's talents. Try again in a minute.",
+};
 
 // where a grid slot's icon sits, in pixels from the tree's top left corner
 function cellLeft(column: number, grid: GridSize): number {
@@ -268,7 +269,9 @@ function TalentTree(props: {
 // character is using.
 function ForeverTalents(props: { region: string; characterSlug: string; className: string }) {
   const requestKey = `${props.region}/${props.characterSlug}`;
-  const [result, setResult] = useState<TalentsResult>();
+  // Shared with the tab bar's prefetch: hovering the Talents tab starts the request, and coming
+  // back to the tab renders from memory instead of asking again.
+  const [talents] = useForeverTab("talents", props.region, props.characterSlug, talentsMessages);
   const [chosenGroup, setChosenGroup] = useState<{ key: string; index: number }>();
   // the card's width, which decides how big the trees are drawn
   const cardRef = useRef<HTMLDivElement>(null);
@@ -293,30 +296,11 @@ function ForeverTalents(props: { region: string; characterSlug: string; classNam
     return () => observer.disconnect();
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    new Dragonblight.ForeverCharacterClient()
-      .getTalents(props.region, props.characterSlug)
-      .then((page) => {
-        if (cancelled) return;
-        setResult({ key: requestKey, page: page, failed: false });
-      })
-      .catch((error) => {
-        if (cancelled) return;
-        console.error(error);
-        setResult({ key: requestKey, failed: true });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [props.region, props.characterSlug, requestKey]);
-
   let page: Dragonblight.ForeverTalentsPage | undefined = undefined;
-  let failed = false;
-  if (result !== undefined && result.key === requestKey) {
-    page = result.page;
-    failed = result.failed;
+  if (talents.status === "loaded") {
+    page = talents.data;
   }
+  const failed = talents.status === "error";
 
   let treeColumnsStyle: React.CSSProperties = { gridTemplateColumns: "minmax(0, 1fr)" };
   if (threeAcross(cardSize.width, cardSize.oneColumn)) {
