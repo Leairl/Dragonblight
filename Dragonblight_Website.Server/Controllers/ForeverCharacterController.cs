@@ -301,16 +301,7 @@ namespace Dragonblight_Website.Server.Controllers
                     pets = pets?.Pets?.Where(p => p.Species != null).OrderBy(p => p.Species!.Name).ToArray() ?? [],
                     toys = toys?.Toys?.Where(t => t.Toy != null).OrderBy(t => t.Toy!.Name).ToArray() ?? [],
                     unlockedBattlePetSlots = pets?.UnlockedBattlePetSlots,
-                    //Blizzard splits some slots that share a name (chest and robe, both "Chest"), so slots
-                    //are merged by name, in Blizzard's order, counting each appearance once
-                    appearanceSlots = transmogs?.Slots?
-                        .GroupBy(slot => slot.Slot?.Name ?? slot.Slot?.Type ?? "Unknown slot")
-                        .Select(group => new ForeverAppearanceSlot
-                        {
-                            type = group.First().Slot?.Type ?? "",
-                            name = group.Key,
-                            count = group.SelectMany(slot => slot.Appearances ?? []).Select(a => a.Id).Distinct().Count(),
-                        }).ToArray() ?? [],
+                    appearanceSlots = await AppearanceSlots(transmogs, region),
                     totals = totalsTask.Result,
                 });
             }
@@ -319,6 +310,39 @@ namespace Dragonblight_Website.Server.Controllers
                 _logger.LogError(ex, "Error occurred while getting Forever collections for {Slug} in {Region}.", characterSlug, region);
                 return StatusCode(500);
             }
+        }
+
+        //Blizzard splits some slots that share a name (chest and robe, both "Chest"), so slots are merged
+        //by name, in Blizzard's order, listing each appearance once. Names come from Forever's item
+        //catalog; when that can't be read the page still gets every appearance, just unnamed.
+        private async Task<ForeverAppearanceSlot[]> AppearanceSlots(ForeverTransmogsCollection? transmogs, string region)
+        {
+            var groups = (transmogs?.Slots ?? [])
+                .GroupBy(slot => slot.Slot?.Name ?? slot.Slot?.Type ?? "Unknown slot")
+                .Select(group => (type: group.First().Slot?.Type ?? "", name: group.Key,
+                    ids: group.SelectMany(slot => slot.Appearances ?? []).Select(a => a.Id).Distinct().ToArray()))
+                .ToArray();
+            var names = new Dictionary<int, ForeverAppearanceName>();
+            try
+            {
+                names = await _warcraftCachedData.GetForeverAppearanceNames(groups.SelectMany(g => g.ids).ToArray(), region);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Forever appearance catalog unavailable in {Region}; appearances are sent unnamed.", region);
+            }
+            return groups.Select(group => new ForeverAppearanceSlot
+            {
+                type = group.type,
+                name = group.name,
+                count = group.ids.Length,
+                appearances = group.ids.Select(id => new ForeverAppearance
+                {
+                    id = id,
+                    name = names.GetValueOrDefault(id)?.name,
+                    quality = names.GetValueOrDefault(id)?.quality,
+                }).ToArray(),
+            }).ToArray();
         }
 
         public const int MaxCollectionIconBatch = 50;
@@ -335,13 +359,20 @@ namespace Dragonblight_Website.Server.Controllers
                 "mount" => _warcraftCachedData.GetForeverMountImage,
                 "pet" => _warcraftCachedData.GetForeverPetIcon,
                 "toy" => _warcraftCachedData.GetForeverToyIcon,
+                "appearance" => (_, _) => Task.FromResult<string?>(null),
                 _ => null,
             };
-            if (lookup == null) return BadRequest("kind must be mount, pet or toy");
+            if (lookup == null) return BadRequest("kind must be mount, pet, toy or appearance");
             if (ids.Length == 0 || ids.Length > MaxCollectionIconBatch || ids.Any(id => id <= 0))
                 return BadRequest($"Provide between 1 and {MaxCollectionIconBatch} positive IDs.");
             try
             {
+                if (kind == "appearance")
+                {
+                    //one catalog read for the whole batch gives most appearances their item's icon media
+                    var names = await _warcraftCachedData.GetForeverAppearanceNames(ids, region);
+                    lookup = (id, r) => _warcraftCachedData.GetForeverAppearanceIcon(id, names.GetValueOrDefault(id)?.mediaId, r);
+                }
                 var rows = await Task.WhenAll(ids.Distinct().Select(async id => new ForeverCollectionIcon { id = id, icon = await lookup(id, region) }));
                 CacheStaticRows(rows.All(row => row.icon != null));
                 return Ok(rows);
@@ -536,6 +567,16 @@ namespace Dragonblight_Website.Server.Controllers
         public string type { get; init; } = "";
         public string name { get; init; } = "";
         public int count { get; init; }
+        public ForeverAppearance[] appearances { get; init; } = [];
+    }
+
+    public class ForeverAppearance
+    {
+        public int id { get; init; }
+        //null for an appearance with no item in Blizzard's API, or when the catalog couldn't be read
+        public string? name { get; init; }
+        //e.g. "EPIC"
+        public string? quality { get; init; }
     }
 
     public class ForeverCollectionIcon

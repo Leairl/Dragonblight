@@ -164,6 +164,20 @@ public partial class WarcraftClient
         return await GetAsync<ForeverToy>($"{host}/data/wow/toy/{toyId}?namespace={@namespace}&locale={locale}");
     }
 
+    /// <summary>Gets up to 1000 equippable Forever items with an id of at least fromId, in id order.</summary>
+    public async Task<RequestResult<ForeverItemSearch>> SearchForeverEquippableItemsAsync(int fromId, string @namespace, Region region)
+    {
+        string host = GetHost(region);
+        return await GetAsync<ForeverItemSearch>($"{host}/data/wow/search/item?namespace={@namespace}&is_equippable=true&id=%5B{fromId},%5D&orderby=id&_pageSize=1000");
+    }
+
+    /// <summary>Gets a Forever item appearance and the item media its icon comes from.</summary>
+    public async Task<RequestResult<ForeverItemAppearance>> GetForeverItemAppearanceAsync(int appearanceId, string @namespace, Region region, Locale locale)
+    {
+        string host = GetHost(region);
+        return await GetAsync<ForeverItemAppearance>($"{host}/data/wow/item-appearance/{appearanceId}?namespace={@namespace}&locale={locale}");
+    }
+
     //names can carry accented letters, so the slug is escaped after lowercasing
     private static string ForeverSlug(string characterSlug)
     {

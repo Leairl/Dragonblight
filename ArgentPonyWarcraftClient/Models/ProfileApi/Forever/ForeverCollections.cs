@@ -125,3 +125,49 @@ public record ForeverToy
     [JsonPropertyName("media")]
     public ForeverIdReference? Media { get; init; }
 }
+
+//A page of Forever's item search, used to map appearances to the items that have them. Search
+//results carry every locale's name and Blizzard caps a search at 1000 results, so the catalog is
+//walked by item id rather than by page.
+public record ForeverItemSearch
+{
+    [JsonPropertyName("results")]
+    public ForeverItemSearchResult[]? Results { get; init; }
+}
+
+public record ForeverItemSearchResult
+{
+    [JsonPropertyName("data")]
+    public ForeverSearchItem? Data { get; init; }
+}
+
+public record ForeverSearchItem
+{
+    [JsonPropertyName("id")]
+    public int Id { get; init; }
+    //by locale, e.g. "en_US"
+    [JsonPropertyName("name")]
+    public Dictionary<string, string>? Name { get; init; }
+    [JsonPropertyName("quality")]
+    public ForeverSearchType? Quality { get; init; }
+    [JsonPropertyName("media")]
+    public ForeverIdReference? Media { get; init; }
+    [JsonPropertyName("appearances")]
+    public ForeverIdReference[]? Appearances { get; init; }
+}
+
+//search results give an enum's type with a name per locale, unlike EnumType's single name
+public record ForeverSearchType
+{
+    [JsonPropertyName("type")]
+    public string? Type { get; init; }
+}
+
+//Some appearances have no item in the API at all; they still link to the item media of their icon.
+public record ForeverItemAppearance
+{
+    [JsonPropertyName("id")]
+    public int Id { get; init; }
+    [JsonPropertyName("media")]
+    public ForeverIdReference? Media { get; init; }
+}

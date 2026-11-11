@@ -3133,6 +3133,13 @@ export interface ForeverAppearanceSlot {
     type: string;
     name: string;
     count: number;
+    appearances: ForeverAppearance[];
+}
+
+export interface ForeverAppearance {
+    id: number;
+    name?: string | undefined;
+    quality?: string | undefined;
 }
 
 export interface ForeverCollectionTotals {

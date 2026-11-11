@@ -301,8 +301,116 @@ partial class WarcraftRedisProxy
         {
             return null;
         }
-        return await GetForeverStaticCached<ItemMedia, string>("ForeverItemIconLookup" + mediaId + ns,
+        return await GetForeverItemMediaIcon(mediaId, ns, region);
+    }
+
+    //Icons are shared by many items and appearances, so they are cached by item media id.
+    private Task<string?> GetForeverItemMediaIcon(int mediaId, string ns, string region)
+        => GetForeverStaticCached<ItemMedia, string>("ForeverItemIconLookup" + mediaId + ns,
             () => warcraftClient.GetItemMediaAsync(mediaId, ns, GetRegion(region), GetLocale(region)), media => IconAsset(media.Assets));
+
+    //---- appearances: which item each collected appearance belongs to ----
+
+    //Every equippable item's appearances, as one hash per region: field = appearance id, value = the
+    //item's name, quality and icon media. A character collects hundreds of appearances and Blizzard
+    //has no bulk lookup by appearance, but the whole catalog is about 8 item searches, so it is built
+    //once a week and each character page reads only its own fields.
+    private static string AppearanceCatalogKey(string ns) => GameFlavor.Forever.KeyPrefix() + "AppearanceCatalog_" + ns;
+    private static string AppearanceCatalogBuiltKey(string ns) => AppearanceCatalogKey(ns) + "_built";
+    private static readonly string[] QualityOrder = ["POOR", "COMMON", "UNCOMMON", "RARE", "EPIC", "LEGENDARY", "ARTIFACT", "HEIRLOOM"];
+
+    public async Task<Dictionary<int, ForeverAppearanceName>> GetForeverAppearanceNames(IReadOnlyCollection<int> appearanceIds, string region)
+    {
+        var found = new Dictionary<int, ForeverAppearanceName>();
+        if (appearanceIds.Count == 0)
+        {
+            return found;
+        }
+        var ns = GetStaticRegion(region, GameFlavor.Forever);
+        await EnsureAppearanceCatalog(ns, region);
+        var ids = appearanceIds.Distinct().ToArray();
+        var values = await redis.GetDatabase().HashGetAsync(AppearanceCatalogKey(ns), ids.Select(id => (RedisValue)id).ToArray());
+        for (var i = 0; i < ids.Length; i++)
+        {
+            if (!values[i].IsNullOrEmpty && JsonSerializer.Deserialize<ForeverAppearanceName>(values[i].ToString()) is { } name)
+            {
+                found[ids[i]] = name;
+            }
+        }
+        return found;
+    }
+
+    private async Task EnsureAppearanceCatalog(string ns, string region)
+    {
+        if (await redis.GetDatabase().KeyExistsAsync(AppearanceCatalogBuiltKey(ns)))
+        {
+            return;
+        }
+        await FetchOnce("AppearanceCatalog" + ns, () => BuildAppearanceCatalog(ns, region));
+    }
+
+    //Built under a temporary key and renamed into place, so readers never see half a catalog. When
+    //Blizzard fails part way the old catalog, if any, stays and the next request tries again.
+    private async Task<bool> BuildAppearanceCatalog(string ns, string region)
+    {
+        var locale = GetLocale(region).ToString();
+        var best = new Dictionary<int, (ForeverAppearanceName name, int rank, int itemId)>();
+        var fromId = 0;
+        for (var page = 0; page < 100; page++)
+        {
+            var result = await warcraftClient.SearchForeverEquippableItemsAsync(fromId, ns, GetRegion(region));
+            if (result?.Success != true)
+            {
+                throw new HttpRequestException("Blizzard Forever item search failed while building the appearance catalog.");
+            }
+            var items = result.Value.Results?.Select(r => r.Data).OfType<ForeverSearchItem>().ToArray() ?? [];
+            foreach (var item in items)
+            {
+                var quality = item.Quality?.Type;
+                var rank = Array.IndexOf(QualityOrder, quality);
+                var name = item.Name?.GetValueOrDefault(locale) ?? item.Name?.GetValueOrDefault("en_US");
+                foreach (var appearance in item.Appearances ?? [])
+                {
+                    //several items can share a look; name it after the best of them, then the oldest
+                    if (best.TryGetValue(appearance.Id, out var current) && (current.rank > rank || (current.rank == rank && current.itemId < item.Id)))
+                    {
+                        continue;
+                    }
+                    best[appearance.Id] = (new ForeverAppearanceName { name = name, quality = quality, mediaId = item.Media?.Id }, rank, item.Id);
+                }
+            }
+            if (items.Length < 1000)
+            {
+                break;
+            }
+            fromId = items[^1].Id + 1;
+        }
+        var db = redis.GetDatabase();
+        var building = AppearanceCatalogKey(ns) + "_building";
+        await db.KeyDeleteAsync(building);
+        var entries = best.Select(pair => new HashEntry(pair.Key, JsonSerializer.Serialize(pair.Value.name))).ToArray();
+        if (entries.Length > 0)
+        {
+            await db.HashSetAsync(building, entries);
+            await db.KeyRenameAsync(building, AppearanceCatalogKey(ns));
+        }
+        await db.StringSetAsync(AppearanceCatalogBuiltKey(ns), DateTime.UtcNow.ToString("O"), TimeSpan.FromDays(7));
+        return true;
+    }
+
+    //An appearance's icon: its item's (catalogMediaId, from GetForeverAppearanceNames). An appearance
+    //with no item links to an item media id that 404s, but that id is the icon's file id, which is
+    //all the render URL needs.
+    public async Task<string?> GetForeverAppearanceIcon(int appearanceId, int? catalogMediaId, string region)
+    {
+        var ns = GetStaticRegion(region, GameFlavor.Forever);
+        if (catalogMediaId > 0)
+        {
+            return await GetForeverItemMediaIcon(catalogMediaId.Value, ns, region);
+        }
+        var fileId = await GetForeverStaticCached<ForeverItemAppearance, int>("ForeverAppearanceMediaLookup" + appearanceId + ns,
+            () => warcraftClient.GetForeverItemAppearanceAsync(appearanceId, ns, GetRegion(region), GetLocale(region)), a => a.Media?.Id ?? 0);
+        return fileId > 0 ? $"https://render.worldofwarcraft.com/forever-{region}/icons/56/{fileId}.jpg" : null;
     }
 
     //Forever's character images can 404 for many hours after the profile works, so a

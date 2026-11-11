@@ -93,12 +93,13 @@ export function loadRecipeDetails(region: string, ids: number[]) {
   return recipeDetails.load(region, ids, (batch) => client.getRecipes(region, batch), recipeBatchSize);
 }
 
-// Mount, pet and toy pictures. Each kind finds its picture differently, so each has its own cache.
+// Mount, pet, toy and appearance pictures. Each kind finds its picture differently, so each has its own cache.
 export const collectionIconBatchSize = 50;
 export const collectionIcons: Record<CollectionKind, DetailCache<Dragonblight.ForeverCollectionIcon>> = {
   mount: new DetailCache(500, (row) => row.icon != null),
   pet: new DetailCache(500, (row) => row.icon != null),
   toy: new DetailCache(200, (row) => row.icon != null),
+  appearance: new DetailCache(3000, (row) => row.icon != null),
 };
 
 export function loadCollectionIcons(kind: CollectionKind, region: string, ids: number[]) {

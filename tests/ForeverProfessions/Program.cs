@@ -16,11 +16,17 @@ using var http = new HttpClient(handler);
 using var limited = new RateLimitedHttpClient(http);
 var client = new WarcraftClient("test-id", "test-secret", limited);
 var values = new Dictionary<string, RedisValue>();
+var hashes = new Dictionary<string, Dictionary<string, RedisValue>>();
 var database = Stub.Create<IDatabase>((method, args) => method.Name switch
 {
     "StringGetAsync" => Get(args),
     "StringSetAsync" => Set(args),
     "KeyDeleteAsync" when args[0] is RedisKey[] keys => Delete(keys),
+    "KeyDeleteAsync" when args[0] is RedisKey key => Task.FromResult(Delete([key]).Result > 0),
+    "KeyExistsAsync" when args[0] is RedisKey key => Task.FromResult(Exists(key)),
+    "KeyRenameAsync" => Rename((RedisKey)args[0]!, (RedisKey)args[1]!),
+    "HashSetAsync" when args[1] is HashEntry[] entries => HashSet((RedisKey)args[0]!, entries),
+    "HashGetAsync" when args[1] is RedisValue[] fields => HashGet((RedisKey)args[0]!, fields),
     _ => throw new NotSupportedException(method.Name)
 });
 //Lookups run in parallel (a whole achievement batch at once), so the fake Redis is locked like the real one is atomic.
@@ -30,7 +36,37 @@ Task<RedisValue> Get(object?[] args)
 }
 Task<long> Delete(RedisKey[] keys)
 {
-    lock (values) return Task.FromResult((long)keys.Count(key => values.Remove(key.ToString())));
+    lock (values) return Task.FromResult((long)keys.Count(key => values.Remove(key.ToString()) | hashes.Remove(key.ToString())));
+}
+bool Exists(RedisKey key)
+{
+    lock (values) return values.ContainsKey(key.ToString()) || hashes.ContainsKey(key.ToString());
+}
+Task<bool> Rename(RedisKey from, RedisKey to)
+{
+    lock (values)
+    {
+        if (!hashes.Remove(from.ToString(), out var hash)) return Task.FromResult(false);
+        hashes[to.ToString()] = hash;
+        return Task.FromResult(true);
+    }
+}
+Task HashSet(RedisKey key, HashEntry[] entries)
+{
+    lock (values)
+    {
+        var hash = hashes.TryGetValue(key.ToString(), out var existing) ? existing : hashes[key.ToString()] = [];
+        foreach (var entry in entries) hash[entry.Name.ToString()] = entry.Value;
+    }
+    return Task.CompletedTask;
+}
+Task<RedisValue[]> HashGet(RedisKey key, RedisValue[] fields)
+{
+    lock (values)
+    {
+        var hash = hashes.GetValueOrDefault(key.ToString());
+        return Task.FromResult(fields.Select(field => hash?.GetValueOrDefault(field.ToString()) ?? RedisValue.Null).ToArray());
+    }
 }
 Task<bool> Set(object?[] args)
 {
@@ -312,6 +348,15 @@ Check(collections.toys.Length == 0, "An omitted toy array must become an empty l
 Check(collections.appearanceSlots.Length == 2 && collections.appearanceSlots[0] is { type: "HEAD", name: "Head", count: 3 },
     "Slots sharing a name must be merged in Blizzard's order, counting each appearance once");
 Check(collections.appearanceSlots[1] is { type: "CHEST", name: "Chest", count: 2 }, "A slot with an omitted list must merge with its namesake, not count as extra");
+var head = collections.appearanceSlots[0].appearances;
+Check(head.Select(a => a.id).SequenceEqual([29124, 63427, 7]), "Each slot must list its appearances once, in Blizzard's order");
+Check(head[0] is { name: "Stalwart Helm", quality: "EPIC" }, "An appearance shared by several items must be named after the best of them");
+Check(head[1] is { name: "Plain Helm (GB)", quality: "COMMON" }, "Appearances must be named from Forever's item catalog in the region's locale");
+Check(head[2] is { name: null, quality: null }, "An appearance with no item must stay unnamed, not be dropped");
+Check(handler.Paths.Count(path => path.Contains("/search/item?namespace=static-forever-eu") && path.Contains("is_equippable=true")) == 1, "The catalog must come from Forever's equippable item search");
+var searches = BlizzardHandler.Searches;
+await controller.GetCollections("eu", "luna-amariyo");
+Check(BlizzardHandler.Searches == searches, "The appearance catalog must be built once and reused by every character");
 Check(collections.totals is { mounts: 3, pets: 2, toys: 1 }, "Totals must count Forever's game data indexes");
 var collectionPaths = handler.Paths.Skip(calls).ToList();
 Check(collectionPaths.Count(path => path.Contains("/character/krom-noblungg/collections/") && path.Contains("namespace=profile-forever-eu")) == 4, "Collections must use the four realmless Forever endpoints");
@@ -345,6 +390,14 @@ await controller.GetCollectionIcons("eu", "toy", [1754]);
 Check(handler.Paths.Count == calls, "Collection pictures must be cached");
 Check(CacheControlOf(() => controller.GetCollectionIcons("eu", "pet", [50])) == "public, max-age=86400", "Complete icon batches must be browser-cacheable");
 Check(CacheControlOf(() => controller.GetCollectionIcons("eu", "mount", [2])) == "", "Batches with a missing picture must not be browser-cached");
+calls = handler.Paths.Count;
+var appearanceIcons = ((await controller.GetCollectionIcons("eu", "appearance", [29124, 7])).Result as OkObjectResult)?.Value as ForeverCollectionIcon[];
+Check(appearanceIcons?[0].icon == "https://example.com/item-100.jpg", "A named appearance's icon must come from its item's media");
+Check(appearanceIcons![1].icon == "https://render.worldofwarcraft.com/forever-eu/icons/56/907.jpg", "An unnamed appearance's media id is its icon file, used directly");
+Check(handler.Paths.Count == calls + 2, "Appearance icons need one media call for an item, and one appearance call for an unnamed one");
+calls = handler.Paths.Count;
+await controller.GetCollectionIcons("eu", "appearance", [29124, 7]);
+Check(handler.Paths.Count == calls, "Appearance icons must be cached");
 Check((await controller.GetCollectionIcons("eu", "heirloom", [1])).Result is BadRequestObjectResult, "Unknown collection kinds must be rejected");
 Check((await controller.GetCollectionIcons("eu", "pet", [])).Result is BadRequestObjectResult, "Empty icon batches must be rejected");
 Check((await controller.GetCollectionIcons("eu", "pet", [0])).Result is BadRequestObjectResult, "Nonpositive icon IDs must be rejected");
@@ -368,12 +421,19 @@ class BlizzardHandler : HttpMessageHandler
 {
 
     //Collections, their game data indexes and the static data their pictures come from.
+    //Two items share appearance 29124: it is named after the better one. 63427 has only the common item;
+    //5, 6 and 7 have no item at all, as about a quarter of a real character's appearances do.
+    public static int Searches;
+    static string SearchItems { get { Interlocked.Increment(ref Searches); return """{"results":[{"data":{"id":101,"name":{"en_US":"Plain Helm","en_GB":"Plain Helm (GB)"},"quality":{"type":"COMMON","name":{"en_US":"Common"}},"media":{"id":101},"appearances":[{"id":29124},{"id":63427}]}},{"data":{"id":100,"name":{"en_US":"Stalwart Helm","en_GB":"Stalwart Helm"},"quality":{"type":"EPIC","name":{"en_US":"Epic"}},"media":{"id":100},"appearances":[{"id":29124}]}}]}"""; } }
+
     static string? Collection(string path) => path switch
     {
         _ when path.EndsWith("/collections/mounts") => """{"_links":{},"mounts":[{"mount":{"key":{"href":"x"},"name":"Swift Zebra","id":2},"is_useable":true},{"mount":{"name":"Striped Dawnsaber","id":2995},"is_useable":false}]}""",
         _ when path.EndsWith("/collections/pets") => """{"pets":[{"species":{"name":"Green Wing Macaw","id":50},"level":1,"quality":{"type":"UNCOMMON","name":"Uncommon"},"stats":{"breed_id":0},"creature_display":{"id":5207},"id":1},{"species":{"name":"Green Wing Macaw","id":50},"level":3,"id":2}],"unlocked_battle_pet_slots":0}""",
         _ when path.EndsWith("/collections/toys") => """{"_links":{}}""",
         _ when path.EndsWith("/collections/transmogs") => """{"slots":[{"slot":{"type":"HEAD","name":"Head"},"appearances":[{"key":{"href":"x"},"id":29124},{"id":63427}]},{"slot":{"type":"CHEST","name":"Chest"}},{"slot":{"type":"ROBE","name":"Chest"},"appearances":[{"id":5},{"id":6},{"id":5}]},{"slot":{"type":"HELM","name":"Head"},"appearances":[{"id":63427},{"id":7}]}]}""",
+        _ when path.EndsWith("/search/item") => SearchItems,
+        _ when path.Contains("/data/wow/item-appearance/") => $$$"""{"id":{{{path.Split('/')[^1]}}},"media":{"id":{{{900 + int.Parse(path.Split('/')[^1])}}}}}""",
         _ when path.EndsWith("/mount/index") => """{"mounts":[{"name":"a","id":1},{"name":"b","id":2},{"name":"c","id":2995}]}""",
         _ when path.EndsWith("/pet/index") => """{"pets":[{"name":"a","id":1},{"name":"b","id":50}]}""",
         _ when path.EndsWith("/toy/index") => """{"toys":[{"name":"a","id":1754}]}""",

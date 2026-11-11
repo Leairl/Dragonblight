@@ -11,7 +11,7 @@ async function loadModule(path) {
   return import(`data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`);
 }
 const { Dragonblight } = await loadModule("../src/clients/Dragonblight.ts");
-const { collectionProgress, filterEntries, mountEntries, petEntries, qualityColor, toyEntries } =
+const { appearanceEntries, collectionProgress, filterEntries, mountEntries, petEntries, qualityColor, toyEntries } =
   await loadModule("../src/components/forever/forever-collections/collection-helpers.ts");
 
 test("Collections client uses the realmless Forever route", async () => {
@@ -77,4 +77,25 @@ test("Progress needs a usable total, and pet quality maps to game colors", () =>
   assert.equal(qualityColor("EPIC"), "purple");
   assert.equal(qualityColor("UNCOMMON"), "green");
   assert.equal(qualityColor(undefined), undefined);
+});
+
+test("Appearances list best quality first, then by name, with unnamed ones last and dimmed", () => {
+  const entries = appearanceEntries([
+    { id: 7 },
+    { id: 1, name: "Plain Helm", quality: "COMMON" },
+    { id: 2, name: "Stalwart Helm", quality: "EPIC" },
+    { id: 3, name: "Bear Fur Cowl", quality: "COMMON" },
+  ]);
+  assert.deepEqual(entries.map((entry) => entry.id), [2, 3, 1, 7]);
+  assert.equal(entries[3].name, "Unnamed appearance");
+  assert.equal(entries[3].muted, true);
+  assert.equal(entries[0].key, "appearance/2");
+  assert.deepEqual(appearanceEntries(undefined), []);
+  assert.equal(filterEntries(entries, "stalwart").length, 1);
+});
+
+test("Common items keep the default text color, as the game's white", () => {
+  assert.equal(qualityColor("COMMON"), undefined);
+  assert.equal(qualityColor("POOR"), "gray");
+  assert.equal(qualityColor("HEIRLOOM"), "cyan");
 });

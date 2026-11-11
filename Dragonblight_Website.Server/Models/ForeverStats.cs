@@ -67,3 +67,13 @@ public class ForeverCollectionTotals
     public int pets { get; set; }
     public int toys { get; set; }
 }
+
+//The item a collected appearance comes from, from Forever's item catalog.
+public class ForeverAppearanceName
+{
+    public string? name { get; set; }
+    //e.g. "EPIC"
+    public string? quality { get; set; }
+    //the item media its icon comes from
+    public int? mediaId { get; set; }
+}

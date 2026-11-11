@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router";
-import { Badge, Button, Flex, Heading, Progress, Skeleton, Text, TextField } from "@radix-ui/themes";
+import { Badge, Button, ChevronDownIcon, Flex, Heading, Progress, Skeleton, Text, TextField } from "@radix-ui/themes";
+import { Dragonblight } from "../../../clients/Dragonblight";
 import { collectionIcons, loadCollectionIcons, useForeverTab } from "../forever-data";
-import { CollectionEntry, CollectionKind, collectionProgress, filterEntries, mountEntries, petEntries, qualityColor, toyEntries } from "./collection-helpers";
+import { appearanceEntries, CollectionEntry, CollectionKind, collectionProgress, filterEntries, mountEntries, petEntries, qualityColor, toyEntries } from "./collection-helpers";
 import "./forever-collections.css";
 
 // Mount pictures are 600px creature renders with the mount in the middle, so they are zoomed to it.
@@ -54,6 +55,52 @@ function useCollectionIcons(kind: CollectionKind, region: string | undefined, en
   return { icon, pending };
 }
 
+function EntryList({ entries, icon, pending, render }: {
+  entries: CollectionEntry[]; icon: (id: number) => string | undefined; pending: boolean; render?: boolean;
+}) {
+  return (
+    <ul className="forever-collection-list">
+      {entries.map((entry) => (
+        <li key={entry.key} className={entry.muted ? "forever-collection-row is-muted" : "forever-collection-row"}>
+          <CollectionIcon src={icon(entry.id)} pending={pending} render={render} />
+          <span className="forever-collection-text">
+            <Text as="div" size="2" weight="medium" color={qualityColor(entry.quality)} className="forever-collection-name">{entry.name}</Text>
+            {entry.detail && <Text as="div" size="1" color="gray">{entry.detail}</Text>}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// Only mounted while its slot is open, so a slot's icons are fetched when someone looks at it.
+function AppearanceList({ entries, region }: { entries: CollectionEntry[]; region: string }) {
+  const { icon, pending } = useCollectionIcons("appearance", region, entries);
+  return <EntryList entries={entries} icon={icon} pending={pending} />;
+}
+
+function AppearanceSlot({ slot, query, region }: { slot: Dragonblight.ForeverAppearanceSlot; query: string; region: string }) {
+  const [open, setOpen] = useState(false);
+  const entries = useMemo(() => appearanceEntries(slot.appearances), [slot]);
+  const filtered = filterEntries(entries, query);
+  // while filtering, slots with matches open on their own and the rest step aside
+  const searching = query.trim() !== "";
+  if (searching && filtered.length === 0) return null;
+  const expanded = open || searching;
+  return (
+    <details className="forever-appearance-slot" open={expanded}
+      onToggle={(event) => { if (!searching) setOpen(event.currentTarget.open); }}>
+      <summary className={slot.count === 0 ? "is-muted" : undefined}>
+        <Text size="2" weight="medium" className="forever-appearance-slot-name">{slot.name}</Text>
+        <Badge color="gray" variant="soft">{searching ? `${filtered.length} / ${slot.count}` : slot.count.toLocaleString()}</Badge>
+        <ChevronDownIcon className="forever-appearance-chevron" aria-hidden />
+      </summary>
+      {expanded && (slot.count === 0 ? <Text as="p" size="2" color="gray">None collected.</Text>
+        : <AppearanceList entries={filtered} region={region} />)}
+    </details>
+  );
+}
+
 function CollectionSection({ title, empty, entries, filtered, kind, region }: {
   title: string; empty: string; entries: CollectionEntry[]; filtered: CollectionEntry[];
   kind: CollectionKind; region: string;
@@ -64,17 +111,7 @@ function CollectionSection({ title, empty, entries, filtered, kind, region }: {
       <Heading as="h3" size="3" mb="2">{title} <Text size="2" color="gray" weight="regular">({entries.length})</Text></Heading>
       {entries.length === 0 ? <Text as="p" size="2" color="gray">{empty}</Text>
         : filtered.length === 0 ? <Text as="p" size="2" color="gray">No matches.</Text> : (
-          <ul className="forever-collection-list">
-            {filtered.map((entry) => (
-              <li key={entry.key} className={entry.muted ? "forever-collection-row is-muted" : "forever-collection-row"}>
-                <CollectionIcon src={icon(entry.id)} pending={pending} render={kind === "mount"} />
-                <span className="forever-collection-text">
-                  <Text as="div" size="2" weight="medium" color={qualityColor(entry.quality)} className="forever-collection-name">{entry.name}</Text>
-                  {entry.detail && <Text as="div" size="1" color="gray">{entry.detail}</Text>}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <EntryList entries={filtered} icon={icon} pending={pending} render={kind === "mount"} />
         )}
     </section>
   );
@@ -120,8 +157,8 @@ export default function ForeverCollections() {
           <SummaryTile label="Appearances" collected={appearances} />
         </div>
         <Text as="p" size="1" color="gray" mb="4">Totals count everything in Forever's game data, including items not yet obtainable.</Text>
-        {mounts.length + pets.length + toys.length > 0 && (
-          <TextField.Root aria-label="Filter collections" placeholder="Filter mounts, pets and toys…" value={query}
+        {mounts.length + pets.length + toys.length + appearances > 0 && (
+          <TextField.Root aria-label="Filter collections" placeholder="Filter mounts, pets, toys and appearances…" value={query}
             onChange={(event) => setQuery(event.target.value)} mb="4" />
         )}
         <div className="forever-collection-sections">
@@ -130,16 +167,11 @@ export default function ForeverCollections() {
           <CollectionSection title="Toys" empty="No toys collected." entries={toys} filtered={filterEntries(toys, query)} kind="toy" region={region} />
         </div>
         <section className="forever-collection-section" aria-label="Appearances">
-          <Heading as="h3" size="3" mb="2">Appearances by slot</Heading>
+          <Heading as="h3" size="3" mb="2">Appearances <Text size="2" color="gray" weight="regular">({appearances.toLocaleString()})</Text></Heading>
           {appearanceSlots.length === 0 ? <Text as="p" size="2" color="gray">No appearances collected.</Text> : (
-            <ul className="forever-appearance-slots">
-              {appearanceSlots.map((slot) => (
-                <li key={slot.type || slot.name} className={slot.count === 0 ? "is-muted" : undefined}>
-                  <Text size="2">{slot.name}</Text>
-                  <Badge color="gray" variant="soft">{slot.count.toLocaleString()}</Badge>
-                </li>
-              ))}
-            </ul>
+            <div className="forever-appearance-slots">
+              {appearanceSlots.map((slot) => <AppearanceSlot key={slot.type || slot.name} slot={slot} query={query} region={region} />)}
+            </div>
           )}
         </section>
       </>}
