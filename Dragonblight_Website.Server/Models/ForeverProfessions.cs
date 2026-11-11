@@ -20,6 +20,8 @@ public class ForeverRecipeInfo
 {
     public int? requiredSkill { get; init; }
     public bool estimated { get; init; }
+    //a recipe no one can learn (no pattern or trainer teaches it), left out of the not-learned list
+    public bool hidden { get; init; }
     //the pattern that teaches the recipe; null for a trainer recipe
     public int? itemId { get; init; }
     public string itemName { get; init; } = "";

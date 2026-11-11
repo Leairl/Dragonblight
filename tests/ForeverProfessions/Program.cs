@@ -182,6 +182,9 @@ Check(skilledRows?[1].requiredSkill == 75 && !skilledRows[1].requiredSkillEstima
 Check(skilledRows![2].requiredSkill == 15 && skilledRows[2].requiredSkillEstimated, "Estimated required skills must be marked as estimates");
 Check(skilledRows[0].requiredSkill == null && skilledRows[0].name == "Bolt of Linen Cloth", "A recipe missing from the file must have no required skill");
 Check(handler.Paths.Count == calls, "Required skills come from the file, not from more Blizzard calls");
+ForeverRecipes.data[2359] = new ForeverRecipeInfo { hidden = true, source = "Not obtainable" };
+var withoutHidden = ((await controller.GetSkillTierRecipes("us", 197, 2948)).Result as OkObjectResult)?.Value as ForeverSkillTierRecipe[];
+Check(withoutHidden?.Length == 2 && withoutHidden.All(row => row.id != 2359), "Recipes no one can learn must be left out of the tier's list");
 var taughtRows = ((await controller.GetRecipes("us", [2370, 2387])).Result as OkObjectResult)?.Value as ForeverRecipeDetails[];
 Check(taughtRows?[0].taughtBy?.id == 5772 && taughtRows[0].taughtBy!.icon == "https://example.com/pattern.jpg", "Recipe details must name the pattern that teaches the recipe, with its icon");
 Check(taughtRows![0].source == "Vendor: Qia (Winterspring)", "Recipe details must say where the pattern comes from");
@@ -469,14 +472,14 @@ Check(StatOf("Use: Permanently enchant bracers so that the defense skill of the 
 Check(ForeverEffectParser.Parse("Use: Permanently enchant a melee weapon so that often when attacking in melee it heals for 75 to 125 and increases Strength by 100 for 15 sec.").stats.Count == 0, "A proc must not be read as steady stats");
 var accuracy = ForeverEffectParser.Parse("Use: Increases your Stamina by 30. While in Mount Hyjal, Hyjal Summit, and the Barrow Deeps, you also gain 2% Hit Chance.\r\n\r\nLasts for 2 hrs.");
 Check(accuracy.stats.GetValueOrDefault("sta") == 30 && !accuracy.stats.ContainsKey("hit"), "A zone-only bonus must be left out");
-Check(ForeverEffectParser.Parse("Use: Restores 455 to 585 health. (2 Min Cooldown)").healthRestored == 520, "A healing potion restores the middle of its range");
+Check(ForeverEffectParser.Parse("Use: Restores 455 to 585 health. (2 Min Cooldown)").healthRestored == 585, "A healing potion is compared by the most it can heal");
 Check(ForeverEffectParser.Parse("Use: Restores 455 to 585 mana. (2 Min Cooldown)").manaRestored == 520, "A mana potion restores the middle of its range");
 var kit = ForeverEffectParser.Parse("Use: Permanently increase the Spell Power value by 6 and armor value by 40 of an item worn on the chest, legs, hands, or feet. Only usable on items level 35 and above.");
 Check(kit.stats.GetValueOrDefault("sp") == 6 && kit.stats.GetValueOrDefault("armor") == 40 && kit.minItemLevel == 35, "Armor kits must give their stats and item level floor");
 Check(ForeverEffectParser.Parse("Use: Restores 1,350 to 2,250 mana. (2 Min Cooldown)").manaRestored == 1800, "Thousands separators must not split numbers");
 Check(ForeverEffectParser.Parse("Use: Absorbs 975 to 1,625 fire damage.  Lasts 2 min.").stats.Count == 0, "Protection potions must not count as spell damage");
 Check(ForeverEffectParser.Parse("Use: Unleash a belch of dragonfire, dealing 280 Fire damage instantly in a narrow cone in front of you.").stats.Count == 0, "Damage dealt to enemies is not a stat");
-Check(ForeverEffectParser.Parse("Use: Restores 600 to 680 health instantly; however you also suffer 75% of that amount over time.").healthRestored == 640, "Forever's Discolored healing potions still heal");
+Check(ForeverEffectParser.Parse("Use: Restores 600 to 680 health instantly; however you also suffer 75% of that amount over time.").healthRestored == 0, "Potions with a backlash (Forever's Discolored ones) must not be suggested");
 Check(ForeverEffectParser.Parse("Use: Increases Intellect by 2% for 1 hour. This effect stacks up to 5 times.").stats.Count == 0, "A percentage of a flat stat can't be compared and must be left out");
 Check(ForeverEffectParser.Parse("Use: Restores 980 to 1,260 health. This item may only be used in PvP Battlegrounds.").healthRestored == 0, "Battleground-only draughts must be left out");
 Check(StatOf("Use: Permanently enchant a Melee Weapon to do 3 additional points of damage.", "wdmg") == 3 && StatOf("Use: Permanently enchant a cloak to give 30 additional armor.", "armor") == 30, "\"N additional ...\" must be read");

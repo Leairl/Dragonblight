@@ -2118,7 +2118,7 @@
 54676	245	pattern	250997	Recipe: Dragonfire Potion	https://render.worldofwarcraft.com/forever-us/icons/56/134939.jpg	Vendor
 54677	280	pattern	250998	Recipe: Potion of Elemental Purging	https://render.worldofwarcraft.com/forever-us/icons/56/134939.jpg	Vendor
 54678	280	pattern	250999	Recipe: Potion of Beast Slaying	https://render.worldofwarcraft.com/forever-us/icons/56/134939.jpg	Quest
-1384	60	estimate				Trainer
+1384		hidden				Not obtainable
 1936	170	estimate				Trainer
 4176	80	estimate				Trainer
 5996	145	estimate				Trainer

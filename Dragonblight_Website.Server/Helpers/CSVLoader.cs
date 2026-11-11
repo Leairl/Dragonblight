@@ -38,6 +38,7 @@
                     {
                         requiredSkill = skill,
                         estimated = values[2] == "estimate",
+                        hidden = values[2] == "hidden",
                         itemId = itemId,
                         itemName = values[4],
                         itemIcon = values[5],

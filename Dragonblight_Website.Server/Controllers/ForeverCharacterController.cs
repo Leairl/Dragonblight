@@ -525,7 +525,9 @@ namespace Dragonblight_Website.Server.Controllers
                     return NotFound(new ProblemDetails { Status = StatusCodes.Status404NotFound, Title = "Blizzard has no recipe list for this skill tier." });
                 }
                 CacheStaticRows(true);
-                return Ok(recipes.Select(WithRequiredSkill).ToArray());
+                //recipes no one can learn are left out, so they never show as not learned
+                var learnable = recipes.Where(recipe => !(ForeverRecipes.data.TryGetValue(recipe.id, out var info) && info.hidden));
+                return Ok(learnable.Select(WithRequiredSkill).ToArray());
             }
             catch (Exception ex)
             {
