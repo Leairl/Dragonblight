@@ -2,7 +2,7 @@ import { FC } from "react";
 import { useParams } from "react-router";
 import { Button, Card, Progress, Skeleton } from "@radix-ui/themes";
 import { Dragonblight } from "../../../clients/Dragonblight";
-import KnownRecipes, { UnlearnedRecipes } from "./known-recipes";
+import ProfessionRecipes from "./known-recipes";
 import { useForeverTab } from "../forever-data";
 import "./forever-professions.css";
 
@@ -42,12 +42,8 @@ function ProfessionCard({ entry, region }: { entry: Dragonblight.CharacterProfes
           <div className="profession-tier" key={tier.tier?.id ?? index}>
             <h4>{tierName}</h4>
             <SkillProgress name={tierName} points={tier.skill_points} maximum={tier.max_skill_points} />
-            {recipes.length > 0 ? (
-              <KnownRecipes recipes={recipes} region={region} label={tierName} />
-            ) : <p className="profession-muted">No known recipes reported.</p>}
-            {entry.profession?.id != null && tier.tier?.id != null && (
-              <UnlearnedRecipes known={recipes} region={region} professionId={entry.profession.id} skillTierId={tier.tier.id} label={tierName} />
-            )}
+            {recipes.length === 0 && <p className="profession-muted">No known recipes reported.</p>}
+            <ProfessionRecipes known={recipes} skill={tier.skill_points} region={region} label={tierName} professionId={entry.profession?.id} skillTierId={tier.tier?.id} />
           </div>
         );
       })}

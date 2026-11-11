@@ -1,0 +1,27 @@
+/* Wowhead positions its own tooltips absolutely and shows them by script; ours sits inside a popover
+   and is always visible. The frame, font and colours come from Wowhead's stylesheet. */
+.wowhead-tooltip.wowhead-style-tooltip {
+  position: static;
+  visibility: visible;
+  display: block;
+  max-width: 320px;
+}
+
+.wowhead-style-tooltip-head {
+  white-space: nowrap;
+  width: 100%;
+}
+
+.wowhead-style-tooltip-body {
+  width: 100%;
+  white-space: normal;
+}
+
+/* the popover holding it is invisible: no panel, padding or shadow of its own */
+.rt-PopoverContent.wowhead-style-popover {
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  border: 0;
+  overflow: visible;
+}

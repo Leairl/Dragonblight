@@ -17,19 +17,35 @@ export function recipeOutputs(recipe: Dragonblight.Recipe | undefined): { item: 
   ];
 }
 
-//Blizzard recipe IDs are not spell IDs. Link the actual output item, or search by
-//name for enchants and recipes without an item, rather than inventing a spell URL.
-export function recipeWowheadTarget(recipe: Dragonblight.Recipe | undefined, name: string): string {
-  const output = recipeOutputs(recipe)[0]?.item;
-  return output ? `item=${output.id}` : `search?q=${encodeURIComponent(name)}`;
-}
-
 //A recipe in a list: its name, and for the not-learned list the category the game files it under,
 //which the search also matches ("bags", "leggings").
 export interface ListedRecipe {
   id: number;
   name?: string;
   category?: string;
+  requiredSkill?: number;
+  requiredSkillEstimated?: boolean;
+}
+
+//"Requires 90", or "Requires about 90" when the level is estimated; empty when it isn't known.
+export function requiredSkillText(recipe: ListedRecipe): string {
+  if (recipe.requiredSkill == null) {
+    return "";
+  }
+  if (recipe.requiredSkillEstimated) {
+    return `Requires about ${recipe.requiredSkill}`;
+  }
+  return `Requires ${recipe.requiredSkill}`;
+}
+
+//The recipes a character with this much skill could learn. A recipe whose level isn't known
+//is left out, since it can't be shown to be learnable; everything stays when the character's
+//skill isn't known.
+export function learnableAt<T extends ListedRecipe>(recipes: T[], skill: number | undefined): T[] {
+  if (skill == null) {
+    return recipes;
+  }
+  return recipes.filter((recipe) => recipe.requiredSkill != null && recipe.requiredSkill <= skill);
 }
 
 export function filterKnownRecipes<T extends ListedRecipe>(recipes: T[], query: string): T[] {

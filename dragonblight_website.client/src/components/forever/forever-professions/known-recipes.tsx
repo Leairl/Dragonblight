@@ -1,10 +1,10 @@
 import { useEffect, useId, useState } from "react";
 import { Badge, Button, Callout, Flex, Link, Skeleton, Table, Text, TextField } from "@radix-ui/themes";
-import { ChevronDownIcon, ExternalLinkIcon, InfoCircledIcon, MagnifyingGlassIcon } from "@radix-ui/react-icons";
+import { ChevronDownIcon, InfoCircledIcon, MagnifyingGlassIcon } from "@radix-ui/react-icons";
 import { Dragonblight } from "../../../clients/Dragonblight";
 import { wowheadUrl } from "../../../helpers/game-flavor";
 import { stripWowMarkup } from "../../../helpers/equipmentHelper";
-import { craftedQuantityText, filterKnownRecipes, ListedRecipe, recipeOutputs, recipeWowheadTarget, unlearnedRecipes } from "./recipe-helpers";
+import { craftedQuantityText, filterKnownRecipes, learnableAt, ListedRecipe, recipeOutputs, requiredSkillText, unlearnedRecipes } from "./recipe-helpers";
 import { loadRecipeDetails, loadSkillTierRecipes, peekSkillTierRecipes, recipeDetails } from "../forever-data";
 
 const pageSize = 10;
@@ -46,7 +46,7 @@ function RecipePage({ recipes, region, label, kind }: { recipes: ListedRecipe[];
         <Callout.Root size="1" color="amber" className="recipe-notice">
           <Callout.Icon><InfoCircledIcon /></Callout.Icon>
           <Callout.Text>
-            {current?.failed ? "Couldn't load recipe details. Recipe names are still shown." : "Blizzard hasn't supplied details for some recipes. Names and Wowhead searches are still available."}
+            {current?.failed ? "Couldn't load recipe details. Recipe names are still shown." : "Blizzard hasn't supplied details for some recipes. Their names are still shown."}
             <Button size="1" variant="ghost" ml="2" onClick={() => setAttempt((value) => value + 1)}>Retry details</Button>
           </Callout.Text>
         </Callout.Root>
@@ -57,8 +57,7 @@ function RecipePage({ recipes, region, label, kind }: { recipes: ListedRecipe[];
             <Table.Row>
               <Table.ColumnHeaderCell>Recipe</Table.ColumnHeaderCell>
               <Table.ColumnHeaderCell>Creates</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Reagents</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Wowhead</Table.ColumnHeaderCell>
+              <Table.ColumnHeaderCell>Source</Table.ColumnHeaderCell>
             </Table.Row>
           </Table.Header>
           <Table.Body>
@@ -68,21 +67,38 @@ function RecipePage({ recipes, region, label, kind }: { recipes: ListedRecipe[];
               const name = recipe?.name ?? reference.name ?? `Recipe ${reference.id}`;
               const outputs = recipeOutputs(recipe);
               const quantity = craftedQuantityText(recipe?.crafted_quantity);
-              const reagents = recipe?.reagents ?? [];
-              const wowhead = wowheadUrl(recipeWowheadTarget(recipe, name), "forever");
+              const taughtBy = detail?.taughtBy;
+              //The recipe as the character would pick it up: the pattern (plans, formula...) that
+              //teaches it, or for a trainer recipe the recipe itself.
+              let shownName = name;
+              let shownIcon = detail?.icon ?? "/unknown.png";
+              if (taughtBy) {
+                shownName = taughtBy.name;
+                if (taughtBy.icon) {
+                  shownIcon = taughtBy.icon;
+                }
+              }
+              let source = "Unknown";
+              if (detail?.source) {
+                source = detail.source;
+              }
+              const meta = [reference.category, requiredSkillText(reference), `Recipe #${reference.id}`].filter((part) => part).join(" · ");
               return (
                 <Table.Row key={reference.id} align="start">
                   <Table.RowHeaderCell>
                     <Flex gap="2" align="start">
                       <Skeleton loading={loading}>
-                        <img className="recipe-icon" src={detail?.icon ?? "/unknown.png"} alt="" loading="lazy" onError={(event) => {
+                        <img className="recipe-icon" src={shownIcon} alt="" loading="lazy" onError={(event) => {
                           if (!event.currentTarget.src.endsWith("/unknown.png")) event.currentTarget.src = "/unknown.png";
                         }} />
                       </Skeleton>
                       <div className="recipe-name">
-                        <Text as="div" size="2" weight="medium">{name}</Text>
+                        {taughtBy && (
+                          <Link size="2" weight="medium" data-wh-iconize-link="false" href={wowheadUrl(`item=${taughtBy.id}`, "forever")} target="_blank" rel="noopener noreferrer">{shownName}</Link>
+                        )}
+                        {!taughtBy && <Text as="div" size="2" weight="medium">{shownName}</Text>}
                         {recipe?.description && <Text as="p" size="1" color="gray" className="recipe-description">{stripWowMarkup(recipe.description)}</Text>}
-                        <Text as="div" size="1" color="gray">{reference.category ? `${reference.category} · ` : ""}Recipe #{reference.id}</Text>
+                        <Text as="div" size="1" color="gray">{meta}</Text>
                       </div>
                     </Flex>
                   </Table.RowHeaderCell>
@@ -99,20 +115,9 @@ function RecipePage({ recipes, region, label, kind }: { recipes: ListedRecipe[];
                     ) : <Text size="1" color="gray">{recipe ? "No item reported" : "Details unavailable"}</Text>}
                   </Table.Cell>
                   <Table.Cell>
-                    {loading ? <Skeleton width="120px" height="16px" /> : reagents.length > 0 ? (
-                      <Flex gap="2" wrap="wrap">
-                        {reagents.map((reagent, index) => reagent.reagent && (
-                          <Link key={`${reagent.reagent.id}/${index}`} className="recipe-item-link" data-wh-icon-size="small" size="1" href={wowheadUrl(`item=${reagent.reagent.id}`, "forever")} target="_blank" rel="noopener noreferrer">
-                            {reagent.quantity}× {reagent.reagent.name ?? `Item ${reagent.reagent.id}`}
-                          </Link>
-                        ))}
-                      </Flex>
-                    ) : <Text size="1" color="gray">{recipe ? "None reported" : "Details unavailable"}</Text>}
-                  </Table.Cell>
-                  <Table.Cell>
-                    <Link className="recipe-wowhead-link" data-wh-iconize-link="false" href={wowhead} target="_blank" rel="noopener noreferrer" aria-label={`${outputs.length > 0 ? "View" : "Search for"} ${name} on Wowhead`}>
-                      <Flex as="span" align="center" gap="1">{outputs.length > 0 ? "View item" : "Search"}<ExternalLinkIcon /></Flex>
-                    </Link>
+                    <Skeleton loading={loading}>
+                      <Text size="1">{source}</Text>
+                    </Skeleton>
                   </Table.Cell>
                 </Table.Row>
               );
@@ -163,80 +168,146 @@ function RecipeList({ recipes, region, label, kind }: { recipes: ListedRecipe[];
 function ToggleButton({ open, onClick, controls, title, count, onPrefetch }: {
   open: boolean; onClick: () => void; controls: string; title: string; count?: number; onPrefetch?: () => void;
 }) {
+  let chevronClass = "recipe-chevron";
+  if (open) {
+    chevronClass += " recipe-chevron-open";
+  }
   return (
     <Button size="2" variant="soft" color="gray" aria-expanded={open} aria-controls={controls} onClick={onClick}
       onPointerEnter={onPrefetch} onFocus={onPrefetch}>
-      <ChevronDownIcon className={`recipe-chevron ${open ? "recipe-chevron-open" : ""}`} /> {title} {count !== undefined && <Badge color="gray">{count}</Badge>}
+      <ChevronDownIcon className={chevronClass} /> {title} {count !== undefined && <Badge color="gray">{count}</Badge>}
     </Button>
   );
 }
 
-export default function KnownRecipes({ recipes, region, label }: { recipes: Dragonblight.RecipeReference[]; region: string; label: string }) {
-  const [open, setOpen] = useState(false);
-  const contentId = useId();
-  const total = new Set(recipes.map((recipe) => recipe.id)).size;
-  return (
-    <div className="profession-recipes">
-      <ToggleButton open={open} onClick={() => setOpen((value) => !value)} controls={contentId} title="Known recipes" count={total} />
-      {open && (
-        <div id={contentId} className="recipe-content">
-          <RecipeList recipes={recipes} region={region} label={label} kind="known" />
-        </div>
-      )}
-    </div>
-  );
-}
-
 type TierLoad = { key: string; recipes?: Dragonblight.ForeverSkillTierRecipe[]; failed: boolean };
+type OpenList = "" | "known" | "unlearned";
 
-// The tier's recipes the character hasn't learned yet. The tier's full list is game data the
-// profile doesn't include, so it loads when the list is first opened (or the button hovered).
-export function UnlearnedRecipes({ known, region, professionId, skillTierId, label }: {
-  known: Dragonblight.RecipeReference[]; region: string; professionId: number; skillTierId: number; label: string;
-}) {
-  const [open, setOpen] = useState(false);
+// The tier's full recipe list, for the not-learned list. It is game data the profile doesn't
+// include, so it loads when that list is first opened (or its button hovered).
+function useTierRecipes(region: string, professionId: number | undefined, skillTierId: number | undefined, wanted: boolean) {
   const [attempt, setAttempt] = useState(0);
   const [load, setLoad] = useState<TierLoad>();
-  const contentId = useId();
   const key = `${region}/${professionId}/${skillTierId}/${attempt}`;
-  const cached = peekSkillTierRecipes(region, professionId, skillTierId);
-  const current: TierLoad | undefined = load?.key === key ? load : cached ? { key, recipes: cached, failed: false } : undefined;
+  let current: TierLoad | undefined = undefined;
+  if (load?.key === key) {
+    current = load;
+  } else if (professionId != null && skillTierId != null) {
+    const cached = peekSkillTierRecipes(region, professionId, skillTierId);
+    if (cached) {
+      current = { key, recipes: cached, failed: false };
+    }
+  }
   const loaded = current !== undefined;
-  const prefetch = () => { loadSkillTierRecipes(region, professionId, skillTierId).catch(() => undefined); };
 
   useEffect(() => {
-    if (!open || loaded) return;
+    if (!wanted || loaded || professionId == null || skillTierId == null) return;
     let cancelled = false;
     loadSkillTierRecipes(region, professionId, skillTierId)
       .then((recipes) => { if (!cancelled) setLoad({ key, recipes, failed: false }); })
       .catch(() => { if (!cancelled) setLoad({ key, failed: true }); });
     return () => { cancelled = true; };
-  }, [open, loaded, key, region, professionId, skillTierId]);
+  }, [wanted, loaded, key, region, professionId, skillTierId]);
 
-  const unlearned = current?.recipes ? unlearnedRecipes(current.recipes, known) : undefined;
+  const prefetch = () => {
+    if (professionId == null || skillTierId == null) return;
+    loadSkillTierRecipes(region, professionId, skillTierId).catch(() => undefined);
+  };
+  const retry = () => setAttempt((value) => value + 1);
+  return { current, prefetch, retry };
+}
+
+function UnlearnedContent({ load, known, skill, region, label, onRetry }: {
+  load: TierLoad | undefined; known: Dragonblight.RecipeReference[]; skill?: number; region: string; label: string; onRetry: () => void;
+}) {
+  if (!load) {
+    return (
+      <div role="status">
+        <Text as="p" size="1" color="gray">Loading the recipes this profession teaches…</Text>
+        <Skeleton height="80px" />
+      </div>
+    );
+  }
+  if (load.failed || !load.recipes) {
+    return (
+      <Callout.Root size="1" color="amber" className="recipe-notice" role="alert">
+        <Callout.Icon><InfoCircledIcon /></Callout.Icon>
+        <Callout.Text>
+          Couldn't load this profession's recipe list.
+          <Button size="1" variant="ghost" ml="2" onClick={onRetry}>Retry</Button>
+        </Callout.Text>
+      </Callout.Root>
+    );
+  }
+  const unlearned = unlearnedRecipes(load.recipes, known);
+  if (unlearned.length === 0) {
+    return <Text as="p" size="2" color="gray" role="status">Every recipe in this tier is learned.</Text>;
+  }
+  const learnable = learnableAt(unlearned, skill);
+  if (learnable.length === 0) {
+    return <Text as="p" size="2" color="gray" role="status">No unlearned recipes at skill {skill} or below.</Text>;
+  }
+  return (
+    <>
+      {skill != null && (
+        <Text as="p" size="1" color="gray">
+          Recipes up to skill {skill}. Levels marked "about" are estimates for recipes a trainer teaches.
+        </Text>
+      )}
+      <RecipeList recipes={learnable} region={region} label={label} kind="not learned" />
+    </>
+  );
+}
+
+// A skill tier's Known recipes and Not learned buttons, side by side on one row. One list is open
+// at a time, below the row; clicking the open one's button closes it. Not learned only lists
+// recipes the character's skill in the tier is high enough to learn.
+export default function ProfessionRecipes({ known, skill, region, label, professionId, skillTierId }: {
+  known: Dragonblight.RecipeReference[]; skill?: number; region: string; label: string; professionId?: number; skillTierId?: number;
+}) {
+  const [open, setOpen] = useState<OpenList>("");
+  const contentId = useId();
+  const tier = useTierRecipes(region, professionId, skillTierId, open === "unlearned");
+  const knownTotal = new Set(known.map((recipe) => recipe.id)).size;
+  const hasTier = professionId != null && skillTierId != null;
+
+  let unlearnedCount: number | undefined = undefined;
+  if (tier.current?.recipes) {
+    unlearnedCount = learnableAt(unlearnedRecipes(tier.current.recipes, known), skill).length;
+  }
+
+  function toggle(list: OpenList) {
+    setOpen((value) => {
+      if (value === list) {
+        return "";
+      }
+      return list;
+    });
+  }
+
+  if (knownTotal === 0 && !hasTier) {
+    return null;
+  }
+
   return (
     <div className="profession-recipes">
-      <ToggleButton open={open} onClick={() => setOpen((value) => !value)} controls={contentId} title="Not learned" count={unlearned?.length} onPrefetch={prefetch} />
-      {open && (
+      <Flex gap="2" wrap="wrap">
+        {knownTotal > 0 && (
+          <ToggleButton open={open === "known"} onClick={() => toggle("known")} controls={contentId} title="Known recipes" count={knownTotal} />
+        )}
+        {hasTier && (
+          <ToggleButton open={open === "unlearned"} onClick={() => toggle("unlearned")} controls={contentId} title="Not learned"
+            count={unlearnedCount} onPrefetch={tier.prefetch} />
+        )}
+      </Flex>
+      {open === "known" && (
         <div id={contentId} className="recipe-content">
-          {!current && (
-            <div role="status">
-              <Text as="p" size="1" color="gray">Loading the recipes this profession teaches…</Text>
-              <Skeleton height="80px" />
-            </div>
-          )}
-          {current?.failed && (
-            <Callout.Root size="1" color="amber" className="recipe-notice" role="alert">
-              <Callout.Icon><InfoCircledIcon /></Callout.Icon>
-              <Callout.Text>
-                Couldn't load this profession's recipe list.
-                <Button size="1" variant="ghost" ml="2" onClick={() => setAttempt((value) => value + 1)}>Retry</Button>
-              </Callout.Text>
-            </Callout.Root>
-          )}
-          {unlearned && (unlearned.length === 0
-            ? <Text as="p" size="2" color="gray" role="status">Every recipe in this tier is learned.</Text>
-            : <RecipeList recipes={unlearned} region={region} label={label} kind="not learned" />)}
+          <RecipeList recipes={known} region={region} label={label} kind="known" />
+        </div>
+      )}
+      {open === "unlearned" && (
+        <div id={contentId} className="recipe-content">
+          <UnlearnedContent load={tier.current} known={known} skill={skill} region={region} label={label} onRetry={tier.retry} />
         </div>
       )}
     </div>

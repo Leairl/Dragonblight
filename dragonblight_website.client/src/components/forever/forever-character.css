@@ -1,45 +1,66 @@
-/* On phones the tabs wrap onto more lines instead of scrolling, each line filled edge to edge. */
-@media (max-width: 800px) {
-  .forever-character-tabs {
-    display: flex;
-    flex-wrap: wrap;
-    min-width: 0;
-    width: 100%;
-    height: auto;
-  }
+/* The tab bar is exactly as wide as its row, at every page width, so it never runs past the page:
+   the tabs share one line while they fit and wrap onto more lines when they don't, each line
+   filled edge to edge. */
+.forever-character-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  min-width: 0;
+  width: 100%;
+  height: auto;
+}
 
-  .forever-character-tabs .rt-SegmentedControlItem {
-    flex: 1 1 auto;
-    height: var(--space-6);
-  }
+.forever-character-tabs .rt-SegmentedControlItem {
+  flex: 1 1 auto;
+  height: var(--space-6);
+}
 
+.forever-character-tabs .rt-SegmentedControlItemLabel {
+  padding-inline: 10px;
+}
+
+/* On desktop the row is 60% of the page, so the text and padding shrink with the page (down to
+   12px text) to keep all the tabs on one line for longer before any wrap */
+@media (min-width: 801px) {
   .forever-character-tabs .rt-SegmentedControlItemLabel {
-    padding-inline: 10px;
+    padding-inline: clamp(4px, 0.6vw, 10px);
+    font-size: clamp(12px, 1.2vw, 14px);
   }
+}
 
-  /* a divider can't tell when its tab starts a new line, where it would sit on the left edge */
-  .forever-character-tabs .rt-SegmentedControlItemSeparator {
-    display: none;
-  }
+/* a divider can't tell when its tab starts a new line, where it would sit on the left edge */
+.forever-character-tabs .rt-SegmentedControlItemSeparator {
+  display: none;
+}
 
-  /* Radix slides one highlight along a single row by tab index, sized 1/n of the strip, which can't
-     follow tabs onto a second line. The highlight is drawn on the selected tab itself instead,
-     matching Radix's surface variant. */
-  .forever-character-tabs .rt-SegmentedControlIndicator {
-    display: none;
-  }
+/* Radix slides one highlight along a single row by tab index, sized 1/n of the strip, which can't
+   follow tabs onto a second line. The highlight is drawn on the selected tab itself instead,
+   matching Radix's surface variant. */
+.forever-character-tabs .rt-SegmentedControlIndicator {
+  display: none;
+}
 
-  .forever-character-tabs .rt-SegmentedControlItem {
-    position: relative;
-  }
+.forever-character-tabs .rt-SegmentedControlItem {
+  position: relative;
+}
 
-  .forever-character-tabs .rt-SegmentedControlItem[data-state="on"]::before {
-    content: "";
-    position: absolute;
-    inset: 1px;
-    z-index: -1;
-    border-radius: max(0.5px, calc(var(--segmented-control-border-radius) - 1px));
-    background-color: var(--segmented-control-indicator-background-color);
-    box-shadow: 0 0 0 1px var(--gray-a4);
-  }
+.forever-character-tabs .rt-SegmentedControlItem[data-state="on"]::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  z-index: -1;
+  border-radius: max(0.5px, calc(var(--segmented-control-border-radius) - 1px));
+  background-color: var(--segmented-control-indicator-background-color);
+  box-shadow: 0 0 0 1px var(--gray-a4);
+}
+
+/* an armor kit's enchant line opens our own tooltip rather than Wowhead's; keep the row's layout */
+.forever-kit-enchant {
+  display: block;
+  cursor: pointer;
+  max-width: 100%;
+}
+
+.align-right-name.forever-kit-enchant {
+  margin-left: auto;
+  text-align: right;
 }

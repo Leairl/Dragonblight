@@ -488,7 +488,8 @@ namespace Dragonblight_Website.Server.Controllers
                 {
                     var recipe = _warcraftCachedData.GetForeverRecipe(id, region);
                     var icon = _warcraftCachedData.GetForeverRecipeIcon(id, region);
-                    return new ForeverRecipeDetails { id = id, recipe = await recipe, icon = await icon };
+                    ForeverRecipes.data.TryGetValue(id, out var info);
+                    return new ForeverRecipeDetails { id = id, recipe = await recipe, icon = await icon, taughtBy = TaughtBy(info), source = SourceOf(info) };
                 }));
                 CacheStaticRows(results.All(row => row.recipe != null && row.icon != null));
                 return Ok(results);
@@ -524,13 +525,56 @@ namespace Dragonblight_Website.Server.Controllers
                     return NotFound(new ProblemDetails { Status = StatusCodes.Status404NotFound, Title = "Blizzard has no recipe list for this skill tier." });
                 }
                 CacheStaticRows(true);
-                return Ok(recipes);
+                return Ok(recipes.Select(WithRequiredSkill).ToArray());
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred while getting Forever skill tier {Profession}/{Tier} recipes in {Region}.", professionId, skillTierId, region);
                 return StatusCode(500);
             }
+        }
+
+        //The pattern (plans, formula...) that teaches a recipe, with its icon; null for a trainer recipe.
+        private static ForeverRecipeItem? TaughtBy(ForeverRecipeInfo? info)
+        {
+            if (info?.itemId == null)
+            {
+                return null;
+            }
+            string? icon = null;
+            if (info.itemIcon != "")
+            {
+                icon = info.itemIcon;
+            }
+            return new ForeverRecipeItem { id = info.itemId.Value, name = info.itemName, icon = icon };
+        }
+
+        //Where a recipe comes from; null when the file doesn't say.
+        private static string? SourceOf(ForeverRecipeInfo? info)
+        {
+            if (info == null || info.source == "")
+            {
+                return null;
+            }
+            return info.source;
+        }
+
+        //Adds the skill a recipe needs. It comes from the file, not the cached tier, so a new file
+        //takes effect without waiting for the week-long tier cache to expire.
+        private static ForeverSkillTierRecipe WithRequiredSkill(ForeverSkillTierRecipe recipe)
+        {
+            if (!ForeverRecipes.data.TryGetValue(recipe.id, out var known))
+            {
+                return recipe;
+            }
+            return new ForeverSkillTierRecipe
+            {
+                id = recipe.id,
+                name = recipe.name,
+                category = recipe.category,
+                requiredSkill = known.requiredSkill,
+                requiredSkillEstimated = known.estimated,
+            };
         }
 
         //Static game data changes with patches, not with play, so a complete answer can sit in the browser and
@@ -635,6 +679,17 @@ namespace Dragonblight_Website.Server.Controllers
         public int id { get; init; }
         //Keep the known recipe visible even when Blizzard has no static details or icon.
         public Recipe? recipe { get; init; }
+        public string? icon { get; init; }
+        //the pattern (plans, formula...) that teaches the recipe; null when a trainer teaches it
+        public ForeverRecipeItem? taughtBy { get; init; }
+        //where the recipe comes from: "Vendor: Qia (Winterspring)", "Drop", "Trainer"; null when unknown
+        public string? source { get; init; }
+    }
+
+    public class ForeverRecipeItem
+    {
+        public int id { get; init; }
+        public string name { get; init; } = "";
         public string? icon { get; init; }
     }
 
