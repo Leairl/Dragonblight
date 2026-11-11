@@ -171,7 +171,37 @@ Check((await controller.GetStats("us", "retry-player")).Result is OkObjectResult
 var emptyStats = JsonSerializer.Deserialize<ForeverCharacterStatistics>("{}");
 Check(emptyStats?.Health == null && emptyStats?.SpellHealing == null && emptyStats?.Defense == null, "Omitted stats must not become zero");
 Check(typeof(ProfileController).GetMethod("GetStats") == null, "The Forever stats endpoint must stay separate from Retail/MoP");
-Console.WriteLine($"Passed {checks} Forever professions, PvP and stats checks.");
+var reputations = await proxy.GetForeverReputations("jeebu-weebu", "us");
+Check(reputations?.Reputations?[0].Faction?.Name == "Bloodsail Buccaneers", "Reputations must preserve faction names");
+var standing = reputations!.Reputations![0].Standing!;
+Check(standing.Name == "Hated" && standing.Tier == 0 && standing.Raw == -33900, "Reputations must preserve API names, tier zero and negative raw standing");
+Check(standing.Value == 8100 && standing.Max == 36000, "Within-standing progress must be kept separate from raw standing");
+Check(reputations.Reputations[1].Standing?.Value == 0, "Zero reputation progress must be preserved");
+Check(handler.Paths.Last().Contains("/character/jeebu-weebu/reputations?namespace=profile-forever-us"), "Reputations must use the realmless Forever endpoint");
+calls = handler.Paths.Count;
+await proxy.GetForeverReputations("jeebu-weebu", "us");
+Check(handler.Paths.Count == calls, "Reputations must be cached");
+await proxy.GetForeverReputations("jeebu-weebu", "eu");
+Check(handler.Paths.Last().StartsWith("https://eu.api.blizzard.com/") && handler.Paths.Last().Contains("namespace=profile-forever-eu"), "Reputation caches must isolate regions");
+await proxy.GetForeverReputations("élise-example", "eu");
+Check(handler.Paths.Last().Contains("%C3%A9lise-example"), "Reputations must escape accented slugs");
+Check((await controller.GetReputations("US", "JEEBU-WEEBU")).Result is OkObjectResult { Value: ForeverReputationsSummary }, "Reputations controller must normalize input");
+calls = handler.Paths.Count;
+Check((await controller.GetReputations("invalid", "example-player")).Result is BadRequestObjectResult, "Reputations must validate regions");
+Check((await controller.GetReputations("us", "../example")).Result is BadRequestObjectResult, "Reputations must validate slugs");
+Check((await controller.GetReputations("us", new string('a', 65) + "-player")).Result is BadRequestObjectResult, "Reputations must bound slug length");
+Check(handler.Paths.Count == calls, "Invalid reputation requests must not call Blizzard");
+handler.Status = HttpStatusCode.NotFound;
+Check((await controller.GetReputations("us", "missing-player")).Result is NotFoundObjectResult { Value: ProblemDetails { Status: 404 } }, "Missing reputations must return structured 404");
+handler.Status = HttpStatusCode.InternalServerError;
+Check((await controller.GetReputations("us", "retry-player")).Result is StatusCodeResult { StatusCode: 500 }, "Reputation failures must not return an empty success");
+handler.Status = HttpStatusCode.OK;
+Check((await controller.GetReputations("us", "retry-player")).Result is OkObjectResult, "Reputation failures must not poison the cache");
+Check(JsonSerializer.Deserialize<ForeverReputationsSummary>("{}")?.Reputations == null, "Omitted reputations must remain absent");
+var missingStanding = JsonSerializer.Deserialize<ForeverReputationsSummary>("""{"reputations":[{"standing":{}}]}""")!.Reputations![0].Standing!;
+Check(missingStanding.Value == null && missingStanding.Max == null && missingStanding.Tier == null, "Missing standing fields must not become zero");
+Check(typeof(ProfileController).GetMethod("GetReputations") == null, "Reputations must remain Forever-only");
+Console.WriteLine($"Passed {checks} Forever professions, PvP, stats and reputation checks.");
 
 public class Stub : DispatchProxy
 {
@@ -196,6 +226,12 @@ class BlizzardHandler : HttpMessageHandler
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""{"access_token":"test-token","expires_in":3600,"token_type":"bearer"}""") });
         var path = request.RequestUri.AbsoluteUri;
         Paths.Add(path);
+        if (request.RequestUri.AbsolutePath.EndsWith("/reputations"))
+        {
+            var body = Status != HttpStatusCode.OK ? $$"""{"code":{{(int)Status}},"detail":"Test error"}"""
+                : """{"reputations":[{"faction":{"id":87,"name":"Bloodsail Buccaneers"},"standing":{"raw":-33900,"value":8100,"max":36000,"tier":0,"name":"Hated"}},{"faction":{"id":72,"name":"Stormwind"},"standing":{"raw":3000,"value":0,"max":6000,"tier":4,"name":"Friendly"}}]}""";
+            return Task.FromResult(new HttpResponseMessage(Status) { Content = new StringContent(body) });
+        }
         if (request.RequestUri.AbsolutePath.EndsWith("/statistics"))
         {
             var body = Status != HttpStatusCode.OK ? $$"""{"code":{{(int)Status}},"detail":"Test error"}"""

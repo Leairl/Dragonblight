@@ -1,0 +1,12 @@
+/* Four full tab labels fit on phones without overflowing the profile. */
+@media (max-width: 800px) {
+  .forever-character-tabs {
+    min-width: 0;
+    width: 100%;
+    grid-template-columns: repeat(4, auto);
+  }
+
+  .forever-character-tabs .rt-SegmentedControlItemLabel {
+    padding-inline: 8px;
+  }
+}

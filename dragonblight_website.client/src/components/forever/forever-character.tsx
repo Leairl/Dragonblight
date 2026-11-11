@@ -9,8 +9,10 @@ import { wowheadUrl } from "../../helpers/game-flavor";
 import ForeverProfessions from "./forever-professions/forever-professions";
 import ForeverPvp from "./forever-pvp/forever-pvp";
 import ForeverCharacterStats from "./forever-character-stats/forever-character-stats";
+import ForeverReputations from "./forever-reputations/forever-reputations";
 import "../profile/profile.css";
 import "../profile/profile-equipment/profile-equipment.css";
+import "./forever-character.css";
 declare const $WowheadPower: { refreshLinks: () => void } | undefined;
 
 type LoadState = "loading" | "loaded" | "notFound" | "error";
@@ -176,15 +178,16 @@ function nameFromSlug(slug: string): string {
 function CharacterTabs() {
   const { region, characterSlug, urlTab } = useParams();
   const navigate = useNavigate();
-  const tab = urlTab === "professions" || urlTab === "pvp" ? urlTab : "gear";
+  const tab = urlTab === "professions" || urlTab === "pvp" || urlTab === "reputations" ? urlTab : "gear";
   return (
     <div className="button-row">
-      <SegmentedControl.Root value={tab} onValueChange={(value) => {
+      <SegmentedControl.Root className="forever-character-tabs" value={tab} onValueChange={(value) => {
         navigate(`/character/${region}/${encodeURIComponent(characterSlug ?? "")}${value === "gear" ? "" : `/${value}`}`, { replace: true });
       }}>
         <SegmentedControl.Item value="gear">Gear</SegmentedControl.Item>
         <SegmentedControl.Item value="professions">Professions</SegmentedControl.Item>
         <SegmentedControl.Item value="pvp">PvP</SegmentedControl.Item>
+        <SegmentedControl.Item value="reputations">Reputations</SegmentedControl.Item>
       </SegmentedControl.Root>
     </div>
   );
@@ -266,7 +269,7 @@ function RosterOnlyCharacter(props: { character: Dragonblight.ForeverStatsCharac
                 </div>
               </Card>
               <Card className="talent-row border-card">
-                {urlTab === "professions" ? <ForeverProfessions key={`${c.region}/${c.slug}`} /> : urlTab === "pvp" ? <ForeverPvp key={`${c.region}/${c.slug}`} faction={c.faction} /> : (
+                {urlTab === "professions" ? <ForeverProfessions key={`${c.region}/${c.slug}`} /> : urlTab === "pvp" ? <ForeverPvp key={`${c.region}/${c.slug}`} faction={c.faction} /> : urlTab === "reputations" ? <ForeverReputations key={`${c.region}/${c.slug}`} /> : (
                 <Callout.Root color="amber">
                   <Callout.Icon>
                     <InfoCircledIcon />
@@ -292,7 +295,7 @@ function RosterOnlyCharacter(props: { character: Dragonblight.ForeverStatsCharac
 // Route: /forever/character/:region/:characterSlug, where the slug is "name-surname".
 function ForeverCharacter() {
   const { region, characterSlug, urlTab } = useParams();
-  const tab = urlTab === "professions" || urlTab === "pvp" ? urlTab : "gear";
+  const tab = urlTab === "professions" || urlTab === "pvp" || urlTab === "reputations" ? urlTab : "gear";
   const requestKey = `${region}/${characterSlug}`;
   const [result, setResult] = useState<LoadResult>();
 
@@ -452,6 +455,10 @@ function ForeverCharacter() {
               ) : tab === "pvp" ? (
                 <Card className="talent-row border-card">
                   <ForeverPvp key={requestKey} faction={profile?.faction?.type} />
+                </Card>
+              ) : tab === "reputations" ? (
+                <Card className="talent-row border-card">
+                  <ForeverReputations key={requestKey} />
                 </Card>
               ) : <Card className="paperdoll-card overflow-visible border-card">
                 {/* while loading, the same layout the retail and classic profile shows */}

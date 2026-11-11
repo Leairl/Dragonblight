@@ -202,6 +202,41 @@ namespace Dragonblight_Website.Server.Controllers
             }
         }
 
+        [HttpGet("GetReputations")]
+        [ProducesResponseType(typeof(ForeverReputationsSummary), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<ForeverReputationsSummary>> GetReputations(string region, string characterSlug)
+        {
+            region = region.ToLowerInvariant();
+            if (region != "us" && region != "eu")
+            {
+                return BadRequest("region must be us or eu");
+            }
+            characterSlug = characterSlug.ToLowerInvariant();
+            if (characterSlug.Length > 64 || !IsCharacterSlug(characterSlug))
+            {
+                return BadRequest("characterSlug must be name-surname");
+            }
+            try
+            {
+                var result = await _warcraftCachedData.GetForeverReputations(characterSlug, region);
+                if (result == null)
+                {
+                    return NotFound(new ProblemDetails
+                    {
+                        Status = StatusCodes.Status404NotFound,
+                        Title = "Reputation data is not available for this character."
+                    });
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting Forever reputations for {Slug} in {Region}.", characterSlug, region);
+                return StatusCode(500);
+            }
+        }
+
         //Only the visible page is enriched. Bound the batch and concurrency so opening a
         //large recipe collection does not fan out hundreds of Blizzard requests.
         [HttpGet("GetRecipes")]
