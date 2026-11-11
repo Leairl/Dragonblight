@@ -170,6 +170,7 @@ Check((retry?.Value as ForeverRecipeDetails[])?[0].recipe != null, "Failed recip
 var tierResult = (await controller.GetSkillTierRecipes("US", 197, 2948)).Result as OkObjectResult;
 var tierRows = tierResult?.Value as ForeverSkillTierRecipe[];
 Check(tierRows?.Length == 3 && tierRows[0].category == "Reagents" && tierRows[2].name == "Linen Cloak", "Skill tier recipes must be flattened in order with their categories");
+Check(tierRows!.All(row => row.id != 52147), "Season of Discovery recipes aren't in Forever and must be left out");
 Check(handler.Paths.Last().Contains("/profession/197/skill-tier/2948?namespace=static-forever-us"), "Skill tiers must use the Forever static namespace");
 calls = handler.Paths.Count;
 await controller.GetSkillTierRecipes("us", 197, 2948);
@@ -536,7 +537,7 @@ class BlizzardHandler : HttpMessageHandler
             var missing = request.RequestUri.AbsolutePath.EndsWith("/9999");
             var status = missing ? HttpStatusCode.NotFound : Status;
             var body = status != HttpStatusCode.OK ? $$"""{"code":{{(int)status}},"detail":"Unavailable skill tier"}"""
-                : """{"id":2948,"name":"Tailoring","minimum_skill_level":1,"maximum_skill_level":75,"categories":[{"name":"Reagents","recipes":[{"id":2359,"name":"Bolt of Linen Cloth"},{"id":2370,"name":"Bolt of Woolen Cloth"}]},{"name":"Cloaks","recipes":[{"id":2387,"name":"Linen Cloak"}]},{"name":"Empty"}]}""";
+                : """{"id":2948,"name":"Tailoring","minimum_skill_level":1,"maximum_skill_level":75,"categories":[{"name":"Reagents","recipes":[{"id":2359,"name":"Bolt of Linen Cloth"},{"id":2370,"name":"Bolt of Woolen Cloth"}]},{"name":"Cloaks","recipes":[{"id":2387,"name":"Linen Cloak"}]},{"name":"SEASON OF DISCOVERY","recipes":[{"id":52147,"name":"Crimson Dawnwoven Bag"}]},{"name":"Empty"}]}""";
             return Task.FromResult(new HttpResponseMessage(status) { Content = new StringContent(body) });
         }
         if (request.RequestUri.AbsolutePath.Contains("/recipe/"))
