@@ -119,7 +119,31 @@ Check((unavailable?.Value as ForeverRecipeDetails[])?[0].recipe == null, "Unavai
 handler.Status = HttpStatusCode.OK;
 var retry = (await controller.GetRecipes("us", [2360])).Result as OkObjectResult;
 Check((retry?.Value as ForeverRecipeDetails[])?[0].recipe != null, "Failed recipe requests must not poison the cache");
-Console.WriteLine($"Passed {checks} Forever professions checks.");
+var pvp = await proxy.GetForeverPvpSummary("luna-amariyo", "eu");
+Check(pvp?.HonorableKills == 94 && pvp.PvpRank == 0, "Forever PvP must preserve kills and unranked zero");
+Check(pvp!.PvpMapStatistics![0].MatchStatistics.Won == 0, "Battleground zero wins must be preserved");
+Check(handler.Paths.Last().Contains("/character/luna-amariyo/pvp-summary?namespace=profile-forever-eu"), "PvP must use the realmless Forever endpoint");
+calls = handler.Paths.Count;
+await proxy.GetForeverPvpSummary("luna-amariyo", "eu");
+Check(handler.Paths.Count == calls, "PvP summaries must be cached");
+await proxy.GetForeverPvpSummary("luna-amariyo", "us");
+Check(handler.Paths.Last().StartsWith("https://us.api.blizzard.com/") && handler.Paths.Last().Contains("namespace=profile-forever-us"), "PvP cache must isolate regions");
+Check((await controller.GetPvpSummary("EU", "LUNA-AMARIYO")).Result is OkObjectResult { Value: ForeverPvpSummary }, "PvP controller must normalize input");
+calls = handler.Paths.Count;
+Check((await controller.GetPvpSummary("invalid", "example-player")).Result is BadRequestObjectResult, "PvP must validate regions");
+Check((await controller.GetPvpSummary("us", "../example")).Result is BadRequestObjectResult, "PvP must validate slugs");
+Check((await controller.GetPvpSummary("us", new string('a', 65) + "-player")).Result is BadRequestObjectResult, "PvP must bound slug length");
+Check(handler.Paths.Count == calls, "Invalid PvP requests must not call Blizzard");
+handler.Status = HttpStatusCode.NotFound;
+Check((await controller.GetPvpSummary("us", "missing-player")).Result is NotFoundObjectResult { Value: ProblemDetails { Status: 404 } }, "Missing PvP must return structured 404");
+handler.Status = HttpStatusCode.InternalServerError;
+Check((await controller.GetPvpSummary("us", "retry-player")).Result is StatusCodeResult { StatusCode: 500 }, "Failed PvP must not return empty success");
+handler.Status = HttpStatusCode.OK;
+Check((await controller.GetPvpSummary("us", "retry-player")).Result is OkObjectResult, "PvP failures must not poison the cache");
+var emptyPvp = JsonSerializer.Deserialize<ForeverPvpSummary>("{}");
+Check(emptyPvp?.HonorableKills == null && emptyPvp?.PvpRank == null && emptyPvp?.PvpMapStatistics == null, "Missing PvP fields must not become zero");
+Check(typeof(ProfileController).GetMethod("GetPvpSummary") == null, "Retail/MoP must not expose Forever PvP");
+Console.WriteLine($"Passed {checks} Forever professions and PvP checks.");
 
 public class Stub : DispatchProxy
 {
@@ -144,6 +168,12 @@ class BlizzardHandler : HttpMessageHandler
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""{"access_token":"test-token","expires_in":3600,"token_type":"bearer"}""") });
         var path = request.RequestUri.ToString();
         Paths.Add(path);
+        if (request.RequestUri.AbsolutePath.EndsWith("/pvp-summary"))
+        {
+            var body = Status != HttpStatusCode.OK ? $$"""{"code":{{(int)Status}},"detail":"Test error"}"""
+                : """{"honorable_kills":94,"pvp_rank":0,"pvp_map_statistics":[{"world_map":{"id":529,"name":"Arathi Basin"},"match_statistics":{"played":3,"won":0,"lost":3}}]}""";
+            return Task.FromResult(new HttpResponseMessage(Status) { Content = new StringContent(body) });
+        }
         if (request.RequestUri.AbsolutePath.Contains("/recipe/"))
         {
             var id = int.Parse(request.RequestUri.AbsolutePath.Split('/')[^1]);

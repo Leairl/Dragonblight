@@ -75,6 +75,24 @@ partial class WarcraftRedisProxy
         }, TimeSpan.FromHours(2));
     }
 
+    public async Task<ForeverPvpSummary?> GetForeverPvpSummary(string characterSlug, string region)
+    {
+        var ns = GetProfileRegion(region, GameFlavor.Forever);
+        return await GetBlizzardDataCached<ForeverPvpSummary?>("GetForeverPvpSummary" + characterSlug + ns, async () =>
+        {
+            var result = await warcraftClient.GetForeverCharacterPvpSummaryAsync(characterSlug, ns, GetRegion(region), GetLocale(region));
+            if (result?.Success == true)
+            {
+                return result.Value;
+            }
+            if (result?.Error?.Code == 404)
+            {
+                return null;
+            }
+            throw new HttpRequestException("Blizzard Forever character PvP summary request failed.");
+        }, TimeSpan.FromHours(2));
+    }
+
     public async Task<Recipe?> GetForeverRecipe(int recipeId, string region)
     {
         var ns = GetStaticRegion(region, GameFlavor.Forever);
