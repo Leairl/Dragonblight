@@ -1,6 +1,6 @@
 import { FC, useEffect, useState } from "react";
 import { useParams } from "react-router";
-import { Button, Card, Skeleton } from "@radix-ui/themes";
+import { Button, Card, Progress, Skeleton } from "@radix-ui/themes";
 import { Dragonblight } from "../../../clients/Dragonblight";
 import "./forever-professions.css";
 
@@ -16,7 +16,14 @@ function SkillProgress({ name, points, maximum }: { name: string; points?: numbe
   return (
     <div className="profession-skill">
       <div className="profession-skill-label"><span>Skill</span><span>{points} / {maximum}</span></div>
-      <progress aria-label={`${name} skill`} value={Math.max(0, Math.min(points, maximum))} max={maximum} />
+      <Progress
+        aria-label={`${name} skill`}
+        aria-valuetext={`${points} of ${maximum} skill points`}
+        value={Math.max(0, Math.min(points, maximum))}
+        max={maximum}
+        size="2"
+        mt="2"
+      />
     </div>
   );
 }

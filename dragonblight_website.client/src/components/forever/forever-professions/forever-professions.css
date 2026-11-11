@@ -51,14 +51,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.profession-skill progress {
-  display: block;
-  width: 100%;
-  height: 8px;
-  margin-top: 6px;
-  accent-color: var(--accent-9);
-}
-
 .profession-muted {
   font-size: 13px;
   color: var(--gray-11);
