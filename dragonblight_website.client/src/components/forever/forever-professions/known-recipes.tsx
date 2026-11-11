@@ -4,10 +4,44 @@ import { ChevronDownIcon, InfoCircledIcon, MagnifyingGlassIcon } from "@radix-ui
 import { Dragonblight } from "../../../clients/Dragonblight";
 import { wowheadUrl } from "../../../helpers/game-flavor";
 import { stripWowMarkup } from "../../../helpers/equipmentHelper";
-import { craftedQuantityText, filterKnownRecipes, learnableAt, ListedRecipe, recipeOutputs, requiredSkillText, unlearnedRecipes } from "./recipe-helpers";
+import { craftedQuantityText, filterBySource, filterKnownRecipes, learnableAt, ListedRecipe, recipeOutputs, requiredSkillText, sourceCounts, unlearnedRecipes } from "./recipe-helpers";
+import SourceFilter from "./source-filter";
 import { loadRecipeDetails, loadSkillTierRecipes, peekSkillTierRecipes, recipeDetails } from "../forever-data";
 
 const pageSize = 10;
+
+// Where a recipe comes from, one part per line: "Drop: Raging Rot Hide (Silverpine Forest)", with the
+// mob, vendor or quest linked to its Wowhead page. Details cached before the parts were added only
+// have the text.
+function RecipeSource({ detail }: { detail: Dragonblight.ForeverRecipeDetails | undefined }) {
+  const parts = detail?.sources ?? [];
+  if (parts.length === 0) {
+    let text = "Unknown";
+    if (detail?.source) {
+      text = detail.source;
+    }
+    return <Text size="1">{text}</Text>;
+  }
+  return (
+    <Flex direction="column" gap="1">
+      {parts.map((part, index) => {
+        let name = <>{part.name}</>;
+        if (part.name && part.wowhead) {
+          name = (
+            <Link data-wh-icon-size="small" href={wowheadUrl(part.wowhead, "forever")} target="_blank" rel="noopener noreferrer">{part.name}</Link>
+          );
+        }
+        return (
+          <Text key={index} as="div" size="1">
+            {part.kind}
+            {part.name && <>: {name}</>}
+            {part.zone && <Text color="gray"> ({part.zone})</Text>}
+          </Text>
+        );
+      })}
+    </Flex>
+  );
+}
 declare const $WowheadPower: { refreshLinks: () => void } | undefined;
 
 type RecipeResult = { key: string; failed: boolean };
@@ -78,10 +112,6 @@ function RecipePage({ recipes, region, label, kind }: { recipes: ListedRecipe[];
                   shownIcon = taughtBy.icon;
                 }
               }
-              let source = "Unknown";
-              if (detail?.source) {
-                source = detail.source;
-              }
               const meta = [reference.category, requiredSkillText(reference), `Recipe #${reference.id}`].filter((part) => part).join(" · ");
               return (
                 <Table.Row key={reference.id} align="start">
@@ -116,7 +146,7 @@ function RecipePage({ recipes, region, label, kind }: { recipes: ListedRecipe[];
                   </Table.Cell>
                   <Table.Cell>
                     <Skeleton loading={loading}>
-                      <Text size="1">{source}</Text>
+                      <RecipeSource detail={detail} />
                     </Skeleton>
                   </Table.Cell>
                 </Table.Row>
@@ -130,11 +160,20 @@ function RecipePage({ recipes, region, label, kind }: { recipes: ListedRecipe[];
   );
 }
 
-// The search, table and paging shared by the known and not-learned lists.
+// The search, source filter, table and paging shared by the known and not-learned lists.
 function RecipeList({ recipes, region, label, kind }: { recipes: ListedRecipe[]; region: string; label: string; kind: string }) {
   const [query, setQuery] = useState("");
+  const [sources, setSources] = useState<string[]>([]);
   const [page, setPage] = useState(1);
-  const filtered = filterKnownRecipes(recipes, query);
+  const unique = filterKnownRecipes(recipes, "");
+  const counts = sourceCounts(unique);
+  //The filter only shows when there's a choice to make; a source no longer in the list is dropped.
+  const showFilter = counts.length > 1;
+  let shownSources: string[] = [];
+  if (showFilter) {
+    shownSources = sources.filter((source) => counts.some((count) => count.kind === source));
+  }
+  const filtered = filterBySource(filterKnownRecipes(recipes, query), shownSources);
   const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, pages);
   const start = (currentPage - 1) * pageSize;
@@ -149,6 +188,10 @@ function RecipeList({ recipes, region, label, kind }: { recipes: ListedRecipe[];
       <TextField.Root size="2" placeholder={`Search ${kind} recipes…`} aria-label={`Search ${label} ${kind} recipes`} value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }}>
         <TextField.Slot><MagnifyingGlassIcon /></TextField.Slot>
       </TextField.Root>
+      {showFilter && (
+        <SourceFilter counts={counts} selected={shownSources} label={`${label} ${kind}`}
+          onChange={(value) => { setSources(value); setPage(1); }} />
+      )}
       {shown.length === 0 ? <Text as="p" size="2" color="gray" role="status">No recipes match your search.</Text> : (
         <RecipePage recipes={shown} region={region} label={label} kind={kind} />
       )}
@@ -267,13 +310,18 @@ export default function ProfessionRecipes({ known, skill, region, label, profess
 }) {
   const [open, setOpen] = useState<OpenList>("");
   const contentId = useId();
-  const tier = useTierRecipes(region, professionId, skillTierId, open === "unlearned");
+  //The tier list also gives the known recipes their sources, so it loads when either list opens.
+  const tier = useTierRecipes(region, professionId, skillTierId, open !== "");
   const knownTotal = new Set(known.map((recipe) => recipe.id)).size;
   const hasTier = professionId != null && skillTierId != null;
 
   let unlearnedCount: number | undefined = undefined;
+  let knownListed: ListedRecipe[] = known;
   if (tier.current?.recipes) {
     unlearnedCount = learnableAt(unlearnedRecipes(tier.current.recipes, known), skill).length;
+    //A known recipe the tier list doesn't have (one the file hides) has an unknown source.
+    const sources = new Map(tier.current.recipes.map((recipe) => [recipe.id, recipe.source]));
+    knownListed = known.map((recipe) => ({ id: recipe.id, name: recipe.name, source: sources.get(recipe.id) ?? "" }));
   }
 
   function toggle(list: OpenList) {
@@ -302,7 +350,7 @@ export default function ProfessionRecipes({ known, skill, region, label, profess
       </Flex>
       {open === "known" && (
         <div id={contentId} className="recipe-content">
-          <RecipeList recipes={known} region={region} label={label} kind="known" />
+          <RecipeList recipes={knownListed} region={region} label={label} kind="known" />
         </div>
       )}
       {open === "unlearned" && (

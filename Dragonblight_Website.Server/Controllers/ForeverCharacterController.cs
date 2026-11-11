@@ -97,6 +97,38 @@ namespace Dragonblight_Website.Server.Controllers
             }
         }
 
+        //The character page's Refresh button: drops the character's cached data so the page reloads it
+        //from Blizzard. 429 while the character was refreshed in the last few minutes.
+        [HttpPost("RefreshCharacter")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        public async Task<ActionResult> RefreshCharacter(string region, string characterSlug)
+        {
+            region = region.ToLowerInvariant();
+            if (region != "us" && region != "eu")
+            {
+                return BadRequest("region must be us or eu");
+            }
+            characterSlug = characterSlug.ToLowerInvariant();
+            if (characterSlug.Length > 64 || !IsCharacterSlug(characterSlug))
+            {
+                return BadRequest("characterSlug must be name-surname");
+            }
+            try
+            {
+                var cleared = await _warcraftCachedData.ClearForeverCharacterCache(characterSlug, region);
+                if (!cleared)
+                {
+                    return StatusCode(429, "This character was refreshed recently. Try again in a few minutes.");
+                }
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while refreshing Forever character {Slug} in {Region}.", characterSlug, region);
+                return StatusCode(500);
+            }
+        }
+
         [HttpGet("GetProfessions")]
         [ProducesResponseType(typeof(CharacterProfessionsSummary), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -498,7 +530,7 @@ namespace Dragonblight_Website.Server.Controllers
                     var recipe = _warcraftCachedData.GetForeverRecipe(id, region);
                     var icon = _warcraftCachedData.GetForeverRecipeIcon(id, region);
                     ForeverRecipes.data.TryGetValue(id, out var info);
-                    return new ForeverRecipeDetails { id = id, recipe = await recipe, icon = await icon, taughtBy = TaughtBy(info), source = SourceOf(info) };
+                    return new ForeverRecipeDetails { id = id, recipe = await recipe, icon = await icon, taughtBy = TaughtBy(info), source = SourceOf(info), sources = info?.sources ?? [] };
                 }));
                 CacheStaticRows(results.All(row => row.recipe != null && row.icon != null));
                 return Ok(results);
@@ -570,7 +602,7 @@ namespace Dragonblight_Website.Server.Controllers
             return info.source;
         }
 
-        //Adds the skill a recipe needs. It comes from the file, not the cached tier, so a new file
+        //Adds the skill a recipe needs and where it comes from. They come from the file, not the cached tier, so a new file
         //takes effect without waiting for the week-long tier cache to expire.
         private static ForeverSkillTierRecipe WithRequiredSkill(ForeverSkillTierRecipe recipe)
         {
@@ -585,6 +617,7 @@ namespace Dragonblight_Website.Server.Controllers
                 category = recipe.category,
                 requiredSkill = known.requiredSkill,
                 requiredSkillEstimated = known.estimated,
+                source = known.source,
             };
         }
 
@@ -695,6 +728,8 @@ namespace Dragonblight_Website.Server.Controllers
         public ForeverRecipeItem? taughtBy { get; init; }
         //where the recipe comes from: "Vendor: Qia (Winterspring)", "Drop", "Trainer"; null when unknown
         public string? source { get; init; }
+        //the same, in parts the page can link to Wowhead; empty when unknown
+        public ForeverRecipeSource[] sources { get; init; } = [];
     }
 
     public class ForeverRecipeItem

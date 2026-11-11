@@ -10,6 +10,9 @@ public class ForeverSkillTierRecipe
     public int? requiredSkill { get; init; }
     //true when requiredSkill is an estimate rather than read from the recipe's pattern
     public bool requiredSkillEstimated { get; init; }
+    //where the recipe comes from ("Vendor: Qia (Winterspring)", "Drop; Fishing", "Trainer"), from ForeverRecipes.tsv;
+    //empty when unknown. The professions tab filters on it.
+    public string source { get; init; } = "";
 }
 
 //One row of ForeverRecipes.tsv. Blizzard's recipe data has no required skill or source, so the file is
@@ -29,6 +32,18 @@ public class ForeverRecipeInfo
     public string itemIcon { get; init; } = "";
     //"Vendor: Qia (Winterspring)", "Drop", "Trainer"; empty when nothing is known
     public string source { get; init; } = "";
+    //the same source in parts, with the Wowhead page of each mob, vendor or quest; empty when nothing is known
+    public ForeverRecipeSource[] sources { get; init; } = [];
+}
+
+//One part of where a recipe comes from: "Drop" from "Raging Rot Hide" in "Silverpine Forest", on Wowhead at "npc=1943".
+public class ForeverRecipeSource
+{
+    public string kind { get; init; } = "";
+    public string? name { get; init; }
+    public string? zone { get; init; }
+    //the Wowhead page: "npc=1943", "quest=2861", "object=..."; null when Wowhead names no one
+    public string? wowhead { get; init; }
 }
 
 public static class ForeverRecipes
