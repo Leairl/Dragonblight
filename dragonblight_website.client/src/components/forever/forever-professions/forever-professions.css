@@ -93,11 +93,54 @@
 }
 
 .recipe-icon {
-  width: 36px;
-  height: 36px;
+  box-sizing: border-box;
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
   border-radius: var(--radius-2);
   border: 1px solid var(--gray-a5);
+}
+
+.recipe-item-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Match our recipe icon to Wowhead's compact per-link icons without changing the
+   large icons used by the gear page. */
+.recipe-item-link > .iconsmall {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+/* Wowhead's small frame is 26px around an 18px image. Drop that decorative
+   frame and use the same compact border as our own recipe thumbnails. */
+.recipe-item-link > .iconsmall > ins {
+  box-sizing: border-box;
+  left: 0;
+  top: 0;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--gray-a5);
+  border-radius: var(--radius-2);
+}
+
+.recipe-item-link > .iconsmall > del {
+  display: none;
+}
+
+.recipe-wowhead-link {
+  white-space: nowrap;
+}
+
+.recipe-wowhead-link > .iconlarge,
+.recipe-wowhead-link > .iconmedium,
+.recipe-wowhead-link > .iconsmall,
+.recipe-wowhead-link > .icontiny {
+  display: none;
 }
 
 .recipe-name {

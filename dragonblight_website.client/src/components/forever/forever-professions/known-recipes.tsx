@@ -85,29 +85,27 @@ function RecipePage({ recipes, region, label }: { recipes: Dragonblight.RecipeRe
                     {loading ? <Skeleton width="100px" height="16px" /> : outputs.length > 0 ? (
                       <Flex direction="column" gap="1">
                         {outputs.map(({ item, faction }) => (
-                          <div key={`${item.id}/${faction ?? ""}`}>
-                            <Link href={wowheadUrl(`item=${item.id}`, "forever")} target="_blank" rel="noopener noreferrer">{item.name ?? `Item ${item.id}`}</Link>
+                          <Flex key={`${item.id}/${faction ?? ""}`} align="center" gap="1" wrap="wrap">
+                            <Link className="recipe-item-link" data-wh-icon-size="small" href={wowheadUrl(`item=${item.id}`, "forever")} target="_blank" rel="noopener noreferrer">{item.name ?? `Item ${item.id}`}</Link>
                             <Text size="1" color="gray">{faction && ` (${faction})`}{quantity !== "—" && ` · ×${quantity}`}</Text>
-                          </div>
+                          </Flex>
                         ))}
                       </Flex>
                     ) : <Text size="1" color="gray">{recipe ? "No item reported" : "Details unavailable"}</Text>}
                   </Table.Cell>
                   <Table.Cell>
                     {loading ? <Skeleton width="120px" height="16px" /> : reagents.length > 0 ? (
-                      <Flex gap="1" wrap="wrap">
+                      <Flex gap="2" wrap="wrap">
                         {reagents.map((reagent, index) => reagent.reagent && (
-                          <Badge key={`${reagent.reagent.id}/${index}`} color="gray" variant="soft" size="1">
-                            <Link href={wowheadUrl(`item=${reagent.reagent.id}`, "forever")} target="_blank" rel="noopener noreferrer">
-                              {reagent.quantity}× {reagent.reagent.name ?? `Item ${reagent.reagent.id}`}
-                            </Link>
-                          </Badge>
+                          <Link key={`${reagent.reagent.id}/${index}`} className="recipe-item-link" data-wh-icon-size="small" size="1" href={wowheadUrl(`item=${reagent.reagent.id}`, "forever")} target="_blank" rel="noopener noreferrer">
+                            {reagent.quantity}× {reagent.reagent.name ?? `Item ${reagent.reagent.id}`}
+                          </Link>
                         ))}
                       </Flex>
                     ) : <Text size="1" color="gray">{recipe ? "None reported" : "Details unavailable"}</Text>}
                   </Table.Cell>
                   <Table.Cell>
-                    <Link href={wowhead} target="_blank" rel="noopener noreferrer" aria-label={`${outputs.length > 0 ? "View" : "Search for"} ${name} on Wowhead`}>
+                    <Link className="recipe-wowhead-link" data-wh-iconize-link="false" href={wowhead} target="_blank" rel="noopener noreferrer" aria-label={`${outputs.length > 0 ? "View" : "Search for"} ${name} on Wowhead`}>
                       <Flex as="span" align="center" gap="1">{outputs.length > 0 ? "View item" : "Search"}<ExternalLinkIcon /></Flex>
                     </Link>
                   </Table.Cell>
