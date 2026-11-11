@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { Callout, Card, Flex, Heading, SegmentedControl, Skeleton } from "@radix-ui/themes";
-import { InfoCircledIcon } from "@radix-ui/react-icons";
+import { Callout, IconButton, Card, Flex, Heading, SegmentedControl, Separator, Skeleton } from "@radix-ui/themes";
+import { InfoCircledIcon, ReloadIcon } from "@radix-ui/react-icons";
 import { Dragonblight } from "../../clients/Dragonblight";
 import { ClassColor } from "../../helpers/classColorHelper";
 import { findSlotItem, getEnchant, getEnchantName, itemTooltipParams } from "../../helpers/equipmentHelper";
@@ -13,7 +13,7 @@ import ForeverCharacterStats from "./forever-character-stats/forever-character-s
 import ForeverReputations from "./forever-reputations/forever-reputations";
 import ForeverAchievements from "./forever-achievements/forever-achievements";
 import ForeverCollections from "./forever-collections/forever-collections";
-import { prefetchForeverTab } from "./forever-data";
+import { foreverClient, markForeverRefreshed, prefetchForeverTab } from "./forever-data";
 import "../profile/profile.css";
 import { openWowhead } from "../../helpers/wowhead-style";
 import WowheadStyleTooltip from "./wowhead-style-tooltip";
@@ -225,6 +225,75 @@ function foreverTab(urlTab: string | undefined) {
   return "gear";
 }
 
+// The Refresh button the retail and classic profile has, as an icon at the far right of the header card: it drops
+// everything the server has cached for the character, then reloads the page, since each tab loads its
+// own data.
+function RefreshButton() {
+  const { region, characterSlug } = useParams();
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshMessage, setRefreshMessage] = useState("");
+
+  async function refreshCharacter() {
+    if (!region || !characterSlug) {
+      return;
+    }
+    setRefreshing(true);
+    setRefreshMessage("");
+    try {
+      await foreverClient.refreshCharacter(region, characterSlug);
+      markForeverRefreshed(region, characterSlug);
+      window.location.reload();
+    } catch (e) {
+      //429: the server allows one refresh per character every few minutes
+      if ((e as Dragonblight.ApiException)?.status === 429) {
+        setRefreshMessage("Refreshed recently, try again in a few minutes");
+      } else {
+        setRefreshMessage("Refresh failed");
+      }
+      setRefreshing(false);
+    }
+  }
+
+  let reloadIconClass = "";
+  if (refreshing) {
+    reloadIconClass = "animate-spin";
+  }
+  return (
+    <Flex align="center" gap="2">
+      {refreshMessage && <span className="text-sm text-red-300" role="status">{refreshMessage}</span>}
+      <IconButton variant="soft" color="gray" size="1" className="forever-refresh" disabled={refreshing} onClick={refreshCharacter}
+        aria-label="Refresh character" title="Refresh character">
+        <ReloadIcon className={reloadIconClass} />
+      </IconButton>
+    </Flex>
+  );
+}
+
+// The header's right end: "Level 31 │ Item Level 26", then the Refresh icon. Item level is left out
+// when it isn't known (characters only seen in a guild roster).
+function HeaderStats({ level, itemLevel }: { level?: number; itemLevel?: number }) {
+  return (
+    <Flex align="center" gap="3" className="ml-auto pr-2">
+      <Flex align="center" gap="2">
+        <Flex align="baseline" gap="2">
+          <Heading size="1" color="gray" weight="regular">Level</Heading>
+          <Heading size="3">{level}</Heading>
+        </Flex>
+        {itemLevel != null && (
+          <>
+            <Separator orientation="vertical" size="1" />
+            <Flex align="baseline" gap="2">
+              <Heading size="1" color="gray" weight="regular">Item Level</Heading>
+              <Heading size="3">{itemLevel}</Heading>
+            </Flex>
+          </>
+        )}
+      </Flex>
+      <RefreshButton />
+    </Flex>
+  );
+}
+
 function CharacterTabs() {
   const { region, characterSlug, urlTab } = useParams();
   const navigate = useNavigate();
@@ -268,9 +337,9 @@ function RosterOnlyCharacter(props: { character: Dragonblight.ForeverStatsCharac
           <div className="page-container">
             <div className="center-column">
               <Card className="mb-3 header-card border-card">
-                {/* one row when it fits; when it doesn't, the level block wraps under the name, on the left */}
+                {/* one row when it fits; when it doesn't, the level block wraps under the name. It sits right after the name, not at the card's far end */}
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                  <div className="flex-auto min-w-0">
+                  <div className="flex-initial min-w-0">
                     <div className="flex flex-row px[1px]">
                       <img
                         className="m-1"
@@ -310,14 +379,9 @@ function RosterOnlyCharacter(props: { character: Dragonblight.ForeverStatsCharac
                           )}{" "}
                         </Heading>
                       </div>
-                      <div className="flex-1"></div>
                     </div>
                   </div>
-                  {/* the label, then its number, on one line */}
-                  <Flex align="baseline" gap="2" className="pr-2 flex-none">
-                    <Heading size="1" color="gray" weight="regular">Level</Heading>
-                    <Heading size="3">{c.level}</Heading>
-                  </Flex>
+                  <HeaderStats level={c.level} />
                 </div>
               </Card>
               <Card className="talent-row border-card">
@@ -366,8 +430,7 @@ function ForeverCharacter() {
 
   useEffect(() => {
     let cancelled = false;
-    const client = new Dragonblight.ForeverCharacterClient();
-    client
+    foreverClient
       .getCharacter(region, characterSlug)
       .then((loaded) => {
         if (cancelled) return;
@@ -454,8 +517,8 @@ function ForeverCharacter() {
                 )}
                 {state === "loaded" && profile && (
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                    {/* one row when it fits; when it doesn't, the level block wraps under the name, on the left */}
-                    <div className="flex-auto min-w-0">
+                    {/* one row when it fits; when it doesn't, the level block wraps under the name. It sits right after the name, not at the card's far end */}
+                    <div className="flex-initial min-w-0">
                       <div className="flex flex-row px[1px]">
                         <img
                           className="m-1"
@@ -491,20 +554,9 @@ function ForeverCharacter() {
                             )}{" "}
                           </Heading>
                         </div>
-                        <div className="flex-1"></div>
                       </div>
                     </div>
-                    {/* level, then item level, each its label then its number on one line */}
-                    <Flex gap="5" className="pr-2 flex-none">
-                      <Flex align="baseline" gap="2">
-                        <Heading size="1" color="gray" weight="regular">Level</Heading>
-                        <Heading size="3">{profile.level}</Heading>
-                      </Flex>
-                      <Flex align="baseline" gap="2">
-                        <Heading size="1" color="gray" weight="regular">Item level</Heading>
-                        <Heading size="3">{profile.equipped_item_level}</Heading>
-                      </Flex>
-                    </Flex>
+                    <HeaderStats level={profile.level} itemLevel={profile.equipped_item_level} />
                   </div>
                 )}
               </Card>

@@ -97,6 +97,38 @@ namespace Dragonblight_Website.Server.Controllers
             }
         }
 
+        //The character page's Refresh button: drops the character's cached data so the page reloads it
+        //from Blizzard. 429 while the character was refreshed in the last few minutes.
+        [HttpPost("RefreshCharacter")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        public async Task<ActionResult> RefreshCharacter(string region, string characterSlug)
+        {
+            region = region.ToLowerInvariant();
+            if (region != "us" && region != "eu")
+            {
+                return BadRequest("region must be us or eu");
+            }
+            characterSlug = characterSlug.ToLowerInvariant();
+            if (characterSlug.Length > 64 || !IsCharacterSlug(characterSlug))
+            {
+                return BadRequest("characterSlug must be name-surname");
+            }
+            try
+            {
+                var cleared = await _warcraftCachedData.ClearForeverCharacterCache(characterSlug, region);
+                if (!cleared)
+                {
+                    return StatusCode(429, "This character was refreshed recently. Try again in a few minutes.");
+                }
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while refreshing Forever character {Slug} in {Region}.", characterSlug, region);
+                return StatusCode(500);
+            }
+        }
+
         [HttpGet("GetProfessions")]
         [ProducesResponseType(typeof(CharacterProfessionsSummary), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
