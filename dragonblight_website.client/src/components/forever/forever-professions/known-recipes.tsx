@@ -4,10 +4,44 @@ import { ChevronDownIcon, InfoCircledIcon, MagnifyingGlassIcon } from "@radix-ui
 import { Dragonblight } from "../../../clients/Dragonblight";
 import { wowheadUrl } from "../../../helpers/game-flavor";
 import { stripWowMarkup } from "../../../helpers/equipmentHelper";
-import { allSources, craftedQuantityText, filterBySource, filterKnownRecipes, learnableAt, ListedRecipe, recipeOutputs, requiredSkillText, sourceCounts, unlearnedRecipes } from "./recipe-helpers";
+import { craftedQuantityText, filterBySource, filterKnownRecipes, learnableAt, ListedRecipe, recipeOutputs, requiredSkillText, sourceCounts, unlearnedRecipes } from "./recipe-helpers";
+import SourceFilter from "./source-filter";
 import { loadRecipeDetails, loadSkillTierRecipes, peekSkillTierRecipes, recipeDetails } from "../forever-data";
 
 const pageSize = 10;
+
+// Where a recipe comes from, one part per line: "Drop: Raging Rot Hide (Silverpine Forest)", with the
+// mob, vendor or quest linked to its Wowhead page. Details cached before the parts were added only
+// have the text.
+function RecipeSource({ detail }: { detail: Dragonblight.ForeverRecipeDetails | undefined }) {
+  const parts = detail?.sources ?? [];
+  if (parts.length === 0) {
+    let text = "Unknown";
+    if (detail?.source) {
+      text = detail.source;
+    }
+    return <Text size="1">{text}</Text>;
+  }
+  return (
+    <Flex direction="column" gap="1">
+      {parts.map((part, index) => {
+        let name = <>{part.name}</>;
+        if (part.name && part.wowhead) {
+          name = (
+            <Link data-wh-icon-size="small" href={wowheadUrl(part.wowhead, "forever")} target="_blank" rel="noopener noreferrer">{part.name}</Link>
+          );
+        }
+        return (
+          <Text key={index} as="div" size="1">
+            {part.kind}
+            {part.name && <>: {name}</>}
+            {part.zone && <Text color="gray"> ({part.zone})</Text>}
+          </Text>
+        );
+      })}
+    </Flex>
+  );
+}
 declare const $WowheadPower: { refreshLinks: () => void } | undefined;
 
 type RecipeResult = { key: string; failed: boolean };
@@ -78,10 +112,6 @@ function RecipePage({ recipes, region, label, kind }: { recipes: ListedRecipe[];
                   shownIcon = taughtBy.icon;
                 }
               }
-              let source = "Unknown";
-              if (detail?.source) {
-                source = detail.source;
-              }
               const meta = [reference.category, requiredSkillText(reference), `Recipe #${reference.id}`].filter((part) => part).join(" · ");
               return (
                 <Table.Row key={reference.id} align="start">
@@ -116,7 +146,7 @@ function RecipePage({ recipes, region, label, kind }: { recipes: ListedRecipe[];
                   </Table.Cell>
                   <Table.Cell>
                     <Skeleton loading={loading}>
-                      <Text size="1">{source}</Text>
+                      <RecipeSource detail={detail} />
                     </Skeleton>
                   </Table.Cell>
                 </Table.Row>
@@ -130,44 +160,20 @@ function RecipePage({ recipes, region, label, kind }: { recipes: ListedRecipe[];
   );
 }
 
-// The filter row above a recipe list: All, then each kind of source the list has (Trainer, Vendor,
-// Drop...), with counts. A recipe with more than one source counts under each.
-function SourceFilter({ counts, total, selected, onSelect, label }: {
-  counts: { kind: string; count: number }[]; total: number; selected: string; onSelect: (kind: string) => void; label: string;
-}) {
-  const options = [{ kind: allSources, count: total }, ...counts];
-  return (
-    <Flex gap="1" wrap="wrap" role="group" aria-label={`Filter ${label} recipes by source`}>
-      {options.map((option) => {
-        let variant: "solid" | "soft" = "soft";
-        if (option.kind === selected) {
-          variant = "solid";
-        }
-        return (
-          <Button key={option.kind} size="1" variant={variant} color="gray" aria-pressed={option.kind === selected}
-            onClick={() => onSelect(option.kind)}>
-            {option.kind} <span className="recipe-source-count">{option.count}</span>
-          </Button>
-        );
-      })}
-    </Flex>
-  );
-}
-
 // The search, source filter, table and paging shared by the known and not-learned lists.
 function RecipeList({ recipes, region, label, kind }: { recipes: ListedRecipe[]; region: string; label: string; kind: string }) {
   const [query, setQuery] = useState("");
-  const [source, setSource] = useState(allSources);
+  const [sources, setSources] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const unique = filterKnownRecipes(recipes, "");
   const counts = sourceCounts(unique);
-  //The row only shows when there's a choice to make; a source no longer in the list falls back to All.
+  //The filter only shows when there's a choice to make; a source no longer in the list is dropped.
   const showFilter = counts.length > 1;
-  let shownSource = allSources;
-  if (showFilter && counts.some((count) => count.kind === source)) {
-    shownSource = source;
+  let shownSources: string[] = [];
+  if (showFilter) {
+    shownSources = sources.filter((source) => counts.some((count) => count.kind === source));
   }
-  const filtered = filterBySource(filterKnownRecipes(recipes, query), shownSource);
+  const filtered = filterBySource(filterKnownRecipes(recipes, query), shownSources);
   const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, pages);
   const start = (currentPage - 1) * pageSize;
@@ -183,8 +189,8 @@ function RecipeList({ recipes, region, label, kind }: { recipes: ListedRecipe[];
         <TextField.Slot><MagnifyingGlassIcon /></TextField.Slot>
       </TextField.Root>
       {showFilter && (
-        <SourceFilter counts={counts} total={unique.length} selected={shownSource} label={`${label} ${kind}`}
-          onSelect={(value) => { setSource(value); setPage(1); }} />
+        <SourceFilter counts={counts} selected={shownSources} label={`${label} ${kind}`}
+          onChange={(value) => { setSources(value); setPage(1); }} />
       )}
       {shown.length === 0 ? <Text as="p" size="2" color="gray" role="status">No recipes match your search.</Text> : (
         <RecipePage recipes={shown} region={region} label={label} kind={kind} />
