@@ -18,7 +18,8 @@ public class ForeverSkillTierRecipe
 //One row of ForeverRecipes.tsv. Blizzard's recipe data has no required skill or source, so the file is
 //built offline by tools/forever_recipe_skills.py: the level on the pattern (plans, formula...) of the same
 //name and its icon, from Blizzard's item data, and where that pattern comes from, from Wowhead Forever. A recipe no
-//item teaches is from a trainer, with its level estimated from where Classic turns it yellow.
+//item teaches is from a trainer, at the level Classic's trainers ask (cmangos's trainer data), or estimated from where
+//Classic turns it yellow when no trainer data has it.
 public class ForeverRecipeInfo
 {
     public int? requiredSkill { get; init; }

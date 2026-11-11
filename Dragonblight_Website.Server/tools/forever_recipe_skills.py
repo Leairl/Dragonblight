@@ -1,28 +1,35 @@
 #!/usr/bin/env python3
 # Builds ForeverRecipes.tsv: per recipe, the skill it needs, the item that teaches it, and where that item comes from.
-# Columns: recipe id, required skill (blank if unknown), pattern|estimate|unknown, item id, item name, item icon URL, source,
+# Columns: recipe id, required skill (blank if unknown), pattern|trainer|learned|estimate|unknown|hidden, item id, item name,
+# item icon URL, source,
 # and the source's parts as JSON ([{"kind":"Drop","name":"Raging Rot Hide","zone":"Silverpine Forest","wowhead":"npc=1943"}])
 # Rerun after a Forever patch that adds recipes, then restart the server. Wowhead gets one request a
 # second and answers slowly, so a first full run takes hours; PARTIAL=1 writes the file at once from what's
 # cached, and the cache dir makes later runs quick:
 #   curl -o /tmp/sla.csv "https://wago.tools/db2/SkillLineAbility/csv?product=wow_classic_era"
 #   curl -o /tmp/area.csv "https://wago.tools/db2/AreaTable/csv?product=wow_classic_era"
-#   python3 -I tools/forever_recipe_skills.py appsettings.json /tmp/sla.csv /tmp/area.csv /tmp/forever-items ForeverRecipes.tsv
-# Usage: python3 -I forever_recipe_skills.py <appsettings.json> <era SkillLineAbility.csv> <era AreaTable.csv> <cache dir> <out.tsv>
+#   curl -o /tmp/spelleffect.csv "https://wago.tools/db2/SpellEffect/csv?product=wow_classic_era"
+#   curl -L -o /tmp/classicdb.sql.gz "https://raw.githubusercontent.com/cmangos/classic-db/master/Full_DB/ClassicDB_1_12_1_z2815.sql.gz"
+#   python3 -I tools/forever_recipe_skills.py appsettings.json /tmp/sla.csv /tmp/area.csv /tmp/spelleffect.csv /tmp/classicdb.sql.gz /tmp/forever-items ForeverRecipes.tsv
+# Usage: python3 -I forever_recipe_skills.py <appsettings.json> <era SkillLineAbility.csv> <era AreaTable.csv> <era SpellEffect.csv>
+#        <cmangos ClassicDB .sql or .sql.gz> <cache dir> <out.tsv>
 #  1. every recipe of every Forever profession tier (static-forever-us)
 #  2. every recipe item (item class 9): its item data says "Requires Tailoring (90)"
 #  3. a recipe gets the level of the item named "<Pattern|Plans|...>: <recipe name>" for its profession
-#  4. recipes no item teaches (trainer recipes) get an estimate from Classic era's SkillLineAbility,
+#  4. recipes no item teaches: the skill Classic's trainers ask before teaching them, from cmangos's
+#     npc_trainer data (its spells are the trainer's teaching spells; SpellEffect's "learn spell" effect
+#     links each to the recipe). Recipes learned with the profession itself need skill 1. The rest
+#     (quest rewards, recipes new in Forever) get an estimate from Classic era's SkillLineAbility,
 #     fitted to the exact levels found in step 3
 #  5. each recipe item's icon, from Blizzard's item media
 #  6. where each recipe item comes from: Wowhead Forever's item XML ("source" and "sourcemore"), one
 #     request a second; recipes no item teaches are from a trainer. With PARTIAL=1 only what's already
 #     cached is used, so the file can be written while a full run is still filling the cache.
-import base64, csv, json, os, sys, time, urllib.error, urllib.request
+import base64, csv, gzip, json, os, re, sys, time, urllib.error, urllib.request
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 
-settings_path, sla_path, area_path, cache_dir, out_path = sys.argv[1:6]
+settings_path, sla_path, area_path, spelleffect_path, trainer_db_path, cache_dir, out_path = sys.argv[1:8]
 os.makedirs(cache_dir, exist_ok=True)
 
 with open(settings_path, encoding="utf-8-sig") as f:
@@ -115,7 +122,45 @@ def yellow(pid, rid):
         return int(era["TrivialSkillLineRankLow"])
     return None
 
-# 4. the estimate: how far below Classic's yellow level the exact levels sit, by yellow band
+# 4a. Classic's trainer levels. cmangos lists each trainer's teaching spells with the skill it asks
+# for (reqskillvalue); a teaching spell's "learn spell" effect (36) names the recipe spell it teaches.
+learned_by = {}  # recipe spell -> teaching spells
+with open(spelleffect_path, encoding="utf-8") as f:
+    for r in csv.DictReader(f):
+        if r["Effect"] == "36" and r["EffectTriggerSpell"].isdigit():
+            learned_by.setdefault(int(r["EffectTriggerSpell"]), []).append(int(r["SpellID"]))
+trainer_levels = {}  # (teaching spell, skill line) -> lowest skill any trainer asks
+trainer_row = re.compile(r"\((\d+),(\d+),(\d+),(\d+),(\d+),(\d+),")
+opener = gzip.open if trainer_db_path.endswith(".gz") else open
+with opener(trainer_db_path, "rt", encoding="utf-8", errors="replace") as f:
+    for line in f:
+        if not (line.startswith("INSERT INTO `npc_trainer` VALUES") or line.startswith("INSERT INTO `npc_trainer_template` VALUES")):
+            continue
+        for m in trainer_row.finditer(line):
+            _, spell, _, skill, value, _ = map(int, m.groups())
+            if skill == 0:
+                continue
+            key = (spell, skill)
+            if key not in trainer_levels or value < trainer_levels[key]:
+                trainer_levels[key] = value
+print(len(trainer_levels), "trainer spells with a skill requirement", file=sys.stderr)
+
+def trainer_level(pid, rid):
+    era = sla.get(rid)
+    if not era or era["SkillLine"] != str(pid) or not era["Spell"].isdigit():
+        return None
+    spell = int(era["Spell"])
+    found = [trainer_levels[(t, pid)] for t in learned_by.get(spell, []) + [spell] if (t, pid) in trainer_levels]
+    if not found:
+        return None
+    return max(1, min(found))
+
+# recipes Classic gives with the profession itself (AcquireMethod 1), at skill 1
+def learned_with_profession(pid, rid):
+    era = sla.get(rid)
+    return bool(era) and era["SkillLine"] == str(pid) and era["AcquireMethod"] == "1"
+
+# 4b. the estimate: how far below Classic's yellow level the exact levels sit, by yellow band
 pairs = []
 for pid, rid, name in recipes:
     exact = levels.get((pid, name.lower()))
@@ -291,6 +336,12 @@ with open(out_path, "w", newline="") as f:
             parts = json.dumps(source_parts(info), separators=(",", ":"))
             out.writerow([rid, exact, "pattern", t["id"], clean(t["name"]), clean(icons.get(t["id"], "")), clean(source_text(info)), parts])
             counts["pattern"] += 1
+        elif trainer_level(pid, rid) is not None:
+            out.writerow([rid, trainer_level(pid, rid), "trainer", "", "", "", "Trainer", '[{"kind":"Trainer"}]'])
+            counts["trainer"] += 1
+        elif learned_with_profession(pid, rid):
+            out.writerow([rid, 1, "learned", "", "", "", "Trainer", '[{"kind":"Trainer"}]'])
+            counts["learned"] += 1
         elif y is not None:
             out.writerow([rid, estimate(y), "estimate", "", "", "", "Trainer", '[{"kind":"Trainer"}]'])
             counts["estimate"] += 1
