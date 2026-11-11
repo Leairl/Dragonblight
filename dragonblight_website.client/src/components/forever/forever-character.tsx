@@ -6,6 +6,7 @@ import { Dragonblight } from "../../clients/Dragonblight";
 import { ClassColor } from "../../helpers/classColorHelper";
 import { findSlotItem, getEnchant, getEnchantName, itemTooltipParams } from "../../helpers/equipmentHelper";
 import { wowheadUrl } from "../../helpers/game-flavor";
+import { specDisplayName, specIcon } from "../../helpers/forever-names";
 import ForeverProfessions from "./forever-professions/forever-professions";
 import ForeverOptimize from "./forever-optimize/forever-optimize";
 import ForeverPvp from "./forever-pvp/forever-pvp";
@@ -294,6 +295,31 @@ function HeaderStats({ level, itemLevel }: { level?: number; itemLevel?: number 
   );
 }
 
+// The header's spec icon, next to the class icon: the talent tree the character has put the most
+// points in. Nothing when they've spent none, or Blizzard didn't say.
+function HeaderSpecIcon({ specName, className }: { specName?: string | null; className: string }) {
+  if (!specName || !className) {
+    return null;
+  }
+  const shown = specDisplayName(specName);
+  return (
+    <img
+      className="my-1 mr-1"
+      src={specIcon(shown, className)}
+      alt={shown}
+      title={shown}
+      onError={(e) => {
+        if (!e.currentTarget.src.endsWith("/unknown.png")) {
+          e.currentTarget.src = "/unknown.png";
+        }
+      }}
+      height="34px"
+      width="34px"
+      style={headerIconStyle}
+    ></img>
+  );
+}
+
 function CharacterTabs() {
   const { region, characterSlug, urlTab } = useParams();
   const navigate = useNavigate();
@@ -348,6 +374,7 @@ function RosterOnlyCharacter(props: { character: Dragonblight.ForeverStatsCharac
                         width="34px"
                         style={headerIconStyle}
                       ></img>
+                      <HeaderSpecIcon specName={c.specName} className={c.className} />
                       <img
                         className="my-1"
                         src={`/RaceIcons/${c.raceName.toLowerCase().split(" ").join("")}-m.png`}
@@ -527,6 +554,7 @@ function ForeverCharacter() {
                           width="34px"
                           style={headerIconStyle}
                         ></img>
+                        <HeaderSpecIcon specName={page?.specName} className={className} />
                         <img
                           className="my-1"
                           src={`/RaceIcons/${(profile.race?.name ?? "").toLowerCase().split(" ").join("")}${gender}.png`}

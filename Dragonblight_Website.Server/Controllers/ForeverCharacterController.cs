@@ -61,7 +61,10 @@ namespace Dragonblight_Website.Server.Controllers
                 var profileTask = _warcraftCachedData.GetForeverCharacter(characterSlug, region);
                 var equipmentTask = _warcraftCachedData.GetForeverEquipment(characterSlug, region);
                 var mediaTask = _warcraftCachedData.GetForeverMedia(characterSlug, region);
-                await Task.WhenAll(profileTask, equipmentTask, mediaTask);
+                //the talents tab's own data, kept two hours, so the header's spec matches the talents shown and
+                //follows a respec; GetForeverSpecName keeps its answer three days for the stats crawl
+                var specTask = _warcraftCachedData.GetForeverSpecializations(characterSlug, region);
+                await Task.WhenAll(profileTask, equipmentTask, mediaTask, specTask);
 
                 var profile = profileTask.Result;
                 if (profile == null)
@@ -87,7 +90,8 @@ namespace Dragonblight_Website.Server.Controllers
                 {
                     profile = profile,
                     equipment = equipmentTask.Result,
-                    media = mediaTask.Result
+                    media = mediaTask.Result,
+                    specName = SpecNameOf(specTask.Result),
                 });
             }
             catch (Exception ex)
@@ -510,6 +514,16 @@ namespace Dragonblight_Website.Server.Controllers
             }
         }
 
+        //The header's spec: null when Blizzard didn't answer, so the page leaves the icon out.
+        private static string? SpecNameOf(ForeverSpecializations? specializations)
+        {
+            if (specializations == null)
+            {
+                return null;
+            }
+            return WarcraftRedisProxy.MostPointsTree(specializations);
+        }
+
         //Only the visible page is enriched, ten recipes at a time.
         [HttpGet("GetRecipes")]
         public async Task<ActionResult<ForeverRecipeDetails[]>> GetRecipes(string region, [FromQuery] int[] recipeIds)
@@ -856,5 +870,8 @@ namespace Dragonblight_Website.Server.Controllers
         public CharacterEquipmentSummary? equipment { get; set; }
         //null while Blizzard's render of a new character is still missing
         public CharacterMediaSummary? media { get; set; }
+        //the talent tree with the most points, as Blizzard names it ("Feral Combat"); empty when the
+        //character has spent none, null when Blizzard didn't answer
+        public string? specName { get; set; }
     }
 }
