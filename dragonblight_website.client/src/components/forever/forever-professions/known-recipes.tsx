@@ -5,43 +5,48 @@ import { Dragonblight } from "../../../clients/Dragonblight";
 import { wowheadUrl } from "../../../helpers/game-flavor";
 import { stripWowMarkup } from "../../../helpers/equipmentHelper";
 import { craftedQuantityText, filterKnownRecipes, recipeOutputs, recipeWowheadTarget } from "./recipe-helpers";
+import { loadRecipeDetails, recipeDetails } from "../forever-data";
 
 const pageSize = 10;
 declare const $WowheadPower: { refreshLinks: () => void } | undefined;
 
-type RecipeResult = { key: string; rows?: Dragonblight.ForeverRecipeDetails[]; error?: boolean };
+type RecipeResult = { key: string; failed: boolean };
 
 function RecipePage({ recipes, region, label }: { recipes: Dragonblight.RecipeReference[]; region: string; label: string }) {
   const [attempt, setAttempt] = useState(0);
   const [result, setResult] = useState<RecipeResult>();
   const ids = recipes.map((recipe) => recipe.id).join(",");
   const requestKey = `${region}/${ids}/${attempt}`;
-  const current = result?.key === requestKey ? result : undefined;
+  //A page seen before (or prefetched from the Next button) is already in the session cache.
+  const cachedAll = ids !== "" && recipes.every((recipe) => recipeDetails.get(region, recipe.id));
+  const current = result?.key === requestKey ? result : cachedAll ? { key: requestKey, failed: false } : undefined;
   const loading = ids !== "" && !current;
 
   useEffect(() => {
     if (!ids) return;
     let cancelled = false;
-    new Dragonblight.ForeverCharacterClient().getRecipes(region, ids.split(",").map(Number))
-      .then((rows) => { if (!cancelled) setResult({ key: requestKey, rows }); })
-      .catch(() => { if (!cancelled) setResult({ key: requestKey, error: true }); });
+    loadRecipeDetails(region, ids.split(",").map(Number))
+      .then(({ failed }) => { if (!cancelled) setResult({ key: requestKey, failed }); });
     return () => { cancelled = true; };
   }, [region, ids, requestKey]);
 
   useEffect(() => {
-    if (current?.rows && typeof $WowheadPower !== "undefined") $WowheadPower.refreshLinks();
-  }, [current?.rows]);
+    if (current && typeof $WowheadPower !== "undefined") $WowheadPower.refreshLinks();
+  }, [current?.key]); // eslint-disable-line react-hooks/exhaustive-deps -- once per loaded page
 
-  const details = new Map((current?.rows ?? []).map((row) => [row.id, row]));
-  const missing = !!current && !current.error && recipes.some((recipe) => !details.get(recipe.id)?.recipe);
+  const details = new Map(recipes.flatMap((recipe) => {
+    const row = recipeDetails.get(region, recipe.id);
+    return row ? [[recipe.id, row] as const] : [];
+  }));
+  const missing = !!current && !current.failed && recipes.some((recipe) => !details.get(recipe.id)?.recipe);
 
   return (
     <>
-      {(current?.error || missing) && (
+      {(current?.failed || missing) && (
         <Callout.Root size="1" color="amber" className="recipe-notice">
           <Callout.Icon><InfoCircledIcon /></Callout.Icon>
           <Callout.Text>
-            {current?.error ? "Couldn't load recipe details. Known recipe names are still shown." : "Blizzard hasn't supplied details for some recipes. Names and Wowhead searches are still available."}
+            {current?.failed ? "Couldn't load recipe details. Known recipe names are still shown." : "Blizzard hasn't supplied details for some recipes. Names and Wowhead searches are still available."}
             <Button size="1" variant="ghost" ml="2" onClick={() => setAttempt((value) => value + 1)}>Retry details</Button>
           </Callout.Text>
         </Callout.Root>
@@ -131,6 +136,10 @@ export default function KnownRecipes({ recipes, region, label }: { recipes: Drag
   const currentPage = Math.min(page, pages);
   const start = (currentPage - 1) * pageSize;
   const shown = filtered.slice(start, start + pageSize);
+  const prefetchNext = () => {
+    const next = filtered.slice(start + pageSize, start + 2 * pageSize).map((recipe) => recipe.id);
+    if (next.length > 0) void loadRecipeDetails(region, next);
+  };
 
   return (
     <div className="profession-recipes">
@@ -150,7 +159,8 @@ export default function KnownRecipes({ recipes, region, label }: { recipes: Drag
             <Flex gap="2" align="center">
               <Button size="1" variant="soft" color="gray" disabled={currentPage <= 1} onClick={() => setPage(currentPage - 1)}>Previous</Button>
               <Text size="1" color="gray">{currentPage} / {pages}</Text>
-              <Button size="1" variant="soft" color="gray" disabled={currentPage >= pages} onClick={() => setPage(currentPage + 1)}>Next</Button>
+              <Button size="1" variant="soft" color="gray" disabled={currentPage >= pages} onClick={() => setPage(currentPage + 1)}
+                onPointerEnter={prefetchNext} onFocus={prefetchNext}>Next</Button>
             </Flex>
           </Flex>
         </div>

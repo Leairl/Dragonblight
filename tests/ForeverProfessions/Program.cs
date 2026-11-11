@@ -247,7 +247,7 @@ calls = handler.Paths.Count;
 Check((await controller.GetAchievementDetails("invalid", [62015])).Result is BadRequestObjectResult, "Achievement detail regions must be validated");
 Check((await controller.GetAchievementDetails("us", [])).Result is BadRequestObjectResult, "Empty achievement batches must be rejected");
 Check((await controller.GetAchievementDetails("us", [0])).Result is BadRequestObjectResult, "Nonpositive achievement IDs must be rejected");
-Check((await controller.GetAchievementDetails("us", Enumerable.Range(1, 11).ToArray())).Result is BadRequestObjectResult, "Achievement batches must be bounded to ten IDs");
+Check((await controller.GetAchievementDetails("us", Enumerable.Range(1, ForeverCharacterController.MaxAchievementBatch + 1).ToArray())).Result is BadRequestObjectResult, "Achievement batches must be bounded");
 Check(handler.Paths.Count == calls, "Invalid achievement detail requests must not call Blizzard");
 var partialAchievements = ((await controller.GetAchievementDetails("us", [62015, 9999])).Result as OkObjectResult)?.Value as ForeverAchievementDetails[];
 Check(partialAchievements?.Length == 2 && partialAchievements[0].achievement != null && partialAchievements[1].achievement == null, "Missing static achievements must not hide available rows");
@@ -257,6 +257,34 @@ Check(failedDetails?[0].achievement == null, "Unavailable static details must re
 handler.Status = HttpStatusCode.OK;
 var retriedDetails = ((await controller.GetAchievementDetails("us", [62016])).Result as OkObjectResult)?.Value as ForeverAchievementDetails[];
 Check(retriedDetails?[0].achievement != null, "Failed static achievements must not poison the cache");
+//A character's whole achievement list fits in one request.
+calls = handler.Paths.Count;
+var wholeList = ((await controller.GetAchievementDetails("eu", Enumerable.Range(70000, ForeverCharacterController.MaxAchievementBatch).ToArray())).Result as OkObjectResult)?.Value as ForeverAchievementDetails[];
+Check(wholeList?.Length == ForeverCharacterController.MaxAchievementBatch && wholeList.All(row => row.achievement != null), "A full batch must return every achievement");
+Check(handler.Paths.Count == calls + 2 * ForeverCharacterController.MaxAchievementBatch, "A cold batch needs one definition and one media request per achievement");
+
+//Blizzard 404s are remembered, so a missing definition or icon is not requested on every view.
+calls = handler.Paths.Count;
+await controller.GetAchievementDetails("us", [9999]);
+Check(handler.Paths.Count == calls, "Missing static achievements must be cached as missing");
+await controller.GetRecipes("us", [9999]);
+await controller.GetRecipes("us", [9999]);
+Check(handler.Paths.Count(path => path.Contains("/recipe/9999")) == 2, "Missing static recipes and icons must be cached as missing");
+
+//Complete static batches are cacheable by the browser; partial ones are not, so a retry reaches the server.
+string? CacheControlOf(Func<Task> request)
+{
+    controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
+    request().GetAwaiter().GetResult();
+    return controller.Response.Headers.CacheControl.ToString();
+}
+Check(CacheControlOf(() => controller.GetAchievementDetails("us", [62015])) == "public, max-age=86400", "Complete achievement batches must be browser-cacheable");
+Check(CacheControlOf(() => controller.GetAchievementDetails("us", [62015, 9999])) == "", "Partial achievement batches must not be browser-cached");
+Check(CacheControlOf(() => controller.GetRecipes("us", [2359])) == "public, max-age=86400", "Complete recipe batches must be browser-cacheable");
+Check(CacheControlOf(() => controller.GetAchievements("us", "judgement-judy")) == "private, max-age=300", "Character tabs may be reused briefly by the browser");
+handler.Status = HttpStatusCode.NotFound;
+Check(CacheControlOf(() => controller.GetAchievements("us", "missing-player")) == "", "Missing characters must not be browser-cached");
+handler.Status = HttpStatusCode.OK;
 Check(typeof(ProfileController).GetMethod("GetAchievements") == null, "The new achievements endpoint must remain Forever-only");
 Console.WriteLine($"Passed {checks} Forever character checks.");
 
@@ -282,7 +310,7 @@ class BlizzardHandler : HttpMessageHandler
         if (request.RequestUri!.AbsolutePath.EndsWith("/token"))
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""{"access_token":"test-token","expires_in":3600,"token_type":"bearer"}""") });
         var path = request.RequestUri.AbsoluteUri;
-        Paths.Add(path);
+        lock (Paths) Paths.Add(path);
         if (request.RequestUri.AbsolutePath.EndsWith("/achievements"))
         {
             var body = Status != HttpStatusCode.OK ? $$"""{"code":{{(int)Status}},"detail":"Test error"}"""

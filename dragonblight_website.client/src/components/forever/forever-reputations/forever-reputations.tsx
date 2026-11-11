@@ -1,14 +1,10 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams } from "react-router";
 import { Badge, Button, Card, Flex, Heading, Progress, Skeleton, Text, TextField } from "@radix-ui/themes";
 import { Dragonblight } from "../../../clients/Dragonblight";
+import { useForeverTab } from "../forever-data";
 import { filterReputations, reputationColor, reputationProgress } from "./reputation-helpers";
 import "./forever-reputations.css";
-
-type ReputationState =
-  | { status: "loading" }
-  | { status: "loaded"; data: Dragonblight.ForeverReputationsSummary }
-  | { status: "error"; message: string };
 
 function ReputationCard({ entry }: { entry: Dragonblight.ForeverReputation }) {
   const name = entry.faction?.name ?? "Unknown faction";
@@ -43,29 +39,11 @@ function ReputationCard({ entry }: { entry: Dragonblight.ForeverReputation }) {
 
 function ForeverReputations() {
   const { region, characterSlug } = useParams();
-  const [state, setState] = useState<ReputationState>({ status: "loading" });
-  const [attempt, setAttempt] = useState(0);
+  const [state, retry] = useForeverTab("reputations", region, characterSlug, {
+    missing: "Reputation data is not available for this character.",
+    failed: "Unable to load reputations. Please try again.",
+  });
   const [query, setQuery] = useState("");
-
-  //The parent mounts only this tab and keys it by character. Ignore answers after leaving it.
-  useEffect(() => {
-    let cancelled = false;
-    if (!region || !characterSlug) return;
-    new Dragonblight.ForeverCharacterClient().getReputations(region, characterSlug)
-      .then((data) => {
-        if (!cancelled) setState(data
-          ? { status: "loaded", data }
-          : { status: "error", message: "Reputation data is not available for this character." });
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return;
-        const status = typeof error === "object" && error !== null && "status" in error ? error.status : undefined;
-        setState({ status: "error", message: status === 404
-          ? "Reputation data is not available for this character."
-          : "Unable to load reputations. Please try again." });
-      });
-    return () => { cancelled = true; };
-  }, [region, characterSlug, attempt]);
 
   if (!region || !characterSlug) return <p>Select a character to view reputations.</p>;
   const reputations = state.status === "loaded" ? state.data.reputations ?? [] : [];
@@ -83,10 +61,7 @@ function ForeverReputations() {
       {state.status === "error" && (
         <Flex direction="column" align="start" gap="3" role="alert">
           <Text as="p" size="2">{state.message}</Text>
-          <Button variant="soft" color="gray" size="1" onClick={() => {
-            setState({ status: "loading" });
-            setAttempt((value) => value + 1);
-          }}>Retry</Button>
+          <Button variant="soft" color="gray" size="1" onClick={retry}>Retry</Button>
         </Flex>
       )}
       {state.status === "loaded" && (reputations.length === 0 ? (

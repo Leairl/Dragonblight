@@ -1,39 +1,15 @@
-import { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { Button, Card, Flex, Heading, Skeleton, Table, Text } from "@radix-ui/themes";
-import { Dragonblight } from "../../../clients/Dragonblight";
+import { useForeverTab } from "../forever-data";
 import { pvpRankName } from "./pvp-rank";
 import "./forever-pvp.css";
 
-type PvpState =
-  | { status: "loading" }
-  | { status: "loaded"; data: Dragonblight.ForeverPvpSummary }
-  | { status: "error"; message: string };
-
 function ForeverPvp({ faction }: { faction?: string }) {
   const { region, characterSlug } = useParams();
-  const [state, setState] = useState<PvpState>({ status: "loading" });
-  const [attempt, setAttempt] = useState(0);
-
-  //The parent keys this pane by character. Ignore responses after navigation or retry.
-  useEffect(() => {
-    let cancelled = false;
-    if (!region || !characterSlug) return;
-    new Dragonblight.ForeverCharacterClient().getPvpSummary(region, characterSlug)
-      .then((data) => {
-        if (!cancelled) setState(data
-          ? { status: "loaded", data }
-          : { status: "error", message: "PvP data is not available for this character." });
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return;
-        const status = typeof error === "object" && error !== null && "status" in error ? error.status : undefined;
-        setState({ status: "error", message: status === 404
-          ? "PvP data is not available for this character."
-          : "Unable to load PvP data. Please try again." });
-      });
-    return () => { cancelled = true; };
-  }, [region, characterSlug, attempt]);
+  const [state, retry] = useForeverTab("pvp", region, characterSlug, {
+    missing: "PvP data is not available for this character.",
+    failed: "Unable to load PvP data. Please try again.",
+  });
 
   if (!region || !characterSlug) return <p>Select a character to view PvP data.</p>;
 
@@ -52,10 +28,7 @@ function ForeverPvp({ faction }: { faction?: string }) {
       {state.status === "error" && (
         <Flex direction="column" align="start" gap="3" role="alert">
           <Text as="p" size="2">{state.message}</Text>
-          <Button variant="soft" color="gray" size="1" onClick={() => {
-            setState({ status: "loading" });
-            setAttempt((value) => value + 1);
-          }}>Retry</Button>
+          <Button variant="soft" color="gray" size="1" onClick={retry}>Retry</Button>
         </Flex>
       )}
       {state.status === "loaded" && data && (

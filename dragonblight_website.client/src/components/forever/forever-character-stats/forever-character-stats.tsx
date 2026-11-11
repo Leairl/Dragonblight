@@ -1,15 +1,9 @@
-import { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { Button, Card, ChevronDownIcon, DataList, Heading, Skeleton, Text } from "@radix-ui/themes";
 import * as Accordion from "@radix-ui/react-accordion";
-import { Dragonblight } from "../../../clients/Dragonblight";
+import { useForeverTab } from "../forever-data";
 import { statGroups, StatRow } from "./stat-groups";
 import "./forever-character-stats.css";
-
-type StatsState =
-  | { status: "loading" }
-  | { status: "loaded"; data: Dragonblight.ForeverCharacterStatistics }
-  | { status: "error"; message: string };
 
 function StatRows({ rows }: { rows: StatRow[] }) {
   return (
@@ -26,28 +20,11 @@ function StatRows({ rows }: { rows: StatRow[] }) {
 
 function ForeverCharacterStats() {
   const { region, characterSlug } = useParams();
-  const [state, setState] = useState<StatsState>({ status: "loading" });
-  const [attempt, setAttempt] = useState(0);
-
-  //Keep mounted across tabs, keyed by character, independently of the paperdoll request.
-  useEffect(() => {
-    let cancelled = false;
-    if (!region || !characterSlug) return;
-    new Dragonblight.ForeverCharacterClient().getStats(region, characterSlug)
-      .then((data) => {
-        if (!cancelled) setState(data
-          ? { status: "loaded", data }
-          : { status: "error", message: "Stats are not available for this character." });
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return;
-        const status = typeof error === "object" && error !== null && "status" in error ? error.status : undefined;
-        setState({ status: "error", message: status === 404
-          ? "Stats are not available for this character."
-          : "Unable to load stats. Please try again." });
-      });
-    return () => { cancelled = true; };
-  }, [region, characterSlug, attempt]);
+  //Kept mounted across tabs, keyed by character, independently of the paperdoll request.
+  const [state, retry] = useForeverTab("stats", region, characterSlug, {
+    missing: "Stats are not available for this character.",
+    failed: "Unable to load stats. Please try again.",
+  });
 
   if (!region || !characterSlug) return null;
   const groups = state.status === "loaded" ? statGroups(state.data) : [];
@@ -64,10 +41,7 @@ function ForeverCharacterStats() {
         <Card className="border-card" role="alert">
           <Heading size="2" mb="2">Stats</Heading>
           <Text as="p" size="2" mb="3">{state.message}</Text>
-          <Button variant="soft" color="gray" size="1" onClick={() => {
-            setState({ status: "loading" });
-            setAttempt((value) => value + 1);
-          }}>Retry</Button>
+          <Button variant="soft" color="gray" size="1" onClick={retry}>Retry</Button>
         </Card>
       )}
       {state.status === "loaded" && (!hasStats ? (

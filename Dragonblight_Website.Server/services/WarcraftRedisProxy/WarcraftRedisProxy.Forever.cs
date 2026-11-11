@@ -141,44 +141,81 @@ partial class WarcraftRedisProxy
         }, TimeSpan.FromHours(2));
     }
 
-    public async Task<ForeverAchievement?> GetForeverAchievement(int achievementId, string region)
+    //Static achievement and recipe data is shared by every character, so one cold page can ask for
+    //dozens of definitions and icons at once. Only the Blizzard calls are throttled, and the limit is
+    //process-wide: cached lookups never wait, and several visitors at once can't multiply the load.
+    private static readonly SemaphoreSlim ForeverStaticFetches = new(8);
+
+    //A definition or icon Blizzard reports missing (404) is remembered for a day, so a recipe with no icon
+    //doesn't call Blizzard on every view. Other failures are not cached and the next request retries.
+    private record StaticLookup<T>(T? Value);
+
+    private async Task<TValue?> GetForeverStaticCached<TResult, TValue>(string key, Func<Task<RequestResult<TResult>>> call, Func<TResult, TValue?> select)
     {
-        var ns = GetStaticRegion(region, GameFlavor.Forever);
-        return await GetBlizzardDataCached<ForeverAchievement?>("ForeverAchievement" + achievementId + ns, async () =>
+        var versionedKey = VersionedKey(key);
+        var cached = await GetRedisData<StaticLookup<TValue>>(versionedKey);
+        if (cached != null)
         {
-            var result = await warcraftClient.GetForeverAchievementAsync(achievementId, ns, GetRegion(region), GetLocale(region));
-            return result?.Success == true ? result.Value : null;
-        }, TimeSpan.FromDays(7));
+            return cached.Value;
+        }
+        var lookup = await FetchOnce(key, async () =>
+        {
+            RequestResult<TResult>? result;
+            await ForeverStaticFetches.WaitAsync();
+            try
+            {
+                result = await call();
+            }
+            finally
+            {
+                ForeverStaticFetches.Release();
+            }
+            if (result?.Success == true)
+            {
+                var found = new StaticLookup<TValue>(select(result.Value));
+                await SaveToRedis(versionedKey, found, TimeSpan.FromDays(7));
+                return found;
+            }
+            if (result?.Error?.Code == 404)
+            {
+                var missing = new StaticLookup<TValue>(default);
+                await SaveToRedis(versionedKey, missing, TimeSpan.FromDays(1));
+                return missing;
+            }
+            return new StaticLookup<TValue>(default);
+        });
+        return lookup.Value;
     }
 
-    public async Task<string?> GetForeverAchievementIcon(int achievementId, string region)
+    private static string? IconAsset(IEnumerable<Asset>? assets)
+        => assets?.FirstOrDefault(asset => asset.Key == "icon")?.Value?.ToString();
+
+    public Task<ForeverAchievement?> GetForeverAchievement(int achievementId, string region)
     {
         var ns = GetStaticRegion(region, GameFlavor.Forever);
-        return await GetBlizzardDataCached<string?>("ForeverAchievementIcon" + achievementId + ns, async () =>
-        {
-            var result = await warcraftClient.GetAchievementMediaAsync(achievementId, ns, GetRegion(region), GetLocale(region));
-            return result?.Success == true ? result.Value.Assets?.FirstOrDefault(asset => asset.Key == "icon")?.Value?.ToString() : null;
-        }, TimeSpan.FromDays(7));
+        return GetForeverStaticCached<ForeverAchievement, ForeverAchievement>("ForeverAchievementLookup" + achievementId + ns,
+            () => warcraftClient.GetForeverAchievementAsync(achievementId, ns, GetRegion(region), GetLocale(region)), value => value);
     }
 
-    public async Task<Recipe?> GetForeverRecipe(int recipeId, string region)
+    public Task<string?> GetForeverAchievementIcon(int achievementId, string region)
     {
         var ns = GetStaticRegion(region, GameFlavor.Forever);
-        return await GetBlizzardDataCached<Recipe?>("ForeverRecipe" + recipeId + ns, async () =>
-        {
-            var result = await warcraftClient.GetRecipeAsync(recipeId, ns, GetRegion(region), GetLocale(region));
-            return result?.Success == true ? result.Value : null;
-        }, TimeSpan.FromDays(7));
+        return GetForeverStaticCached<AchievementMedia, string>("ForeverAchievementIconLookup" + achievementId + ns,
+            () => warcraftClient.GetAchievementMediaAsync(achievementId, ns, GetRegion(region), GetLocale(region)), media => IconAsset(media.Assets));
     }
 
-    public async Task<string?> GetForeverRecipeIcon(int recipeId, string region)
+    public Task<Recipe?> GetForeverRecipe(int recipeId, string region)
     {
         var ns = GetStaticRegion(region, GameFlavor.Forever);
-        return await GetBlizzardDataCached<string?>("ForeverRecipeIcon" + recipeId + ns, async () =>
-        {
-            var result = await warcraftClient.GetRecipeMediaAsync(recipeId, ns, GetRegion(region), GetLocale(region));
-            return result?.Success == true ? result.Value.Assets?.FirstOrDefault(asset => asset.Key == "icon")?.Value?.ToString() : null;
-        }, TimeSpan.FromDays(7));
+        return GetForeverStaticCached<Recipe, Recipe>("ForeverRecipeLookup" + recipeId + ns,
+            () => warcraftClient.GetRecipeAsync(recipeId, ns, GetRegion(region), GetLocale(region)), value => value);
+    }
+
+    public Task<string?> GetForeverRecipeIcon(int recipeId, string region)
+    {
+        var ns = GetStaticRegion(region, GameFlavor.Forever);
+        return GetForeverStaticCached<RecipeMedia, string>("ForeverRecipeIconLookup" + recipeId + ns,
+            () => warcraftClient.GetRecipeMediaAsync(recipeId, ns, GetRegion(region), GetLocale(region)), media => IconAsset(media.Assets));
     }
 
     //Forever's character images can 404 for many hours after the profile works, so a

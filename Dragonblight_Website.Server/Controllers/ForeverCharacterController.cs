@@ -123,6 +123,7 @@ namespace Dragonblight_Website.Server.Controllers
                         Title = "Profession data is not available for this character."
                     });
                 }
+                CacheCharacterData();
                 return Ok(result);
             }
             catch (Exception ex)
@@ -158,6 +159,7 @@ namespace Dragonblight_Website.Server.Controllers
                         Title = "PvP data is not available for this character."
                     });
                 }
+                CacheCharacterData();
                 return Ok(result);
             }
             catch (Exception ex)
@@ -193,6 +195,7 @@ namespace Dragonblight_Website.Server.Controllers
                         Title = "Stats are not available for this character."
                     });
                 }
+                CacheCharacterData();
                 return Ok(result);
             }
             catch (Exception ex)
@@ -228,6 +231,7 @@ namespace Dragonblight_Website.Server.Controllers
                         Title = "Reputation data is not available for this character."
                     });
                 }
+                CacheCharacterData();
                 return Ok(result);
             }
             catch (Exception ex)
@@ -254,6 +258,7 @@ namespace Dragonblight_Website.Server.Controllers
                     Status = StatusCodes.Status404NotFound,
                     Title = "Achievement data is not available for this character."
                 });
+                CacheCharacterData();
                 return Ok(result);
             }
             catch (Exception ex)
@@ -263,29 +268,28 @@ namespace Dragonblight_Website.Server.Controllers
             }
         }
 
-        //The client sends sequential batches so metadata and icons do not fan out unbounded requests.
+        //Static definitions and icons for a character's whole achievement list. Forever characters report a few
+        //dozen, so one request covers them. Cached lookups answer at once; Blizzard calls on a cold cache are
+        //throttled process-wide in the proxy, not per request.
+        public const int MaxAchievementBatch = 50;
+
         [HttpGet("GetAchievementDetails")]
         public async Task<ActionResult<ForeverAchievementDetails[]>> GetAchievementDetails(string region, [FromQuery] int[] achievementIds)
         {
             region = region.ToLowerInvariant();
             if (region != "us" && region != "eu") return BadRequest("region must be us or eu");
-            if (achievementIds.Length == 0 || achievementIds.Length > 10 || achievementIds.Any(id => id <= 0))
-                return BadRequest("Provide between 1 and 10 positive achievement IDs.");
+            if (achievementIds.Length == 0 || achievementIds.Length > MaxAchievementBatch || achievementIds.Any(id => id <= 0))
+                return BadRequest($"Provide between 1 and {MaxAchievementBatch} positive achievement IDs.");
             try
             {
-                using var limit = new SemaphoreSlim(4);
-                return Ok(await Task.WhenAll(achievementIds.Distinct().Select(async id =>
+                var rows = await Task.WhenAll(achievementIds.Distinct().Select(async id =>
                 {
-                    await limit.WaitAsync();
-                    try
-                    {
-                        var achievement = _warcraftCachedData.GetForeverAchievement(id, region);
-                        var icon = _warcraftCachedData.GetForeverAchievementIcon(id, region);
-                        await Task.WhenAll(achievement, icon);
-                        return new ForeverAchievementDetails { id = id, achievement = achievement.Result, icon = icon.Result };
-                    }
-                    finally { limit.Release(); }
-                })));
+                    var achievement = _warcraftCachedData.GetForeverAchievement(id, region);
+                    var icon = _warcraftCachedData.GetForeverAchievementIcon(id, region);
+                    return new ForeverAchievementDetails { id = id, achievement = await achievement, icon = await icon };
+                }));
+                CacheStaticRows(rows.All(row => row.achievement != null && row.icon != null));
+                return Ok(rows);
             }
             catch (Exception ex)
             {
@@ -294,8 +298,7 @@ namespace Dragonblight_Website.Server.Controllers
             }
         }
 
-        //Only the visible page is enriched. Bound the batch and concurrency so opening a
-        //large recipe collection does not fan out hundreds of Blizzard requests.
+        //Only the visible page is enriched, ten recipes at a time.
         [HttpGet("GetRecipes")]
         public async Task<ActionResult<ForeverRecipeDetails[]>> GetRecipes(string region, [FromQuery] int[] recipeIds)
         {
@@ -310,22 +313,13 @@ namespace Dragonblight_Website.Server.Controllers
             }
             try
             {
-                using var limit = new SemaphoreSlim(4);
                 var results = await Task.WhenAll(recipeIds.Distinct().Select(async id =>
                 {
-                    await limit.WaitAsync();
-                    try
-                    {
-                        var recipe = _warcraftCachedData.GetForeverRecipe(id, region);
-                        var icon = _warcraftCachedData.GetForeverRecipeIcon(id, region);
-                        await Task.WhenAll(recipe, icon);
-                        return new ForeverRecipeDetails { id = id, recipe = recipe.Result, icon = icon.Result };
-                    }
-                    finally
-                    {
-                        limit.Release();
-                    }
+                    var recipe = _warcraftCachedData.GetForeverRecipe(id, region);
+                    var icon = _warcraftCachedData.GetForeverRecipeIcon(id, region);
+                    return new ForeverRecipeDetails { id = id, recipe = await recipe, icon = await icon };
                 }));
+                CacheStaticRows(results.All(row => row.recipe != null && row.icon != null));
                 return Ok(results);
             }
             catch (Exception ex)
@@ -333,6 +327,24 @@ namespace Dragonblight_Website.Server.Controllers
                 _logger.LogError(ex, "Error occurred while getting Forever recipes in {Region}.", region);
                 return StatusCode(500);
             }
+        }
+
+        //Static game data changes with patches, not with play, so a complete answer can sit in the browser and
+        //any shared cache for a day. A batch missing a definition or icon is left uncached, since a transient failure
+        //looks the same as a missing row, and "Retry details" has to reach the server.
+        private void CacheStaticRows(bool complete)
+        {
+            if (complete)
+            {
+                Response.Headers.CacheControl = "public, max-age=86400";
+            }
+        }
+
+        //A character's tabs are cached for two hours on the server; a few minutes in the browser makes a reload or
+        //a second tab instant without showing anything older than the server would.
+        private void CacheCharacterData()
+        {
+            Response.Headers.CacheControl = "private, max-age=300";
         }
 
         //Letters typed with alt codes that have no accent to strip, so RemoveDiacritics leaves

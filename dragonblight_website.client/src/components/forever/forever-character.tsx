@@ -11,6 +11,7 @@ import ForeverPvp from "./forever-pvp/forever-pvp";
 import ForeverCharacterStats from "./forever-character-stats/forever-character-stats";
 import ForeverReputations from "./forever-reputations/forever-reputations";
 import ForeverAchievements from "./forever-achievements/forever-achievements";
+import { prefetchForeverTab } from "./forever-data";
 import "../profile/profile.css";
 import "../profile/profile-equipment/profile-equipment.css";
 import "./forever-character.css";
@@ -176,6 +177,9 @@ function nameFromSlug(slug: string): string {
     .join(" ");
 }
 
+// The tabs that load their own data, which starts as soon as the pointer or keyboard reaches the tab.
+const dataTabs = [["professions", "Professions"], ["pvp", "PvP"], ["reputations", "Reputations"], ["achievements", "Achievements"]] as const;
+
 function CharacterTabs() {
   const { region, characterSlug, urlTab } = useParams();
   const navigate = useNavigate();
@@ -204,10 +208,10 @@ function CharacterTabs() {
         navigate(`/character/${region}/${encodeURIComponent(characterSlug ?? "")}${value === "gear" ? "" : `/${value}`}`, { replace: true });
       }}>
         <SegmentedControl.Item value="gear">Gear</SegmentedControl.Item>
-        <SegmentedControl.Item value="professions">Professions</SegmentedControl.Item>
-        <SegmentedControl.Item value="pvp">PvP</SegmentedControl.Item>
-        <SegmentedControl.Item value="reputations">Reputations</SegmentedControl.Item>
-        <SegmentedControl.Item value="achievements">Achievements</SegmentedControl.Item>
+        {dataTabs.map(([value, label]) => (
+          <SegmentedControl.Item key={value} value={value} onPointerEnter={() => prefetchForeverTab(value, region, characterSlug)}
+            onFocus={() => prefetchForeverTab(value, region, characterSlug)}>{label}</SegmentedControl.Item>
+        ))}
       </SegmentedControl.Root>
     </div>
   );

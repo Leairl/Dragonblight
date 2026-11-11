@@ -1,21 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router";
 import { Button, Callout, Flex, Heading, Select, Skeleton, Text, TextField } from "@radix-ui/themes";
 import { Dragonblight } from "../../../clients/Dragonblight";
+import { achievementDetails, loadAchievementDetails, useForeverTab } from "../forever-data";
 import { filterAchievements, reportedAchievements } from "./achievement-helpers";
 import AchievementCard from "./achievement-card";
 import RecentAchievements from "./recent-achievements";
 import "./forever-achievements.css";
 
-type SummaryState = { status: "loading" } | { status: "loaded"; data: Dragonblight.ForeverAchievementsSummary } | { status: "error"; message: string };
-type DetailResult = { key: string; rows: Dragonblight.ForeverAchievementDetails[]; complete: boolean; failed: boolean };
+type DetailResult = { key: string; complete: boolean; failed: boolean };
 const pageSize = 4;
-const detailBatchSize = 10;
+const noDetails = new Map<number, Dragonblight.ForeverAchievementDetails>();
 
 export default function ForeverAchievements() {
   const { region, characterSlug } = useParams();
-  const [state, setState] = useState<SummaryState>({ status: "loading" });
-  const [attempt, setAttempt] = useState(0);
+  const [state, retry] = useForeverTab("achievements", region, characterSlug, {
+    missing: "Achievement data is not available for this character.",
+    failed: "Unable to load achievements. Please try again.",
+  });
   const [detailAttempt, setDetailAttempt] = useState(0);
   const [detailResult, setDetailResult] = useState<DetailResult>();
   const [query, setQuery] = useState("");
@@ -23,60 +25,62 @@ export default function ForeverAchievements() {
   const [category, setCategory] = useState("all");
   const [page, setPage] = useState(1);
 
-  useEffect(() => {
-    let cancelled = false;
-    if (!region || !characterSlug) return;
-    new Dragonblight.ForeverCharacterClient().getAchievements(region, characterSlug)
-      .then((data) => {
-        if (!cancelled) setState(data ? { status: "loaded", data } : { status: "error", message: "Achievement data is not available for this character." });
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return;
-        const code = typeof error === "object" && error !== null && "status" in error ? error.status : undefined;
-        setState({ status: "error", message: code === 404 ? "Achievement data is not available for this character." : "Unable to load achievements. Please try again." });
-      });
-    return () => { cancelled = true; };
-  }, [region, characterSlug, attempt]);
-
   const summary = state.status === "loaded" ? state.data : undefined;
-  const entries = reportedAchievements(summary?.achievements);
-  const ids = entries.map((entry) => entry.id).sort((a, b) => a - b).join(",");
+  const entries = useMemo(() => reportedAchievements(summary?.achievements), [summary]);
+  const recent = useMemo(() => [...(summary?.recent_events ?? [])].sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0)).slice(0, 5), [summary]);
+  const ids = useMemo(() => [...new Set([...entries.map((entry) => entry.id), ...recent.flatMap((event) => event.achievement ? [event.achievement.id] : [])])]
+    .sort((a, b) => a - b).join(","), [entries, recent]);
+  //What is on screen first: the recent panel and the first page in the default order.
+  const firstIds = useMemo(() => [...recent.flatMap((event) => event.achievement ? [event.achievement.id] : []),
+    ...filterAchievements(entries, noDetails, "", "all", "all").slice(0, pageSize).map((entry) => entry.id)].join(","), [entries, recent]);
   const detailKey = `${region}/${ids}/${detailAttempt}`;
   const currentDetails = detailResult?.key === detailKey ? detailResult : undefined;
-  const detailsLoading = ids !== "" && !currentDetails?.complete;
 
-  //Definitions are needed for category filters and criterion targets. Load small sequential
-  //batches, not an unbounded request per achievement; stop when the character/tab changes.
+  //Definitions are static and shared by every character, so they are cached for the session. Load the
+  //visible ones first, then the rest of the list in one request; stop when the character/tab changes.
   useEffect(() => {
     if (!ids || !region) return;
     let cancelled = false;
-    const client = new Dragonblight.ForeverCharacterClient();
-    const numbers = ids.split(",").map(Number);
+    const all = ids.split(",").map(Number);
+    const first = firstIds ? firstIds.split(",").map(Number) : [];
     async function load() {
-      const rows: Dragonblight.ForeverAchievementDetails[] = [];
       let failed = false;
-      for (let start = 0; start < numbers.length; start += detailBatchSize) {
+      if (first.some((id) => !achievementDetails.get(region!, id))) {
+        const head = await loadAchievementDetails(region!, first);
         if (cancelled) return;
-        try { rows.push(...await client.getAchievementDetails(region, numbers.slice(start, start + detailBatchSize))); }
-        catch { failed = true; }
-        if (cancelled) return;
-        setDetailResult({ key: detailKey, rows: [...rows], complete: start + detailBatchSize >= numbers.length, failed });
+        failed = head.failed;
+        setDetailResult({ key: detailKey, complete: false, failed });
       }
+      const rest = await loadAchievementDetails(region!, all);
+      if (cancelled) return;
+      setDetailResult({ key: detailKey, complete: true, failed: failed || rest.failed });
     }
     void load();
     return () => { cancelled = true; };
-  }, [region, ids, detailKey]);
+  }, [region, ids, firstIds, detailKey]);
 
-  const details = new Map((currentDetails?.rows ?? []).map((detail) => [detail.id, detail]));
-  const categories = [...new Map((currentDetails?.rows ?? []).flatMap((detail) => detail.achievement?.category
+  //Rows come from the session cache; detailResult only changes to say more of them have arrived.
+  const details = useMemo(() => {
+    const rows = new Map<number, Dragonblight.ForeverAchievementDetails>();
+    if (!region || !ids) return rows;
+    for (const id of ids.split(",").map(Number)) {
+      const row = achievementDetails.get(region, id);
+      if (row) rows.set(id, row);
+    }
+    return rows;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- currentDetails marks new rows in the cache
+  }, [region, ids, currentDetails]);
+  const allCached = ids !== "" && ids.split(",").every((id) => details.has(Number(id)));
+  const detailsComplete = allCached || !!currentDetails?.complete;
+  const detailsLoading = ids !== "" && !detailsComplete;
+  const categories = useMemo(() => [...new Map([...details.values()].flatMap((detail) => detail.achievement?.category
     ? [[String(detail.achievement.category.id), detail.achievement.category.name ?? "Unknown category"] as const] : [])).entries()]
-    .sort((a, b) => a[1].localeCompare(b[1]));
-  const missingDetails = !!currentDetails?.complete && (currentDetails.failed || entries.some((entry) => !details.get(entry.id)?.achievement));
-  const filtered = filterAchievements(entries, details, query, status, category);
+    .sort((a, b) => a[1].localeCompare(b[1])), [details]);
+  const missingDetails = detailsComplete && (!!currentDetails?.failed || entries.some((entry) => !details.get(entry.id)?.achievement));
+  const filtered = useMemo(() => filterAchievements(entries, details, query, status, category), [entries, details, query, status, category]);
   const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, pages);
   const start = (currentPage - 1) * pageSize;
-  const recent = [...(summary?.recent_events ?? [])].sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0)).slice(0, 5);
 
   if (!region || !characterSlug) return <p>Select a character to view achievements.</p>;
   return (
@@ -85,7 +89,7 @@ export default function ForeverAchievements() {
       {state.status === "loading" && <div role="status"><Text as="p" size="2" mb="3" color="gray">Loading achievements…</Text>{[0, 1, 2].map((i) => <Skeleton key={i} height="110px" mb="3" />)}</div>}
       {state.status === "error" && <Flex direction="column" align="start" gap="3" role="alert">
         <Text as="p" size="2">{state.message}</Text>
-        <Button size="1" variant="soft" color="gray" onClick={() => { setState({ status: "loading" }); setAttempt((value) => value + 1); }}>Retry</Button>
+        <Button size="1" variant="soft" color="gray" onClick={retry}>Retry</Button>
       </Flex>}
       {state.status === "loaded" && <>
         <Flex gap="4" wrap="wrap" mb="3">

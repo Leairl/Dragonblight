@@ -1,14 +1,10 @@
-import { FC, useEffect, useState } from "react";
+import { FC } from "react";
 import { useParams } from "react-router";
 import { Button, Card, Progress, Skeleton } from "@radix-ui/themes";
 import { Dragonblight } from "../../../clients/Dragonblight";
 import KnownRecipes from "./known-recipes";
+import { useForeverTab } from "../forever-data";
 import "./forever-professions.css";
-
-type ProfessionState =
-  | { status: "loading" }
-  | { status: "loaded"; data: Dragonblight.CharacterProfessionsSummary }
-  | { status: "error"; message: string };
 
 function SkillProgress({ name, points, maximum }: { name: string; points?: number; maximum?: number }) {
   if (points == null || maximum == null || maximum <= 0) {
@@ -58,35 +54,10 @@ function ProfessionCard({ entry, region }: { entry: Dragonblight.CharacterProfes
 
 const ForeverProfessions: FC = () => {
   const { region, characterSlug } = useParams();
-  const [state, setState] = useState<ProfessionState>({ status: "loading" });
-  const [attempt, setAttempt] = useState(0);
-
-  //Mounted only for this tab and keyed by character in the parent, so navigation
-  //starts with fresh loading state. Ignore responses after navigation or a retry.
-  useEffect(() => {
-    let cancelled = false;
-    if (!region || !characterSlug) {
-      return;
-    }
-    new Dragonblight.ForeverCharacterClient().getProfessions(region, characterSlug)
-      .then((data) => {
-        if (!cancelled) {
-          setState(data
-            ? { status: "loaded", data }
-            : { status: "error", message: "Profession data is not available for this character." });
-        }
-      })
-      .catch((error: unknown) => {
-        if (!cancelled) {
-          //NSwag throws typed ProblemDetails for a documented 404, and ApiException otherwise.
-          const status = typeof error === "object" && error !== null && "status" in error ? error.status : undefined;
-          setState({ status: "error", message: status === 404
-            ? "Profession data is not available for this character."
-            : "Unable to load professions. Please try again." });
-        }
-      });
-    return () => { cancelled = true; };
-  }, [region, characterSlug, attempt]);
+  const [state, retry] = useForeverTab("professions", region, characterSlug, {
+    missing: "Profession data is not available for this character.",
+    failed: "Unable to load professions. Please try again.",
+  });
 
   const primaries = state.status === "loaded" ? state.data.primaries ?? [] : [];
   const secondaries = state.status === "loaded" ? state.data.secondaries ?? [] : [];
@@ -107,10 +78,7 @@ const ForeverProfessions: FC = () => {
       {state.status === "error" && (
         <div className="professions-error" role="alert">
           <p>{state.message}</p>
-          <Button variant="soft" color="gray" size="1" onClick={() => {
-            setState({ status: "loading" });
-            setAttempt((value) => value + 1);
-          }}>Retry</Button>
+          <Button variant="soft" color="gray" size="1" onClick={retry}>Retry</Button>
         </div>
       )}
       {state.status === "loaded" && (primaries.length === 0 && secondaries.length === 0
