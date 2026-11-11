@@ -297,6 +297,24 @@ partial class WarcraftRedisProxy
             () => warcraftClient.GetRecipeAsync(recipeId, ns, GetRegion(region), GetLocale(region)), value => value);
     }
 
+    //Every recipe in a profession's skill tier (Tailoring has about 470), with the category the
+    //game files it under. The profile only lists what a character knows; this is what they could.
+    //Kept for a week like the other static lookups; a tier Blizzard doesn't have is cached as missing.
+    public Task<ForeverSkillTierRecipe[]?> GetForeverSkillTierRecipes(int professionId, int skillTierId, string region)
+    {
+        var ns = GetStaticRegion(region, GameFlavor.Forever);
+        return GetForeverStaticCached<SkillTier, ForeverSkillTierRecipe[]>("ForeverSkillTierRecipes" + professionId + "-" + skillTierId + ns,
+            () => warcraftClient.GetSkillTierAsync(professionId, skillTierId, ns, GetRegion(region), GetLocale(region)),
+            tier => (tier.Categories ?? [])
+                .SelectMany(category => (category.Recipes ?? []).Select(recipe => new ForeverSkillTierRecipe
+                {
+                    id = recipe.Id,
+                    name = recipe.Name ?? "",
+                    category = category.Name ?? "",
+                }))
+                .ToArray());
+    }
+
     public Task<string?> GetForeverRecipeIcon(int recipeId, string region)
     {
         var ns = GetStaticRegion(region, GameFlavor.Forever);

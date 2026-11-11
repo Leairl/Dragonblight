@@ -4,15 +4,15 @@ import { ChevronDownIcon, ExternalLinkIcon, InfoCircledIcon, MagnifyingGlassIcon
 import { Dragonblight } from "../../../clients/Dragonblight";
 import { wowheadUrl } from "../../../helpers/game-flavor";
 import { stripWowMarkup } from "../../../helpers/equipmentHelper";
-import { craftedQuantityText, filterKnownRecipes, recipeOutputs, recipeWowheadTarget } from "./recipe-helpers";
-import { loadRecipeDetails, recipeDetails } from "../forever-data";
+import { craftedQuantityText, filterKnownRecipes, ListedRecipe, recipeOutputs, recipeWowheadTarget, unlearnedRecipes } from "./recipe-helpers";
+import { loadRecipeDetails, loadSkillTierRecipes, peekSkillTierRecipes, recipeDetails } from "../forever-data";
 
 const pageSize = 10;
 declare const $WowheadPower: { refreshLinks: () => void } | undefined;
 
 type RecipeResult = { key: string; failed: boolean };
 
-function RecipePage({ recipes, region, label }: { recipes: Dragonblight.RecipeReference[]; region: string; label: string }) {
+function RecipePage({ recipes, region, label, kind }: { recipes: ListedRecipe[]; region: string; label: string; kind: string }) {
   const [attempt, setAttempt] = useState(0);
   const [result, setResult] = useState<RecipeResult>();
   const ids = recipes.map((recipe) => recipe.id).join(",");
@@ -46,13 +46,13 @@ function RecipePage({ recipes, region, label }: { recipes: Dragonblight.RecipeRe
         <Callout.Root size="1" color="amber" className="recipe-notice">
           <Callout.Icon><InfoCircledIcon /></Callout.Icon>
           <Callout.Text>
-            {current?.failed ? "Couldn't load recipe details. Known recipe names are still shown." : "Blizzard hasn't supplied details for some recipes. Names and Wowhead searches are still available."}
+            {current?.failed ? "Couldn't load recipe details. Recipe names are still shown." : "Blizzard hasn't supplied details for some recipes. Names and Wowhead searches are still available."}
             <Button size="1" variant="ghost" ml="2" onClick={() => setAttempt((value) => value + 1)}>Retry details</Button>
           </Callout.Text>
         </Callout.Root>
       )}
       <div className="recipe-table-scroll" aria-busy={loading}>
-        <Table.Root variant="surface" size="1" className="recipe-table" aria-label={`${label} known recipes`}>
+        <Table.Root variant="surface" size="1" className="recipe-table" aria-label={`${label} ${kind} recipes`}>
           <Table.Header>
             <Table.Row>
               <Table.ColumnHeaderCell>Recipe</Table.ColumnHeaderCell>
@@ -82,7 +82,7 @@ function RecipePage({ recipes, region, label }: { recipes: Dragonblight.RecipeRe
                       <div className="recipe-name">
                         <Text as="div" size="2" weight="medium">{name}</Text>
                         {recipe?.description && <Text as="p" size="1" color="gray" className="recipe-description">{stripWowMarkup(recipe.description)}</Text>}
-                        <Text as="div" size="1" color="gray">Recipe #{reference.id}</Text>
+                        <Text as="div" size="1" color="gray">{reference.category ? `${reference.category} · ` : ""}Recipe #{reference.id}</Text>
                       </div>
                     </Flex>
                   </Table.RowHeaderCell>
@@ -125,12 +125,10 @@ function RecipePage({ recipes, region, label }: { recipes: Dragonblight.RecipeRe
   );
 }
 
-export default function KnownRecipes({ recipes, region, label }: { recipes: Dragonblight.RecipeReference[]; region: string; label: string }) {
-  const [open, setOpen] = useState(false);
+// The search, table and paging shared by the known and not-learned lists.
+function RecipeList({ recipes, region, label, kind }: { recipes: ListedRecipe[]; region: string; label: string; kind: string }) {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
-  const contentId = useId();
-  const total = new Set(recipes.map((recipe) => recipe.id)).size;
   const filtered = filterKnownRecipes(recipes, query);
   const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, pages);
@@ -142,27 +140,103 @@ export default function KnownRecipes({ recipes, region, label }: { recipes: Drag
   };
 
   return (
+    <>
+      <TextField.Root size="2" placeholder={`Search ${kind} recipes…`} aria-label={`Search ${label} ${kind} recipes`} value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }}>
+        <TextField.Slot><MagnifyingGlassIcon /></TextField.Slot>
+      </TextField.Root>
+      {shown.length === 0 ? <Text as="p" size="2" color="gray" role="status">No recipes match your search.</Text> : (
+        <RecipePage recipes={shown} region={region} label={label} kind={kind} />
+      )}
+      <Flex justify="between" align="center" gap="2" wrap="wrap">
+        <Text size="1" color="gray">{filtered.length === 0 ? "0 recipes" : `${start + 1}–${Math.min(start + pageSize, filtered.length)} of ${filtered.length} recipes`}</Text>
+        <Flex gap="2" align="center">
+          <Button size="1" variant="soft" color="gray" disabled={currentPage <= 1} onClick={() => setPage(currentPage - 1)}>Previous</Button>
+          <Text size="1" color="gray">{currentPage} / {pages}</Text>
+          <Button size="1" variant="soft" color="gray" disabled={currentPage >= pages} onClick={() => setPage(currentPage + 1)}
+            onPointerEnter={prefetchNext} onFocus={prefetchNext}>Next</Button>
+        </Flex>
+      </Flex>
+    </>
+  );
+}
+
+function ToggleButton({ open, onClick, controls, title, count, onPrefetch }: {
+  open: boolean; onClick: () => void; controls: string; title: string; count?: number; onPrefetch?: () => void;
+}) {
+  return (
+    <Button size="2" variant="soft" color="gray" aria-expanded={open} aria-controls={controls} onClick={onClick}
+      onPointerEnter={onPrefetch} onFocus={onPrefetch}>
+      <ChevronDownIcon className={`recipe-chevron ${open ? "recipe-chevron-open" : ""}`} /> {title} {count !== undefined && <Badge color="gray">{count}</Badge>}
+    </Button>
+  );
+}
+
+export default function KnownRecipes({ recipes, region, label }: { recipes: Dragonblight.RecipeReference[]; region: string; label: string }) {
+  const [open, setOpen] = useState(false);
+  const contentId = useId();
+  const total = new Set(recipes.map((recipe) => recipe.id)).size;
+  return (
     <div className="profession-recipes">
-      <Button size="2" variant="soft" color="gray" aria-expanded={open} aria-controls={contentId} onClick={() => setOpen((value) => !value)}>
-        <ChevronDownIcon className={`recipe-chevron ${open ? "recipe-chevron-open" : ""}`} /> Known recipes <Badge color="gray">{total}</Badge>
-      </Button>
+      <ToggleButton open={open} onClick={() => setOpen((value) => !value)} controls={contentId} title="Known recipes" count={total} />
       {open && (
         <div id={contentId} className="recipe-content">
-          <TextField.Root size="2" placeholder="Search known recipes…" aria-label={`Search ${label} recipes`} value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }}>
-            <TextField.Slot><MagnifyingGlassIcon /></TextField.Slot>
-          </TextField.Root>
-          {shown.length === 0 ? <Text as="p" size="2" color="gray" role="status">No recipes match your search.</Text> : (
-            <RecipePage recipes={shown} region={region} label={label} />
+          <RecipeList recipes={recipes} region={region} label={label} kind="known" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+type TierLoad = { key: string; recipes?: Dragonblight.ForeverSkillTierRecipe[]; failed: boolean };
+
+// The tier's recipes the character hasn't learned yet. The tier's full list is game data the
+// profile doesn't include, so it loads when the list is first opened (or the button hovered).
+export function UnlearnedRecipes({ known, region, professionId, skillTierId, label }: {
+  known: Dragonblight.RecipeReference[]; region: string; professionId: number; skillTierId: number; label: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const [load, setLoad] = useState<TierLoad>();
+  const contentId = useId();
+  const key = `${region}/${professionId}/${skillTierId}/${attempt}`;
+  const cached = peekSkillTierRecipes(region, professionId, skillTierId);
+  const current: TierLoad | undefined = load?.key === key ? load : cached ? { key, recipes: cached, failed: false } : undefined;
+  const loaded = current !== undefined;
+  const prefetch = () => { loadSkillTierRecipes(region, professionId, skillTierId).catch(() => undefined); };
+
+  useEffect(() => {
+    if (!open || loaded) return;
+    let cancelled = false;
+    loadSkillTierRecipes(region, professionId, skillTierId)
+      .then((recipes) => { if (!cancelled) setLoad({ key, recipes, failed: false }); })
+      .catch(() => { if (!cancelled) setLoad({ key, failed: true }); });
+    return () => { cancelled = true; };
+  }, [open, loaded, key, region, professionId, skillTierId]);
+
+  const unlearned = current?.recipes ? unlearnedRecipes(current.recipes, known) : undefined;
+  return (
+    <div className="profession-recipes">
+      <ToggleButton open={open} onClick={() => setOpen((value) => !value)} controls={contentId} title="Not learned" count={unlearned?.length} onPrefetch={prefetch} />
+      {open && (
+        <div id={contentId} className="recipe-content">
+          {!current && (
+            <div role="status">
+              <Text as="p" size="1" color="gray">Loading the recipes this profession teaches…</Text>
+              <Skeleton height="80px" />
+            </div>
           )}
-          <Flex justify="between" align="center" gap="2" wrap="wrap">
-            <Text size="1" color="gray">{filtered.length === 0 ? "0 recipes" : `${start + 1}–${Math.min(start + pageSize, filtered.length)} of ${filtered.length} recipes`}</Text>
-            <Flex gap="2" align="center">
-              <Button size="1" variant="soft" color="gray" disabled={currentPage <= 1} onClick={() => setPage(currentPage - 1)}>Previous</Button>
-              <Text size="1" color="gray">{currentPage} / {pages}</Text>
-              <Button size="1" variant="soft" color="gray" disabled={currentPage >= pages} onClick={() => setPage(currentPage + 1)}
-                onPointerEnter={prefetchNext} onFocus={prefetchNext}>Next</Button>
-            </Flex>
-          </Flex>
+          {current?.failed && (
+            <Callout.Root size="1" color="amber" className="recipe-notice" role="alert">
+              <Callout.Icon><InfoCircledIcon /></Callout.Icon>
+              <Callout.Text>
+                Couldn't load this profession's recipe list.
+                <Button size="1" variant="ghost" ml="2" onClick={() => setAttempt((value) => value + 1)}>Retry</Button>
+              </Callout.Text>
+            </Callout.Root>
+          )}
+          {unlearned && (unlearned.length === 0
+            ? <Text as="p" size="2" color="gray" role="status">Every recipe in this tier is learned.</Text>
+            : <RecipeList recipes={unlearned} region={region} label={label} kind="not learned" />)}
         </div>
       )}
     </div>
