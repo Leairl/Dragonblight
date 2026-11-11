@@ -42,6 +42,9 @@ builder.Services.AddScoped<IWarcraftRedisProxy, WarcraftRedisProxy>();
 builder.Services.AddDbContextFactory<HistoryDbContext>(o => o.UseNpgsql(configuration.GetConnectionString("Postgres")));
 builder.Services.AddScoped<RatingHistoryService>();
 builder.Services.AddScoped<CharacterCacheService>();
+builder.Services.AddScoped<ForeverStatsService>();
+//guilds to crawl for the Forever stats as soon as one of their members is looked up
+builder.Services.AddSingleton<ForeverStatsQueue>();
 if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") != "NSWAG")
 {
     var redisOptions = ConfigurationOptions.Parse(redisConnectionString);
@@ -51,6 +54,7 @@ if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") != "NSWAG")
     redisOptions.SyncTimeout = 5000;
     builder.Services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisOptions));
     builder.Services.AddHostedService<BgService>();
+    builder.Services.AddHostedService<ForeverStatsJob>();
 }
 
 var options = HttpProxyOptionsBuilder.Instance
