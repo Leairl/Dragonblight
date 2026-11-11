@@ -10,6 +10,9 @@ public class ForeverSkillTierRecipe
     public int? requiredSkill { get; init; }
     //true when requiredSkill is an estimate rather than read from the recipe's pattern
     public bool requiredSkillEstimated { get; init; }
+    //where the recipe comes from ("Vendor: Qia (Winterspring)", "Drop; Fishing", "Trainer"), from ForeverRecipes.tsv;
+    //empty when unknown. The professions tab filters on it.
+    public string source { get; init; } = "";
 }
 
 //One row of ForeverRecipes.tsv. Blizzard's recipe data has no required skill or source, so the file is

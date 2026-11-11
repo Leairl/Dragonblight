@@ -25,6 +25,58 @@ export interface ListedRecipe {
   category?: string;
   requiredSkill?: number;
   requiredSkillEstimated?: boolean;
+  //"Vendor: Qia (Winterspring)", "Drop; Fishing"; "" when unknown, undefined when not loaded yet
+  source?: string;
+}
+
+//The filter row's kinds of source, in the order the buttons show them. A kind the file names
+//that isn't listed here goes before "Unknown".
+const sourceOrder = ["Trainer", "Vendor", "Drop", "Quest", "Fishing", "Pickpocketing", "Crafted"];
+export const allSources = "All";
+
+//The kinds of source a recipe has: "Drop; Vendor: Qia (Winterspring)" is Drop and Vendor. A recipe
+//whose source isn't known is "Unknown"; one whose source hasn't loaded has none.
+export function sourceKinds(recipe: ListedRecipe): string[] {
+  if (recipe.source === undefined) {
+    return [];
+  }
+  const kinds = recipe.source.split(";")
+    .map((part) => part.split(":")[0].trim())
+    .filter((kind) => kind !== "");
+  if (kinds.length === 0) {
+    return ["Unknown"];
+  }
+  return [...new Set(kinds)];
+}
+
+function sourceRank(kind: string): number {
+  if (kind === "Unknown") {
+    return sourceOrder.length + 1;
+  }
+  const index = sourceOrder.indexOf(kind);
+  if (index < 0) {
+    return sourceOrder.length;
+  }
+  return index;
+}
+
+//Each kind of source in the list, with how many recipes have it, in filter-row order.
+export function sourceCounts(recipes: ListedRecipe[]): { kind: string; count: number }[] {
+  const counts = new Map<string, number>();
+  for (const recipe of recipes) {
+    for (const kind of sourceKinds(recipe)) {
+      counts.set(kind, (counts.get(kind) ?? 0) + 1);
+    }
+  }
+  return [...counts].map(([kind, count]) => ({ kind, count }))
+    .sort((a, b) => sourceRank(a.kind) - sourceRank(b.kind) || a.kind.localeCompare(b.kind));
+}
+
+export function filterBySource<T extends ListedRecipe>(recipes: T[], kind: string): T[] {
+  if (kind === allSources) {
+    return recipes;
+  }
+  return recipes.filter((recipe) => sourceKinds(recipe).includes(kind));
 }
 
 //"Requires 90", or "Requires about 90" when the level is estimated; empty when it isn't known.

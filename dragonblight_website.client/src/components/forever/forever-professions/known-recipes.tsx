@@ -4,7 +4,7 @@ import { ChevronDownIcon, InfoCircledIcon, MagnifyingGlassIcon } from "@radix-ui
 import { Dragonblight } from "../../../clients/Dragonblight";
 import { wowheadUrl } from "../../../helpers/game-flavor";
 import { stripWowMarkup } from "../../../helpers/equipmentHelper";
-import { craftedQuantityText, filterKnownRecipes, learnableAt, ListedRecipe, recipeOutputs, requiredSkillText, unlearnedRecipes } from "./recipe-helpers";
+import { allSources, craftedQuantityText, filterBySource, filterKnownRecipes, learnableAt, ListedRecipe, recipeOutputs, requiredSkillText, sourceCounts, unlearnedRecipes } from "./recipe-helpers";
 import { loadRecipeDetails, loadSkillTierRecipes, peekSkillTierRecipes, recipeDetails } from "../forever-data";
 
 const pageSize = 10;
@@ -130,11 +130,44 @@ function RecipePage({ recipes, region, label, kind }: { recipes: ListedRecipe[];
   );
 }
 
-// The search, table and paging shared by the known and not-learned lists.
+// The filter row above a recipe list: All, then each kind of source the list has (Trainer, Vendor,
+// Drop...), with counts. A recipe with more than one source counts under each.
+function SourceFilter({ counts, total, selected, onSelect, label }: {
+  counts: { kind: string; count: number }[]; total: number; selected: string; onSelect: (kind: string) => void; label: string;
+}) {
+  const options = [{ kind: allSources, count: total }, ...counts];
+  return (
+    <Flex gap="1" wrap="wrap" role="group" aria-label={`Filter ${label} recipes by source`}>
+      {options.map((option) => {
+        let variant: "solid" | "soft" = "soft";
+        if (option.kind === selected) {
+          variant = "solid";
+        }
+        return (
+          <Button key={option.kind} size="1" variant={variant} color="gray" aria-pressed={option.kind === selected}
+            onClick={() => onSelect(option.kind)}>
+            {option.kind} <span className="recipe-source-count">{option.count}</span>
+          </Button>
+        );
+      })}
+    </Flex>
+  );
+}
+
+// The search, source filter, table and paging shared by the known and not-learned lists.
 function RecipeList({ recipes, region, label, kind }: { recipes: ListedRecipe[]; region: string; label: string; kind: string }) {
   const [query, setQuery] = useState("");
+  const [source, setSource] = useState(allSources);
   const [page, setPage] = useState(1);
-  const filtered = filterKnownRecipes(recipes, query);
+  const unique = filterKnownRecipes(recipes, "");
+  const counts = sourceCounts(unique);
+  //The row only shows when there's a choice to make; a source no longer in the list falls back to All.
+  const showFilter = counts.length > 1;
+  let shownSource = allSources;
+  if (showFilter && counts.some((count) => count.kind === source)) {
+    shownSource = source;
+  }
+  const filtered = filterBySource(filterKnownRecipes(recipes, query), shownSource);
   const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, pages);
   const start = (currentPage - 1) * pageSize;
@@ -149,6 +182,10 @@ function RecipeList({ recipes, region, label, kind }: { recipes: ListedRecipe[];
       <TextField.Root size="2" placeholder={`Search ${kind} recipes…`} aria-label={`Search ${label} ${kind} recipes`} value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }}>
         <TextField.Slot><MagnifyingGlassIcon /></TextField.Slot>
       </TextField.Root>
+      {showFilter && (
+        <SourceFilter counts={counts} total={unique.length} selected={shownSource} label={`${label} ${kind}`}
+          onSelect={(value) => { setSource(value); setPage(1); }} />
+      )}
       {shown.length === 0 ? <Text as="p" size="2" color="gray" role="status">No recipes match your search.</Text> : (
         <RecipePage recipes={shown} region={region} label={label} kind={kind} />
       )}
@@ -267,13 +304,18 @@ export default function ProfessionRecipes({ known, skill, region, label, profess
 }) {
   const [open, setOpen] = useState<OpenList>("");
   const contentId = useId();
-  const tier = useTierRecipes(region, professionId, skillTierId, open === "unlearned");
+  //The tier list also gives the known recipes their sources, so it loads when either list opens.
+  const tier = useTierRecipes(region, professionId, skillTierId, open !== "");
   const knownTotal = new Set(known.map((recipe) => recipe.id)).size;
   const hasTier = professionId != null && skillTierId != null;
 
   let unlearnedCount: number | undefined = undefined;
+  let knownListed: ListedRecipe[] = known;
   if (tier.current?.recipes) {
     unlearnedCount = learnableAt(unlearnedRecipes(tier.current.recipes, known), skill).length;
+    //A known recipe the tier list doesn't have (one the file hides) has an unknown source.
+    const sources = new Map(tier.current.recipes.map((recipe) => [recipe.id, recipe.source]));
+    knownListed = known.map((recipe) => ({ id: recipe.id, name: recipe.name, source: sources.get(recipe.id) ?? "" }));
   }
 
   function toggle(list: OpenList) {
@@ -302,7 +344,7 @@ export default function ProfessionRecipes({ known, skill, region, label, profess
       </Flex>
       {open === "known" && (
         <div id={contentId} className="recipe-content">
-          <RecipeList recipes={known} region={region} label={label} kind="known" />
+          <RecipeList recipes={knownListed} region={region} label={label} kind="known" />
         </div>
       )}
       {open === "unlearned" && (

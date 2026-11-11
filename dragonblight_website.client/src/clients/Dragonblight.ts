@@ -3437,6 +3437,7 @@ export interface ForeverSkillTierRecipe {
     category: string;
     requiredSkill?: number | undefined;
     requiredSkillEstimated: boolean;
+    source: string;
 }
 
 export interface ForeverTalentsPage {

@@ -561,7 +561,7 @@ namespace Dragonblight_Website.Server.Controllers
             return info.source;
         }
 
-        //Adds the skill a recipe needs. It comes from the file, not the cached tier, so a new file
+        //Adds the skill a recipe needs and where it comes from. They come from the file, not the cached tier, so a new file
         //takes effect without waiting for the week-long tier cache to expire.
         private static ForeverSkillTierRecipe WithRequiredSkill(ForeverSkillTierRecipe recipe)
         {
@@ -576,6 +576,7 @@ namespace Dragonblight_Website.Server.Controllers
                 category = recipe.category,
                 requiredSkill = known.requiredSkill,
                 requiredSkillEstimated = known.estimated,
+                source = known.source,
             };
         }
 
