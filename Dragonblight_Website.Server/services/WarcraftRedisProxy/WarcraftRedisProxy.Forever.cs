@@ -255,6 +255,40 @@ partial class WarcraftRedisProxy
             () => warcraftClient.GetAchievementMediaAsync(achievementId, ns, GetRegion(region), GetLocale(region)), media => IconAsset(media.Assets));
     }
 
+    //Legacy Points have no endpoint of their own: Forever awards them through achievements whose
+    //reward reads "Earn 1 Legacy Point." This maps each such achievement to the points it gives,
+    //from every achievement definition (about 176, each cached and throttled like the tab's own
+    //lookups). Null when any definition couldn't be read, so a partial list is never kept.
+    private static readonly System.Text.RegularExpressions.Regex LegacyReward = new(@"(\d+)\s+Legacy Points?", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+    public async Task<Dictionary<int, int>?> GetForeverLegacyRewards(string region)
+    {
+        var ns = GetStaticRegion(region, GameFlavor.Forever);
+        return await GetBlizzardDataCached<Dictionary<int, int>?>("GetForeverLegacyRewards" + ns, async () =>
+        {
+            var index = await warcraftClient.GetAchievementsIndexAsync(ns, GetRegion(region), GetLocale(region));
+            if (index?.Success != true)
+            {
+                return null;
+            }
+            var definitions = await Task.WhenAll(index.Value.Achievements.Select(a => GetForeverAchievement(a.Id, region)));
+            if (definitions.Any(d => d == null))
+            {
+                return null;
+            }
+            var rewards = new Dictionary<int, int>();
+            foreach (var definition in definitions)
+            {
+                var match = LegacyReward.Match(definition!.RewardDescription ?? "");
+                if (match.Success)
+                {
+                    rewards[definition.Id] = int.Parse(match.Groups[1].Value);
+                }
+            }
+            return rewards;
+        }, TimeSpan.FromDays(7));
+    }
+
     public Task<Recipe?> GetForeverRecipe(int recipeId, string region)
     {
         var ns = GetStaticRegion(region, GameFlavor.Forever);

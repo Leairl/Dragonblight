@@ -146,3 +146,14 @@ test("Recent achievements retain reported names and skeletons when metadata is p
   assert.match(html, /rt-Skeleton/);
   assert.doesNotMatch(html, /unknown.png/);
 });
+
+test("Legacy Points use the realmless Forever route", async () => {
+  let request;
+  const client = new Dragonblight.ForeverCharacterClient("", { fetch: async (url) => {
+    request = new URL(url, "http://localhost");
+    return Response.json({ earned: 3, total: 130 });
+  } });
+  assert.deepEqual(await client.getLegacyPoints("us", "krom-noblungg"), { earned: 3, total: 130 });
+  assert.equal(request.pathname, "/api/ForeverCharacter/GetLegacyPoints");
+  assert.equal(request.searchParams.get("characterSlug"), "krom-noblungg");
+});

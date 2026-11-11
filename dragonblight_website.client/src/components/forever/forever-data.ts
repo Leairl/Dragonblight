@@ -16,6 +16,8 @@ const tabLoaders = {
   reputations: (region: string, slug: string) => client.getReputations(region, slug),
   achievements: (region: string, slug: string) => client.getAchievements(region, slug),
   collections: (region: string, slug: string) => client.getCollections(region, slug),
+  // shown on the achievements tab, so it loads alongside it
+  legacy: (region: string, slug: string) => client.getLegacyPoints(region, slug),
 };
 
 export type ForeverTab = keyof typeof tabLoaders;
@@ -33,6 +35,7 @@ export function loadForeverTab<K extends ForeverTab>(tab: K, region: string, slu
 export function prefetchForeverTab(tab: string, region: string | undefined, slug: string | undefined) {
   if (!region || !slug || !(tab in tabLoaders)) return;
   loadForeverTab(tab as ForeverTab, region, slug).catch(() => undefined);
+  if (tab === "achievements") loadForeverTab("legacy", region, slug).catch(() => undefined);
 }
 
 export type TabState<T> = { status: "loading" } | { status: "loaded"; data: T } | { status: "error"; message: string };
