@@ -18,16 +18,28 @@ var client = new WarcraftClient("test-id", "test-secret", limited);
 var values = new Dictionary<string, RedisValue>();
 var database = Stub.Create<IDatabase>((method, args) => method.Name switch
 {
-    "StringGetAsync" => Task.FromResult(values.GetValueOrDefault(((RedisKey)args[0]!).ToString())),
+    "StringGetAsync" => Get(args),
     "StringSetAsync" => Set(args),
-    "KeyDeleteAsync" when args[0] is RedisKey[] keys => Task.FromResult((long)keys.Count(key => values.Remove(key.ToString()))),
+    "KeyDeleteAsync" when args[0] is RedisKey[] keys => Delete(keys),
     _ => throw new NotSupportedException(method.Name)
 });
+//Lookups run in parallel (a whole achievement batch at once), so the fake Redis is locked like the real one is atomic.
+Task<RedisValue> Get(object?[] args)
+{
+    lock (values) return Task.FromResult(values.GetValueOrDefault(((RedisKey)args[0]!).ToString()));
+}
+Task<long> Delete(RedisKey[] keys)
+{
+    lock (values) return Task.FromResult((long)keys.Count(key => values.Remove(key.ToString())));
+}
 Task<bool> Set(object?[] args)
 {
     var key = ((RedisKey)args[0]!).ToString();
-    if (args.OfType<When>().Contains(When.NotExists) && values.ContainsKey(key)) return Task.FromResult(false);
-    values[key] = (RedisValue)args[1]!;
+    lock (values)
+    {
+        if (args.OfType<When>().Contains(When.NotExists) && values.ContainsKey(key)) return Task.FromResult(false);
+        values[key] = (RedisValue)args[1]!;
+    }
     return Task.FromResult(true);
 }
 var redis = Stub.Create<IConnectionMultiplexer>((method, _) => method.Name switch
@@ -297,8 +309,9 @@ Check(collections.mounts[0].IsUseable == false, "A mount the character can't use
 Check(collections.pets.Length == 2 && collections.pets.All(p => p.Species!.Id == 50) && collections.pets[0].Quality?.Type == "UNCOMMON", "Two pets of one species must both be kept, with quality");
 Check(collections.unlockedBattlePetSlots == 0, "A reported zero pet slots must be preserved");
 Check(collections.toys.Length == 0, "An omitted toy array must become an empty list");
-Check(collections.appearanceSlots.Length == 2 && collections.appearanceSlots[0] is { type: "HEAD", name: "Head", count: 2 } && collections.appearanceSlots[1].count == 0,
-    "Appearances must be counted per slot, with an omitted list counted as zero");
+Check(collections.appearanceSlots.Length == 2 && collections.appearanceSlots[0] is { type: "HEAD", name: "Head", count: 3 },
+    "Slots sharing a name must be merged in Blizzard's order, counting each appearance once");
+Check(collections.appearanceSlots[1] is { type: "CHEST", name: "Chest", count: 2 }, "A slot with an omitted list must merge with its namesake, not count as extra");
 Check(collections.totals is { mounts: 3, pets: 2, toys: 1 }, "Totals must count Forever's game data indexes");
 var collectionPaths = handler.Paths.Skip(calls).ToList();
 Check(collectionPaths.Count(path => path.Contains("/character/krom-noblungg/collections/") && path.Contains("namespace=profile-forever-eu")) == 4, "Collections must use the four realmless Forever endpoints");
@@ -360,7 +373,7 @@ class BlizzardHandler : HttpMessageHandler
         _ when path.EndsWith("/collections/mounts") => """{"_links":{},"mounts":[{"mount":{"key":{"href":"x"},"name":"Swift Zebra","id":2},"is_useable":true},{"mount":{"name":"Striped Dawnsaber","id":2995},"is_useable":false}]}""",
         _ when path.EndsWith("/collections/pets") => """{"pets":[{"species":{"name":"Green Wing Macaw","id":50},"level":1,"quality":{"type":"UNCOMMON","name":"Uncommon"},"stats":{"breed_id":0},"creature_display":{"id":5207},"id":1},{"species":{"name":"Green Wing Macaw","id":50},"level":3,"id":2}],"unlocked_battle_pet_slots":0}""",
         _ when path.EndsWith("/collections/toys") => """{"_links":{}}""",
-        _ when path.EndsWith("/collections/transmogs") => """{"slots":[{"slot":{"type":"HEAD","name":"Head"},"appearances":[{"key":{"href":"x"},"id":29124},{"id":63427}]},{"slot":{"type":"CHEST","name":"Chest"}}]}""",
+        _ when path.EndsWith("/collections/transmogs") => """{"slots":[{"slot":{"type":"HEAD","name":"Head"},"appearances":[{"key":{"href":"x"},"id":29124},{"id":63427}]},{"slot":{"type":"CHEST","name":"Chest"}},{"slot":{"type":"ROBE","name":"Chest"},"appearances":[{"id":5},{"id":6},{"id":5}]},{"slot":{"type":"HELM","name":"Head"},"appearances":[{"id":63427},{"id":7}]}]}""",
         _ when path.EndsWith("/mount/index") => """{"mounts":[{"name":"a","id":1},{"name":"b","id":2},{"name":"c","id":2995}]}""",
         _ when path.EndsWith("/pet/index") => """{"pets":[{"name":"a","id":1},{"name":"b","id":50}]}""",
         _ when path.EndsWith("/toy/index") => """{"toys":[{"name":"a","id":1754}]}""",

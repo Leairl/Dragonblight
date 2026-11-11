@@ -5,12 +5,13 @@ import { collectionIcons, loadCollectionIcons, useForeverTab } from "../forever-
 import { CollectionEntry, CollectionKind, collectionProgress, filterEntries, mountEntries, petEntries, qualityColor, toyEntries } from "./collection-helpers";
 import "./forever-collections.css";
 
-function CollectionIcon({ src, pending }: { src?: string; pending: boolean }) {
+// Mount pictures are 600px creature renders with the mount in the middle, so they are zoomed to it.
+function CollectionIcon({ src, pending, render }: { src?: string; pending: boolean; render?: boolean }) {
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
   const source = failed || (!pending && !src) ? "/unknown.png" : src;
   return (
-    <span className="forever-collection-icon">
+    <span className={render ? "forever-collection-icon is-render" : "forever-collection-icon"}>
       {!loaded && <Skeleton width="36px" height="36px" />}
       {source && <img src={source} alt="" loading="lazy" style={{ opacity: loaded ? 1 : 0 }}
         onLoad={() => setLoaded(true)} onError={() => { setFailed(true); setLoaded(false); }} />}
@@ -66,7 +67,7 @@ function CollectionSection({ title, empty, entries, filtered, kind, region }: {
           <ul className="forever-collection-list">
             {filtered.map((entry) => (
               <li key={entry.key} className={entry.muted ? "forever-collection-row is-muted" : "forever-collection-row"}>
-                <CollectionIcon src={icon(entry.id)} pending={pending} />
+                <CollectionIcon src={icon(entry.id)} pending={pending} render={kind === "mount"} />
                 <span className="forever-collection-text">
                   <Text as="div" size="2" weight="medium" color={qualityColor(entry.quality)} className="forever-collection-name">{entry.name}</Text>
                   {entry.detail && <Text as="div" size="1" color="gray">{entry.detail}</Text>}

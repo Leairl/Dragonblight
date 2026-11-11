@@ -301,12 +301,16 @@ namespace Dragonblight_Website.Server.Controllers
                     pets = pets?.Pets?.Where(p => p.Species != null).OrderBy(p => p.Species!.Name).ToArray() ?? [],
                     toys = toys?.Toys?.Where(t => t.Toy != null).OrderBy(t => t.Toy!.Name).ToArray() ?? [],
                     unlockedBattlePetSlots = pets?.UnlockedBattlePetSlots,
-                    appearanceSlots = transmogs?.Slots?.Select(slot => new ForeverAppearanceSlot
-                    {
-                        type = slot.Slot?.Type ?? "",
-                        name = slot.Slot?.Name ?? slot.Slot?.Type ?? "Unknown slot",
-                        count = slot.Appearances?.Length ?? 0,
-                    }).ToArray() ?? [],
+                    //Blizzard splits some slots that share a name (chest and robe, both "Chest"), so slots
+                    //are merged by name, in Blizzard's order, counting each appearance once
+                    appearanceSlots = transmogs?.Slots?
+                        .GroupBy(slot => slot.Slot?.Name ?? slot.Slot?.Type ?? "Unknown slot")
+                        .Select(group => new ForeverAppearanceSlot
+                        {
+                            type = group.First().Slot?.Type ?? "",
+                            name = group.Key,
+                            count = group.SelectMany(slot => slot.Appearances ?? []).Select(a => a.Id).Distinct().Count(),
+                        }).ToArray() ?? [],
                     totals = totalsTask.Result,
                 });
             }

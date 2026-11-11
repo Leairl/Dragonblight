@@ -66,13 +66,21 @@
   overflow: hidden;
 }
 
-/* mount pictures are creature renders, not square icons, so they're cropped to fill */
 .forever-collection-icon img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+}
+
+/* a mount fills the middle third to half of its render; the rest is dark backdrop. 1.6x keeps
+   large mounts whole while small ones still read at 36px */
+.forever-collection-icon.is-render {
+  background: #1a1a1a;
+}
+
+.forever-collection-icon.is-render img {
+  transform: scale(1.6);
 }
 
 .forever-collection-text {
