@@ -8,7 +8,7 @@ namespace Dragonblight_Website.Server.Controllers
     //characters have no realm: they are looked up by region and "name-surname".
     [ApiController]
     [Route("api/[controller]")]
-    public class ForeverCharacterController : ControllerBase
+    public partial class ForeverCharacterController : ControllerBase
     {
         private readonly ILogger<ForeverCharacterController> _logger;
         private readonly IWarcraftRedisProxy _warcraftCachedData;
@@ -635,6 +635,65 @@ namespace Dragonblight_Website.Server.Controllers
         public int earned { get; init; }
         //every Legacy Point Forever's achievements award
         public int total { get; init; }
+    }
+
+    public partial class ForeverCharacterController
+    {
+        //The talents tab: the character's class's three trees as the game lays them out, and the
+        //points in each of the character's talent groups (two with dual spec). 404 when Blizzard
+        //has no profile for the character, since the class comes from it.
+        [HttpGet("GetTalents")]
+        public async Task<ActionResult<ForeverTalentsPage>> GetTalents(string region, string characterSlug)
+        {
+            region = region.ToLowerInvariant();
+            if (region != "us" && region != "eu")
+            {
+                return BadRequest("region must be us or eu");
+            }
+            characterSlug = characterSlug.ToLowerInvariant();
+            if (characterSlug.Length > 64 || !IsCharacterSlug(characterSlug))
+            {
+                return BadRequest("characterSlug must be name-surname");
+            }
+            try
+            {
+                var profile = await _warcraftCachedData.GetForeverCharacter(characterSlug, region);
+                if (profile?.CharacterClass == null)
+                {
+                    return NotFound();
+                }
+                var talentsTask = _warcraftCachedData.GetForeverClassTalents(profile.CharacterClass.Id, region);
+                var specializationsTask = _warcraftCachedData.GetForeverSpecializations(characterSlug, region);
+                await Task.WhenAll(talentsTask, specializationsTask);
+
+                var page = new ForeverTalentsPage();
+                if (talentsTask.Result != null)
+                {
+                    page.Trees = talentsTask.Result.Trees;
+                }
+                foreach (var group in specializationsTask.Result?.SpecializationGroups ?? [])
+                {
+                    var ranks = new Dictionary<int, int>();
+                    foreach (var tree in group.Specializations ?? [])
+                    {
+                        foreach (var talent in tree.Talents ?? [])
+                        {
+                            if (talent.Talent != null)
+                            {
+                                ranks[talent.Talent.Id] = talent.TalentRank;
+                            }
+                        }
+                    }
+                    page.Groups.Add(new ForeverTalentGroup { IsActive = group.IsActive, Ranks = ranks });
+                }
+                return Ok(page);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting Forever talents for {Slug} in {Region}.", characterSlug, region);
+                return StatusCode(500);
+            }
+        }
     }
 
     public class ForeverCharacterPage

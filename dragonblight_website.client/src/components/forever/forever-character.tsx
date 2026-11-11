@@ -14,6 +14,7 @@ import ForeverAchievements from "./forever-achievements/forever-achievements";
 import ForeverCollections from "./forever-collections/forever-collections";
 import { prefetchForeverTab } from "./forever-data";
 import "../profile/profile.css";
+import ForeverTalents from "./forever-talents";
 import "../profile/profile-equipment/profile-equipment.css";
 import "./forever-character.css";
 declare const $WowheadPower: { refreshLinks: () => void } | undefined;
@@ -181,16 +182,22 @@ function nameFromSlug(slug: string): string {
 // The tabs that load their own data, which starts as soon as the pointer or keyboard reaches the tab.
 const dataTabs = [["professions", "Professions"], ["pvp", "PvP"], ["reputations", "Reputations"], ["achievements", "Achievements"], ["collections", "Collections"]] as const;
 
+// The tab in the URL, or gear when there is none or it isn't one of the tabs.
+function foreverTab(urlTab: string | undefined) {
+  return urlTab === "talents" || dataTabs.some(([value]) => value === urlTab) ? urlTab! : "gear";
+}
+
 function CharacterTabs() {
   const { region, characterSlug, urlTab } = useParams();
   const navigate = useNavigate();
-  const tab = urlTab === "professions" || urlTab === "pvp" || urlTab === "reputations" || urlTab === "achievements" || urlTab === "collections" ? urlTab : "gear";
+  const tab = foreverTab(urlTab);
   return (
     <div className="button-row">
       <SegmentedControl.Root className="forever-character-tabs" value={tab} onValueChange={(value) => {
         navigate(`/character/${region}/${encodeURIComponent(characterSlug ?? "")}${value === "gear" ? "" : `/${value}`}`, { replace: true });
       }}>
         <SegmentedControl.Item value="gear">Gear</SegmentedControl.Item>
+        <SegmentedControl.Item value="talents">Talents</SegmentedControl.Item>
         {dataTabs.map(([value, label]) => (
           <SegmentedControl.Item key={value} value={value} onPointerEnter={() => prefetchForeverTab(value, region, characterSlug)}
             onFocus={() => prefetchForeverTab(value, region, characterSlug)}>{label}</SegmentedControl.Item>
@@ -299,10 +306,11 @@ function RosterOnlyCharacter(props: { character: Dragonblight.ForeverStatsCharac
 
 // A WoW: Forever character, laid out like the retail and classic profile: a header card
 // with the character's icons and name, then the paperdoll with gear down both sides.
-// Route: /forever/character/:region/:characterSlug, where the slug is "name-surname".
+// Route: /character/:region/:characterSlug/:urlTab?, where the slug is "name-surname" and the
+// tab is left out for gear.
 function ForeverCharacter() {
   const { region, characterSlug, urlTab } = useParams();
-  const tab = urlTab === "professions" || urlTab === "pvp" || urlTab === "reputations" || urlTab === "achievements" || urlTab === "collections" ? urlTab : "gear";
+  const tab = foreverTab(urlTab);
   const requestKey = `${region}/${characterSlug}`;
   const [result, setResult] = useState<LoadResult>();
 
@@ -336,9 +344,11 @@ function ForeverCharacter() {
     };
   }, [region, characterSlug, requestKey]);
 
-  // Wowhead decorates item links once they are in the page
+  // Wowhead adds each item link's icon and quality colour once the link is in the page. Item names
+  // are transparent until it does. Switching to another tab removes the gear links and switching back
+  // puts new ones in, so this runs again whenever the tab changes, not just when the data arrives.
   useEffect(() => {
-    if (page?.equipment && typeof $WowheadPower !== "undefined") {
+    if (tab === "gear" && page?.equipment && typeof $WowheadPower !== "undefined") {
       $WowheadPower.refreshLinks();
     }
   }, [page, tab]);
@@ -470,6 +480,13 @@ function ForeverCharacter() {
               ) : tab === "achievements" ? (
                 <Card className="talent-row border-card">
                   <ForeverAchievements key={requestKey} />
+                </Card>
+              ) : tab === "talents" ? (
+                <Card className="talent-row border-card">
+                  {state === "loading" && <Skeleton height="420px"></Skeleton>}
+                  {state === "loaded" && profile && (
+                    <ForeverTalents region={region ?? ""} characterSlug={characterSlug ?? ""} className={className} />
+                  )}
                 </Card>
               ) : tab === "collections" ? (
                 <Card className="talent-row border-card">

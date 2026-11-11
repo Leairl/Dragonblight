@@ -40,6 +40,8 @@ public interface IWarcraftRedisProxy
     Task<List<ForeverStatsCharacter>> GetForeverStatsCharacters();
     Task<ForeverStatsCharacter?> GetForeverStatsCharacter(string characterSlug, string region);
     Task<Dictionary<string, ForeverStatsCharacter>> GetForeverStatsCharacters(IEnumerable<string> characterSlugs, string region);
+    Task<ForeverSpecializations?> GetForeverSpecializations(string characterSlug, string region);
+    Task<ForeverClassTalents?> GetForeverClassTalents(int classId, string region);
     Task RemoveForeverStatsCharacters(IEnumerable<ForeverStatsCharacter> characters);
     Task SaveForeverStatsSummary(ForeverStatsSummary summary);
     Task<ForeverStatsSummary?> GetForeverStatsSummary();
