@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { Button, Card, Flex, Heading, Skeleton, Table, Text } from "@radix-ui/themes";
 import { Dragonblight } from "../../../clients/Dragonblight";
+import { pvpRankName } from "./pvp-rank";
 import "./forever-pvp.css";
 
 type PvpState =
@@ -9,7 +10,7 @@ type PvpState =
   | { status: "loaded"; data: Dragonblight.ForeverPvpSummary }
   | { status: "error"; message: string };
 
-function ForeverPvp() {
+function ForeverPvp({ faction }: { faction?: string }) {
   const { region, characterSlug } = useParams();
   const [state, setState] = useState<PvpState>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
@@ -66,7 +67,7 @@ function ForeverPvp() {
             </Card>
             <Card className="border-card">
               <Text as="p" size="2" color="gray">PvP rank</Text>
-              <Heading size="6">{data.pvp_rank === 0 ? "Unranked" : data.pvp_rank ?? "—"}</Heading>
+              <Heading size="6">{pvpRankName(data.pvp_rank, faction)}</Heading>
             </Card>
           </div>
           <Heading size="3" mt="5" mb="3">Battlegrounds</Heading>

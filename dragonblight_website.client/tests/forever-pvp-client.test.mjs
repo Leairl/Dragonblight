@@ -46,3 +46,31 @@ test("Forever PvP distinguishes unavailable data from upstream failure", async (
 test("Retail and MoP do not expose the Forever PvP endpoint", () => {
   assert.equal(Dragonblight.ProfileClient.prototype.getPvpSummary, undefined);
 });
+
+const rankSource = await readFile(new URL("../src/components/forever/forever-pvp/pvp-rank.ts", import.meta.url), "utf8");
+const rankJs = ts.transpileModule(rankSource, {
+  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 },
+}).outputText;
+const { pvpRankName } = await import(`data:text/javascript;base64,${Buffer.from(rankJs).toString("base64")}`);
+
+test("PvP ranks use the faction's Classic titles for all fourteen ranks", () => {
+  const alliance = ["Private", "Corporal", "Sergeant", "Master Sergeant", "Sergeant Major", "Knight", "Knight-Lieutenant", "Knight-Captain", "Knight-Champion", "Lieutenant Commander", "Commander", "Marshal", "Field Marshal", "Grand Marshal"];
+  const horde = ["Scout", "Grunt", "Sergeant", "Senior Sergeant", "First Sergeant", "Stone Guard", "Blood Guard", "Legionnaire", "Centurion", "Champion", "Lieutenant General", "General", "Warlord", "High Warlord"];
+  for (let rank = 1; rank <= 14; rank++) {
+    assert.equal(pvpRankName(rank, "ALLIANCE"), alliance[rank - 1]);
+    assert.equal(pvpRankName(rank, "HORDE"), horde[rank - 1]);
+  }
+  assert.equal(pvpRankName(14, "Alliance"), "Grand Marshal");
+  assert.equal(pvpRankName(14, "Horde"), "High Warlord");
+});
+
+test("PvP rank labels show Civilian for zero and preserve missing and unknown values", () => {
+  assert.equal(pvpRankName(0, "ALLIANCE"), "Civilian");
+  assert.equal(pvpRankName(0, "HORDE"), "Civilian");
+  assert.equal(pvpRankName(0, undefined), "Civilian");
+  assert.equal(pvpRankName(undefined, "HORDE"), "—");
+  assert.equal(pvpRankName(null, "HORDE"), "—");
+  assert.equal(pvpRankName(15, "ALLIANCE"), "Rank 15");
+  assert.equal(pvpRankName(1, undefined), "Rank 1");
+  assert.equal(pvpRankName(1, "UNKNOWN"), "Rank 1");
+});

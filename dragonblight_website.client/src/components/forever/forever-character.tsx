@@ -265,7 +265,7 @@ function RosterOnlyCharacter(props: { character: Dragonblight.ForeverStatsCharac
                 </div>
               </Card>
               <Card className="talent-row border-card">
-                {urlTab === "professions" ? <ForeverProfessions key={`${c.region}/${c.slug}`} /> : urlTab === "pvp" ? <ForeverPvp key={`${c.region}/${c.slug}`} /> : (
+                {urlTab === "professions" ? <ForeverProfessions key={`${c.region}/${c.slug}`} /> : urlTab === "pvp" ? <ForeverPvp key={`${c.region}/${c.slug}`} faction={c.faction} /> : (
                 <Callout.Root color="amber">
                   <Callout.Icon>
                     <InfoCircledIcon />
@@ -450,7 +450,7 @@ function ForeverCharacter() {
                 </Card>
               ) : tab === "pvp" ? (
                 <Card className="talent-row border-card">
-                  <ForeverPvp key={requestKey} />
+                  <ForeverPvp key={requestKey} faction={profile?.faction?.type} />
                 </Card>
               ) : <Card className="paperdoll-card overflow-visible border-card">
                 {/* while loading, the same layout the retail and classic profile shows */}
