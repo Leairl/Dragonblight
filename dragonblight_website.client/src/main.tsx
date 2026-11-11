@@ -68,7 +68,7 @@ const ladderRoutes = (
 const foreverRoutes = (
   <Route path="/" element={<div><NavBar></NavBar><ForeverHome></ForeverHome></div>}>
     <Route index element={<ForeverLanding />} />
-    <Route path="character/:region/:characterSlug" element={<ForeverCharacter />} />
+    <Route path="character/:region/:characterSlug/:urlTab?" element={<ForeverCharacter />} />
     <Route path="stats" element={<ForeverStats />} />
     <Route path="guild/:region/:guildSlug" element={<ForeverGuild />} />
     <Route path="terms" element={<TermsPage />} />

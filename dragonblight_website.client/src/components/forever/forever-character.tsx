@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router";
-import { Callout, Card, Flex, Heading, Skeleton } from "@radix-ui/themes";
+import { Link, useNavigate, useParams } from "react-router";
+import { Callout, Card, Flex, Heading, SegmentedControl, Skeleton } from "@radix-ui/themes";
 import { InfoCircledIcon } from "@radix-ui/react-icons";
 import { Dragonblight } from "../../clients/Dragonblight";
 import { ClassColor } from "../../helpers/classColorHelper";
 import { findSlotItem, getEnchant, getEnchantName, itemTooltipParams } from "../../helpers/equipmentHelper";
 import { wowheadUrl } from "../../helpers/game-flavor";
+import ForeverProfessions from "./forever-professions/forever-professions";
 import "../profile/profile.css";
 import "../profile/profile-equipment/profile-equipment.css";
 declare const $WowheadPower: { refreshLinks: () => void } | undefined;
@@ -170,10 +171,27 @@ function nameFromSlug(slug: string): string {
     .join(" ");
 }
 
+function CharacterTabs() {
+  const { region, characterSlug, urlTab } = useParams();
+  const navigate = useNavigate();
+  const tab = urlTab === "professions" ? "professions" : "gear";
+  return (
+    <div className="button-row">
+      <SegmentedControl.Root value={tab} onValueChange={(value) => {
+        navigate(`/character/${region}/${encodeURIComponent(characterSlug ?? "")}${value === "professions" ? "/professions" : ""}`, { replace: true });
+      }}>
+        <SegmentedControl.Item value="gear">Gear</SegmentedControl.Item>
+        <SegmentedControl.Item value="professions">Professions</SegmentedControl.Item>
+      </SegmentedControl.Root>
+    </div>
+  );
+}
+
 // A character Blizzard's API has no profile for, drawn from what the stats crawl last saw of
 // them in a guild roster: the same header card the full page has, and a note where the gear
 // would be. Rosters carry no gender, so the race icon is the male one.
 function RosterOnlyCharacter(props: { character: Dragonblight.ForeverStatsCharacter; region: string }) {
+  const { urlTab } = useParams();
   const c = props.character;
   let fullName = `${c.name} ${c.surname}`;
   if (c.name === "") {
@@ -187,6 +205,7 @@ function RosterOnlyCharacter(props: { character: Dragonblight.ForeverStatsCharac
 
   return (
     <div className="profile-page grid">
+      <CharacterTabs />
       <div className="flex-wrap flex flex-row justify-center">
         <div className="flex flex-col">
           <div className="page-container">
@@ -243,7 +262,8 @@ function RosterOnlyCharacter(props: { character: Dragonblight.ForeverStatsCharac
                   </Flex>
                 </div>
               </Card>
-              <Card className="border-card">
+              <Card className="talent-row border-card">
+                {urlTab === "professions" ? <ForeverProfessions key={`${c.region}/${c.slug}`} /> : (
                 <Callout.Root color="amber">
                   <Callout.Icon>
                     <InfoCircledIcon />
@@ -254,7 +274,7 @@ function RosterOnlyCharacter(props: { character: Dragonblight.ForeverStatsCharac
                     What's shown comes from their guild's roster, last seen {seenAt.toLocaleString()} ({props.region.toUpperCase()}).
                     </div>
                   </Callout.Text>
-                </Callout.Root>
+                </Callout.Root>)}
               </Card>
             </div>
           </div>
@@ -268,7 +288,8 @@ function RosterOnlyCharacter(props: { character: Dragonblight.ForeverStatsCharac
 // with the character's icons and name, then the paperdoll with gear down both sides.
 // Route: /forever/character/:region/:characterSlug, where the slug is "name-surname".
 function ForeverCharacter() {
-  const { region, characterSlug } = useParams();
+  const { region, characterSlug, urlTab } = useParams();
+  const tab = urlTab === "professions" ? "professions" : "gear";
   const requestKey = `${region}/${characterSlug}`;
   const [result, setResult] = useState<LoadResult>();
 
@@ -307,7 +328,7 @@ function ForeverCharacter() {
     if (page?.equipment && typeof $WowheadPower !== "undefined") {
       $WowheadPower.refreshLinks();
     }
-  }, [page]);
+  }, [page, tab]);
 
   if (state === "notFound" || state === "error") {
     let message = `${characterSlug} not found. Blizzard's API has no profile for this character yet. New characters appear once they're level 10 and have logged out, and some the Armory already shows take longer to reach the API. Check the spelling and region, and try again later.`;
@@ -348,6 +369,7 @@ function ForeverCharacter() {
 
   return (
     <div className="profile-page grid">
+      <CharacterTabs />
       <div className="flex-wrap flex flex-row justify-center">
         <div className="flex flex-col">
           <div className="page-container">
@@ -420,7 +442,11 @@ function ForeverCharacter() {
                   </div>
                 )}
               </Card>
-              <Card className="paperdoll-card overflow-visible border-card">
+              {tab === "professions" ? (
+                <Card className="talent-row border-card">
+                  <ForeverProfessions key={requestKey} />
+                </Card>
+              ) : <Card className="paperdoll-card overflow-visible border-card">
                 {/* while loading, the same layout the retail and classic profile shows */}
                 {state === "loading" && (
                   <div>
@@ -460,7 +486,7 @@ function ForeverCharacter() {
                     </div>
                   </div>
                 )}
-              </Card>
+              </Card>}
             </div>
           </div>
         </div>

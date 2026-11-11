@@ -44,6 +44,15 @@ public partial class WarcraftClient
         return await GetAsync<ForeverSpecializations>($"{host}/profile/wow/character/{ForeverSlug(characterSlug)}/specializations?namespace={@namespace}&locale={locale}");
     }
 
+    /// <summary>
+    /// Gets a WoW: Forever character's professions, skills and known recipes.
+    /// </summary>
+    public async Task<RequestResult<CharacterProfessionsSummary>> GetForeverCharacterProfessionsAsync(string characterSlug, string @namespace, Region region, Locale locale)
+    {
+        string host = GetHost(region);
+        return await GetAsync<CharacterProfessionsSummary>($"{host}/profile/wow/character/{ForeverSlug(characterSlug)}/professions?namespace={@namespace}&locale={locale}");
+    }
+
     //names can carry accented letters, so the slug is escaped after lowercasing
     private static string ForeverSlug(string characterSlug)
     {

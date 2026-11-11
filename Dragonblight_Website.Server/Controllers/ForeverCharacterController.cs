@@ -97,6 +97,41 @@ namespace Dragonblight_Website.Server.Controllers
             }
         }
 
+        [HttpGet("GetProfessions")]
+        [ProducesResponseType(typeof(CharacterProfessionsSummary), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<CharacterProfessionsSummary>> GetProfessions(string region, string characterSlug)
+        {
+            region = region.ToLowerInvariant();
+            if (region != "us" && region != "eu")
+            {
+                return BadRequest("region must be us or eu");
+            }
+            characterSlug = characterSlug.ToLowerInvariant();
+            if (characterSlug.Length > 64 || !IsCharacterSlug(characterSlug))
+            {
+                return BadRequest("characterSlug must be name-surname");
+            }
+            try
+            {
+                var result = await _warcraftCachedData.GetForeverProfessions(characterSlug, region);
+                if (result == null)
+                {
+                    return NotFound(new ProblemDetails
+                    {
+                        Status = StatusCodes.Status404NotFound,
+                        Title = "Profession data is not available for this character."
+                    });
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting Forever professions for {Slug} in {Region}.", characterSlug, region);
+                return StatusCode(500);
+            }
+        }
+
         //Letters typed with alt codes that have no accent to strip, so RemoveDiacritics leaves
         //them alone, mapped to the plain letters people type instead: "Ðreamx" is found by "dreamx".
         private static readonly Dictionary<char, string> PlainLetters = new()

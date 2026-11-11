@@ -9,6 +9,7 @@ public interface IWarcraftRedisProxy
     Task<CharacterMediaSummary?> GetCharMedia(string server, string characterName, string region, GameFlavor flavor);
     Task<ForeverCharacterProfile?> GetForeverCharacter(string characterSlug, string region);
     Task<CharacterEquipmentSummary?> GetForeverEquipment(string characterSlug, string region);
+    Task<CharacterProfessionsSummary?> GetForeverProfessions(string characterSlug, string region);
     Task<CharacterMediaSummary?> GetForeverMedia(string characterSlug, string region);
     Task<List<string>> ForeverCachedCharacters();
     Task InsertForeverCachedCharacter(string characterSlug, string region);

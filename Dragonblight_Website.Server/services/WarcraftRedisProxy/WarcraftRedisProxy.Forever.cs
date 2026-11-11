@@ -56,6 +56,25 @@ partial class WarcraftRedisProxy
         }, TimeSpan.FromHours(2));
     }
 
+    public async Task<CharacterProfessionsSummary?> GetForeverProfessions(string characterSlug, string region)
+    {
+        var ns = GetProfileRegion(region, GameFlavor.Forever);
+        return await GetBlizzardDataCached<CharacterProfessionsSummary?>("GetForeverProfessions" + characterSlug + ns, async () =>
+        {
+            var result = await warcraftClient.GetForeverCharacterProfessionsAsync(characterSlug, ns, GetRegion(region), GetLocale(region));
+            if (result?.Success == true)
+            {
+                return result.Value;
+            }
+            if (result?.Error?.Code == 404)
+            {
+                return null;
+            }
+            //Do not cache an upstream failure as an empty list of professions.
+            throw new HttpRequestException("Blizzard Forever character professions request failed.");
+        }, TimeSpan.FromHours(2));
+    }
+
     //Forever's character images can 404 for many hours after the profile works, so a
     //missing image is normal here, not an error
     public async Task<CharacterMediaSummary?> GetForeverMedia(string characterSlug, string region)
