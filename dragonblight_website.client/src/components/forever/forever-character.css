@@ -6,9 +6,32 @@
     grid-template-columns: none;
     grid-auto-columns: max-content;
     overflow-x: auto;
+    /* the strip's background scrolls with the tabs instead of stopping at the visible edge */
+    background-attachment: local;
   }
 
   .forever-character-tabs .rt-SegmentedControlItemLabel {
     padding-inline: 8px;
+  }
+
+  /* Radix slides one highlight along by tab index and sizes it 1/n of the strip, which only lines up
+     when every tab is the same width. Here tabs are as wide as their labels, so the highlight is
+     drawn on the selected tab itself instead, matching Radix's surface variant. */
+  .forever-character-tabs .rt-SegmentedControlIndicator {
+    display: none;
+  }
+
+  .forever-character-tabs .rt-SegmentedControlItem {
+    position: relative;
+  }
+
+  .forever-character-tabs .rt-SegmentedControlItem[data-state="on"]::before {
+    content: "";
+    position: absolute;
+    inset: 1px;
+    z-index: -1;
+    border-radius: max(0.5px, calc(var(--segmented-control-border-radius) - 1px));
+    background-color: var(--segmented-control-indicator-background-color);
+    box-shadow: 0 0 0 1px var(--gray-a4);
   }
 }
