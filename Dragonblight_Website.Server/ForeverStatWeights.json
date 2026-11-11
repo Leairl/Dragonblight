@@ -1,0 +1,82 @@
+// Stat weights for the WoW: Forever Optimize tab. Starting values from Classic theorycraft; tune
+// them for Forever and restart the server. A weight is what one point of the stat is worth to the
+// spec; percentages (crit, hit, spellcrit, spellhit, dodge, parry) are per 1%.
+//
+// Stats: str agi sta int spi ap (melee attack power) rap (ranged attack power)
+//   sp (spell damage and healing) spdmg (spell damage only) heal (healing only)
+//   fire frost shadow nature arcane holy (one school's spell damage)
+//   crit hit spellcrit spellhit mp5 hp5 armor def dodge parry block (chance) haste (attack and casting speed)
+//   wdmg (flat weapon damage). "resistance" is read but not weighted.
+{
+  "specs": {
+    "Warrior/Arms": { "haste": 15, "str": 2.0, "agi": 1.3, "ap": 1.0, "crit": 30, "hit": 25, "wdmg": 6, "sta": 0.3 },
+    "Warrior/Fury": { "haste": 18, "str": 2.0, "agi": 1.3, "ap": 1.0, "crit": 30, "hit": 30, "wdmg": 5, "sta": 0.3 },
+    "Warrior/Protection": { "sta": 1.5, "def": 1.6, "armor": 0.12, "agi": 1.0, "str": 0.8, "dodge": 18, "parry": 18, "block": 10, "hit": 10, "ap": 0.2, "hp5": 1.0 },
+
+    "Paladin/Holy": { "haste": 8, "heal": 1.0, "sp": 1.0, "int": 1.0, "mp5": 2.0, "spellcrit": 12, "spi": 0.2, "sta": 0.2 },
+    "Paladin/Protection": { "sta": 1.3, "def": 1.4, "armor": 0.1, "sp": 0.8, "spdmg": 0.8, "holy": 0.8, "int": 0.4, "str": 0.5, "agi": 0.6, "dodge": 15, "parry": 15, "block": 8 },
+    "Paladin/Retribution": { "haste": 15, "str": 2.0, "agi": 1.0, "ap": 1.0, "crit": 25, "hit": 25, "wdmg": 6, "int": 0.3, "sp": 0.4, "spdmg": 0.4, "holy": 0.4, "sta": 0.3 },
+
+    "Hunter/Beast Mastery": { "haste": 15, "agi": 2.0, "rap": 1.0, "ap": 0.2, "crit": 25, "hit": 25, "int": 0.4, "mp5": 0.5, "sta": 0.3 },
+    "Hunter/Marksmanship": { "haste": 15, "agi": 2.0, "rap": 1.0, "ap": 0.2, "crit": 28, "hit": 25, "int": 0.4, "mp5": 0.5, "sta": 0.3 },
+    "Hunter/Survival": { "haste": 15, "agi": 2.3, "rap": 1.0, "ap": 0.3, "crit": 25, "hit": 25, "int": 0.4, "mp5": 0.5, "sta": 0.3 },
+
+    "Rogue/Assassination": { "haste": 18, "agi": 1.9, "str": 1.0, "ap": 1.0, "crit": 28, "hit": 28, "wdmg": 5, "sta": 0.3 },
+    "Rogue/Combat": { "haste": 18, "agi": 1.9, "str": 1.0, "ap": 1.0, "crit": 25, "hit": 30, "wdmg": 5, "sta": 0.3 },
+    "Rogue/Subtlety": { "haste": 15, "agi": 1.9, "str": 1.0, "ap": 1.0, "crit": 25, "hit": 25, "wdmg": 5, "sta": 0.3 },
+
+    "Priest/Discipline": { "haste": 8, "heal": 0.9, "sp": 0.9, "int": 1.0, "mp5": 2.0, "spi": 0.6, "spellcrit": 10, "sta": 0.2 },
+    "Priest/Holy": { "haste": 8, "heal": 1.0, "sp": 1.0, "int": 0.8, "spi": 0.8, "mp5": 2.0, "spellcrit": 10, "sta": 0.2 },
+    "Priest/Shadow Magic": { "haste": 10, "sp": 1.0, "spdmg": 1.0, "shadow": 1.0, "int": 0.4, "spi": 0.3, "spellhit": 15, "spellcrit": 6, "mp5": 1.0, "sta": 0.3 },
+
+    "Shaman/Elemental Combat": { "haste": 10, "sp": 1.0, "spdmg": 1.0, "nature": 0.9, "fire": 0.3, "frost": 0.2, "int": 0.4, "spellcrit": 12, "spellhit": 12, "mp5": 1.5, "sta": 0.2 },
+    "Shaman/Enhancement": { "haste": 15, "str": 2.0, "agi": 1.3, "ap": 1.0, "crit": 25, "hit": 25, "wdmg": 6, "int": 0.3, "sta": 0.3 },
+    "Shaman/Restoration": { "haste": 8, "heal": 1.0, "sp": 1.0, "int": 0.8, "mp5": 2.5, "spellcrit": 10, "spi": 0.2, "sta": 0.2 },
+
+    "Mage/Arcane": { "haste": 10, "sp": 1.0, "spdmg": 1.0, "arcane": 0.7, "fire": 0.3, "frost": 0.3, "int": 0.6, "spi": 0.3, "spellcrit": 10, "spellhit": 15, "mp5": 1.0, "sta": 0.2 },
+    "Mage/Fire": { "haste": 10, "sp": 1.0, "spdmg": 1.0, "fire": 1.0, "int": 0.4, "spellcrit": 13, "spellhit": 15, "mp5": 0.8, "sta": 0.2 },
+    "Mage/Frost": { "haste": 10, "sp": 1.0, "spdmg": 1.0, "frost": 1.0, "int": 0.4, "spellcrit": 9, "spellhit": 15, "mp5": 0.8, "sta": 0.3 },
+
+    "Warlock/Affliction": { "haste": 10, "sp": 1.0, "spdmg": 1.0, "shadow": 1.0, "int": 0.3, "sta": 0.4, "spellhit": 15, "spellcrit": 4, "spi": 0.1 },
+    "Warlock/Demonology": { "haste": 10, "sp": 1.0, "spdmg": 1.0, "shadow": 0.9, "fire": 0.2, "sta": 0.6, "int": 0.4, "spellhit": 15, "spellcrit": 6 },
+    "Warlock/Destruction": { "haste": 10, "sp": 1.0, "spdmg": 1.0, "shadow": 0.8, "fire": 0.4, "int": 0.3, "sta": 0.4, "spellhit": 15, "spellcrit": 12 },
+
+    "Druid/Balance": { "haste": 10, "sp": 1.0, "spdmg": 1.0, "arcane": 0.6, "nature": 0.6, "int": 0.5, "spi": 0.3, "spellcrit": 10, "spellhit": 15, "mp5": 1.0, "sta": 0.2 },
+    "Druid/Feral Combat": { "haste": 15, "agi": 1.6, "str": 1.6, "ap": 1.0, "crit": 25, "hit": 25, "sta": 0.6, "armor": 0.05, "def": 0.4, "dodge": 8 },
+    "Druid/Restoration": { "haste": 8, "heal": 1.0, "sp": 1.0, "int": 0.7, "spi": 0.9, "mp5": 2.0, "spellcrit": 8, "sta": 0.2 }
+  },
+
+  "defaultSpec": {
+    "Warrior": "Arms",
+    "Paladin": "Retribution",
+    "Hunter": "Beast Mastery",
+    "Rogue": "Combat",
+    "Priest": "Shadow Magic",
+    "Shaman": "Enhancement",
+    "Mage": "Frost",
+    "Warlock": "Affliction",
+    "Druid": "Feral Combat"
+  },
+
+  // Procs the effect text can't be scored from, as the steady stats they're roughly worth.
+  "overrides": {
+    "Enchant Weapon - Crusader": { "str": 35 },
+    "Enchant Weapon - Grand Crusader": { "str": 50 },
+    "Enchant Weapon - Fiery Weapon": { "wdmg": 4 },
+    "Enchant Weapon - Unholy Weapon": { "wdmg": 4 },
+    "Enchant Weapon - Lifestealing": { "wdmg": 2 },
+    "Enchant Weapon - Icy Chill": { "wdmg": 1 },
+    "Enchant 2H Weapon - Grand Inquisitor": { "str": 70 },
+    "Enchant Weapon - Grand Sorcerer": { "sp": 25 },
+    "Enchant 2H Weapon - Grand Arcanist": { "sp": 50 }
+  },
+
+  "manaUsers": ["Paladin", "Hunter", "Priest", "Shaman", "Mage", "Warlock", "Druid"],
+
+  // Content that isn't out yet. Anything whose recipe comes from a listed zone (as the professions tab
+  // shows its source, e.g. "Drop: ... (Mount Hyjal)"), or whose name is listed, is hidden until
+  // currentPhase reaches its phase. Raise currentPhase when a phase opens, and restart the server.
+  // Example: "2": { "zones": ["Mount Hyjal"], "items": ["Enchant Weapon - Grand Crusader"] }
+  "currentPhase": 1,
+  "laterPhases": {}
+}
