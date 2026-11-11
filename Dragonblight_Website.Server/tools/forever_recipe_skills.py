@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # Builds ForeverRecipes.tsv: per recipe, the skill it needs, the item that teaches it, and where that item comes from.
-# Columns: recipe id, required skill (blank if unknown), pattern|estimate|unknown, item id, item name, item icon URL, source
+# Columns: recipe id, required skill (blank if unknown), pattern|estimate|unknown, item id, item name, item icon URL, source,
+# and the source's parts as JSON ([{"kind":"Drop","name":"Raging Rot Hide","zone":"Silverpine Forest","wowhead":"npc=1943"}])
 # Rerun after a Forever patch that adds recipes, then restart the server. Wowhead gets one request a
 # second and answers slowly, so a first full run takes hours; PARTIAL=1 writes the file at once from what's
 # cached, and the cache dir makes later runs quick:
@@ -216,6 +217,35 @@ def source_text(info):
             parts.append(label)
     return "; ".join(parts)
 
+# Wowhead's sourcemore "t": the kind of page its "ti" id is on
+wowhead_types = {1: "npc", 2: "object", 3: "item", 5: "quest", 6: "spell"}
+
+# The same parts as source_text, one per label, so the page can link the mob, vendor or quest to Wowhead.
+def source_parts(info):
+    parts = []
+    seen = set()
+    for n, code in enumerate(info["source"]):
+        part = {"kind": source_names.get(code, "Other")}
+        label = part["kind"]
+        more = None
+        if n < len(info["sourcemore"]):
+            more = info["sourcemore"][n]
+        if more and more.get("n"):
+            part["name"] = clean(more["n"])
+            label += f": {more['n']}"
+            zone = zones.get(more.get("z"))
+            if zone:
+                part["zone"] = zone
+                label += f" ({zone})"
+            page = wowhead_types.get(more.get("t"))
+            if page and more.get("ti"):
+                part["wowhead"] = f"{page}={more['ti']}"
+        if label in seen:
+            continue
+        seen.add(label)
+        parts.append(part)
+    return parts
+
 # Recipes still in Forever's data that no one can learn: no pattern teaches them and no trainer does
 # either (the game's recipe table doesn't mark them). The server leaves "hidden" ones out of the
 # not-learned list. Add to this by hand.
@@ -253,18 +283,19 @@ with open(out_path, "w", newline="") as f:
         y = yellow(pid, rid)
         t = teachers.get((pid, name.lower()))
         if rid in UNOBTAINABLE:
-            out.writerow([rid, "", "hidden", "", "", "", "Not obtainable"])
+            out.writerow([rid, "", "hidden", "", "", "", "Not obtainable", "[]"])
             counts["hidden"] += 1
             continue
         if exact is not None:
             info = needed.get(t["id"]) or {"icon": "", "source": [], "sourcemore": []}
-            out.writerow([rid, exact, "pattern", t["id"], clean(t["name"]), clean(icons.get(t["id"], "")), clean(source_text(info))])
+            parts = json.dumps(source_parts(info), separators=(",", ":"))
+            out.writerow([rid, exact, "pattern", t["id"], clean(t["name"]), clean(icons.get(t["id"], "")), clean(source_text(info)), parts])
             counts["pattern"] += 1
         elif y is not None:
-            out.writerow([rid, estimate(y), "estimate", "", "", "", "Trainer"])
+            out.writerow([rid, estimate(y), "estimate", "", "", "", "Trainer", '[{"kind":"Trainer"}]'])
             counts["estimate"] += 1
         else:
-            out.writerow([rid, "", "unknown", "", "", "", "Trainer"])
+            out.writerow([rid, "", "unknown", "", "", "", "Trainer", '[{"kind":"Trainer"}]'])
             counts["unknown"] += 1
             unknown.append(f"{pid}\t{rid}\t{name}")
 with open(out_path + ".unknown.txt", "w") as f:

@@ -3383,6 +3383,14 @@ export interface ForeverRecipeDetails {
     icon?: string | undefined;
     taughtBy?: ForeverRecipeItem | undefined;
     source?: string | undefined;
+    sources: ForeverRecipeSource[];
+}
+
+export interface ForeverRecipeSource {
+    kind: string;
+    name?: string | undefined;
+    zone?: string | undefined;
+    wowhead?: string | undefined;
 }
 
 export interface Recipe {

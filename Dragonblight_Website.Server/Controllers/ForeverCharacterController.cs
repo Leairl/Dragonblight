@@ -489,7 +489,7 @@ namespace Dragonblight_Website.Server.Controllers
                     var recipe = _warcraftCachedData.GetForeverRecipe(id, region);
                     var icon = _warcraftCachedData.GetForeverRecipeIcon(id, region);
                     ForeverRecipes.data.TryGetValue(id, out var info);
-                    return new ForeverRecipeDetails { id = id, recipe = await recipe, icon = await icon, taughtBy = TaughtBy(info), source = SourceOf(info) };
+                    return new ForeverRecipeDetails { id = id, recipe = await recipe, icon = await icon, taughtBy = TaughtBy(info), source = SourceOf(info), sources = info?.sources ?? [] };
                 }));
                 CacheStaticRows(results.All(row => row.recipe != null && row.icon != null));
                 return Ok(results);
@@ -687,6 +687,8 @@ namespace Dragonblight_Website.Server.Controllers
         public ForeverRecipeItem? taughtBy { get; init; }
         //where the recipe comes from: "Vendor: Qia (Winterspring)", "Drop", "Trainer"; null when unknown
         public string? source { get; init; }
+        //the same, in parts the page can link to Wowhead; empty when unknown
+        public ForeverRecipeSource[] sources { get; init; } = [];
     }
 
     public class ForeverRecipeItem

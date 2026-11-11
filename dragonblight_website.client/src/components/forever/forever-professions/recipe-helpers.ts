@@ -32,7 +32,6 @@ export interface ListedRecipe {
 //The filter row's kinds of source, in the order the buttons show them. A kind the file names
 //that isn't listed here goes before "Unknown".
 const sourceOrder = ["Trainer", "Vendor", "Drop", "Quest", "Fishing", "Pickpocketing", "Crafted"];
-export const allSources = "All";
 
 //The kinds of source a recipe has: "Drop; Vendor: Qia (Winterspring)" is Drop and Vendor. A recipe
 //whose source isn't known is "Unknown"; one whose source hasn't loaded has none.
@@ -72,11 +71,12 @@ export function sourceCounts(recipes: ListedRecipe[]): { kind: string; count: nu
     .sort((a, b) => sourceRank(a.kind) - sourceRank(b.kind) || a.kind.localeCompare(b.kind));
 }
 
-export function filterBySource<T extends ListedRecipe>(recipes: T[], kind: string): T[] {
-  if (kind === allSources) {
+//The recipes with any of these kinds of source; all of them when none are picked.
+export function filterBySource<T extends ListedRecipe>(recipes: T[], kinds: string[]): T[] {
+  if (kinds.length === 0) {
     return recipes;
   }
-  return recipes.filter((recipe) => sourceKinds(recipe).includes(kind));
+  return recipes.filter((recipe) => sourceKinds(recipe).some((kind) => kinds.includes(kind)));
 }
 
 //"Requires 90", or "Requires about 90" when the level is estimated; empty when it isn't known.

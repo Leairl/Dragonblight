@@ -40,7 +40,8 @@ function ProfessionCard({ entry, region }: { entry: Dragonblight.CharacterProfes
         const recipes = [...(tier.known_recipes ?? [])].sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
         return (
           <div className="profession-tier" key={tier.tier?.id ?? index}>
-            <h4>{tierName}</h4>
+            {/* Forever's one tier per profession has the profession's name, already the card's heading */}
+            {tierName !== name && <h4>{tierName}</h4>}
             <SkillProgress name={tierName} points={tier.skill_points} maximum={tier.max_skill_points} />
             {recipes.length === 0 && <p className="profession-muted">No known recipes reported.</p>}
             <ProfessionRecipes known={recipes} skill={tier.skill_points} region={region} label={tierName} professionId={entry.profession?.id} skillTierId={tier.tier?.id} />

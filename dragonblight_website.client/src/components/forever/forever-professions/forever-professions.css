@@ -149,8 +149,3 @@
   gap: 12px;
   font-size: 13px;
 }
-
-.recipe-source-count {
-  opacity: 0.7;
-  font-variant-numeric: tabular-nums;
-}
