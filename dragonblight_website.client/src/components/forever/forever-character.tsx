@@ -386,9 +386,9 @@ function ForeverCharacter() {
     gender = "-f";
   }
   const guildSlug = guildSlugOf(profile?.guild);
-  let renderClass = "character-render";
+  let renderClass = "character-render forever-character-render";
   if (profile?.race?.name === "Tauren") {
-    renderClass = "character-render character-render-tauren";
+    renderClass = "character-render character-render-tauren forever-character-render";
   }
 
   return (

@@ -58,6 +58,19 @@ namespace Dragonblight_Website.Server.Controllers
                 api.Settings.ClientId = clientId;
                 api.Settings.AccessToken = (await GetOAuthTokenAsync(clientId, clientSecret))?.AccessToken;
 
+                //Twitch has no WoW: Forever category; Forever streams are World of Warcraft streams that
+                //name it in their title. Forever looks through the top 100 for those, and shows the usual
+                //top streams when none do.
+                if (HttpContext.GetGameFlavor() == GameFlavor.Forever)
+                {
+                    var top = await api.Helix.Streams.GetStreamsAsync(gameIds: new List<string> { "18122" }, first: 100);
+                    var forever = top.Streams.Where(stream => (stream.Title ?? "").Contains("Forever", StringComparison.OrdinalIgnoreCase)).Take(10).ToArray();
+                    if (forever.Length > 0)
+                    {
+                        return Ok(forever);
+                    }
+                    return Ok(top.Streams.Take(10));
+                }
                 var result = await api.Helix.Streams.GetStreamsAsync(gameIds: new List<string> { "18122" }, first: 10);
                 return Ok(result.Streams);
             }

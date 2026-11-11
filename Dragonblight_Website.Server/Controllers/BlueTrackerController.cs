@@ -22,11 +22,31 @@ public class BlueTrackerController(IHttpClientFactory clients, IMemoryCache cach
         cache.Set(key, value, TimeSpan.FromMinutes(5));
         return value;
     }
+    // the forum groups Blizzard employees post from
+    private static bool IsBlizzardGroup(string group) => group is "community-manager" or "blizzard" or "api_users" or "blue";
+
+    // Whether a Blizzard employee opened the thread a blue post is in: its own first post, or a thread
+    // whose first post is from a Blizzard group. Who opened a thread never changes, so it's kept a day.
+    private async Task<bool> StartedByBlizzard(string region, int topicId, int postNumber)
+    {
+        if (postNumber == 1) return true;
+        var key = $"blue:starter:{region}:{topicId}";
+        if (cache.TryGetValue<bool>(key, out var known)) return known;
+        var topic = await Get(region, $"/t/{topicId}.json");
+        var started = false;
+        if (topic.TryGetProperty("post_stream", out var stream) && stream.TryGetProperty("posts", out var first) && first.GetArrayLength() > 0)
+        {
+            started = Number(first[0], "post_number") == 1 && IsBlizzardGroup(Text(first[0], "primary_group_name"));
+        }
+        cache.Set(key, started, TimeSpan.FromDays(1));
+        return started;
+    }
+
     private async Task<Dictionary<int, JsonElement>> Categories(string region) =>
         (await Get(region, "/site.json")).GetProperty("categories").EnumerateArray().ToDictionary(c => Number(c, "id"));
 
     // Unknown categories are excluded rather than silently assigned to Retail.
-    private static bool Matches(Dictionary<int, JsonElement> categories, int categoryId, string title, bool classic)
+    private static bool Matches(Dictionary<int, JsonElement> categories, int categoryId, string title, GameFlavor flavor)
     {
         var names = new List<string>();
         var seen = new HashSet<int>();
@@ -36,9 +56,16 @@ public class BlueTrackerController(IHttpClientFactory clients, IMemoryCache cach
             categoryId = Number(category, "parent_category_id");
         }
         if (names.Count == 0) return false;
+        // WoW: Forever has its own forum section ("WoW: Forever", with General Discussion and Bug Report)
+        // and a beta board under In Development; site-wide news that's about Forever names it in the title
+        if (flavor == GameFlavor.Forever)
+        {
+            return names.Any(n => n.Contains("Forever", StringComparison.OrdinalIgnoreCase))
+                || title.Contains("Forever", StringComparison.OrdinalIgnoreCase);
+        }
         var categoryNames = string.Join(" ", names);
         var mop = Regex.IsMatch(title + " " + categoryNames, @"\b(Mists of Pandaria|MoP)\b", RegexOptions.IgnoreCase);
-        if (classic) return mop;
+        if (flavor == GameFlavor.MistsClassic) return mop;
         if (mop || Regex.IsMatch(title + " " + categoryNames, @"\b(Classic|Hardcore|Season of Discovery|Forever)\b", RegexOptions.IgnoreCase)) return false;
         return names.Any(n => new[] { "Community", "Gameplay", "Classes", "PVP", "PvP", "In Development" }.Contains(n));
     }
@@ -61,7 +88,7 @@ public class BlueTrackerController(IHttpClientFactory clients, IMemoryCache cach
         try
         {
             var categories = await Categories(region);
-            var classic = HttpContext.GetGameFlavor() == GameFlavor.MistsClassic;
+            var flavor = HttpContext.GetGameFlavor();
             var posts = new List<JsonElement>();
             var cursor = "";
             for (var page = 0; page < 5 && posts.Count < 30; page++)
@@ -69,7 +96,13 @@ public class BlueTrackerController(IHttpClientFactory clients, IMemoryCache cach
                 var batch = (await Get(region, $"/groups/blizzard-tracker/posts.json{cursor}")).GetProperty("posts");
                 if (batch.GetArrayLength() == 0) break;
                 cursor = $"?before_post_id={Number(batch[batch.GetArrayLength() - 1], "id")}";
-                posts.AddRange(batch.EnumerateArray().Where(p => Matches(categories, Number(p, "category_id"), Text(p, "topic_title"), classic)));
+                foreach (var p in batch.EnumerateArray().Where(p => Matches(categories, Number(p, "category_id"), Text(p, "topic_title"), flavor)))
+                {
+                    // Forever shows Blizzard's own threads (hotfixes, tuning, announcements and their
+                    // updates), not Blizzard replies in threads players started
+                    if (flavor == GameFlavor.Forever && !await StartedByBlizzard(region, Number(p, "topic_id"), Number(p, "post_number"))) continue;
+                    posts.Add(p);
+                }
             }
             return Ok(posts.DistinctBy(p => Number(p, "id")).OrderByDescending(p => Text(p, "created_at")).Take(30).Select(p => Summary(p, categories, region)));
         }
@@ -87,10 +120,12 @@ public class BlueTrackerController(IHttpClientFactory clients, IMemoryCache cach
         {
             var post = await Get(region, $"/posts/{postId}.json");
             // Individual post JSON includes the author's group, not membership in the tracker group.
-            if (Text(post, "primary_group_name") is not ("community-manager" or "blizzard" or "api_users" or "blue")) return NotFound();
+            if (!IsBlizzardGroup(Text(post, "primary_group_name"))) return NotFound();
             var topic = await Get(region, $"/t/{Number(post, "topic_id")}.json");
             var categories = await Categories(region);
-            if (!Matches(categories, Number(topic, "category_id"), Text(topic, "title"), HttpContext.GetGameFlavor() == GameFlavor.MistsClassic)) return NotFound();
+            var flavor = HttpContext.GetGameFlavor();
+            if (!Matches(categories, Number(topic, "category_id"), Text(topic, "title"), flavor)) return NotFound();
+            if (flavor == GameFlavor.Forever && !await StartedByBlizzard(region, Number(post, "topic_id"), Number(post, "post_number"))) return NotFound();
             return Ok(new { title = Text(topic, "title"), author = Text(post, "name") is { Length: > 0 } name ? name : Text(post, "username"),
                 authorTitle = Text(post, "user_title"), createdAt = Text(post, "created_at"), updatedAt = Text(post, "updated_at"),
                 html = Text(post, "cooked"), sourceUrl = $"{Root(region)}/t/{Number(post, "topic_id")}/{Number(post, "post_number")}" });

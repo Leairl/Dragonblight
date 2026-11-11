@@ -23,7 +23,7 @@ import CutoffsPage from "./components/cutoffs-page/cutoffs-page.tsx";
 import ProfileCompare from "./components/compare/compare.tsx";
 import CompositionScorePage from "./components/composition-score/composition-score.tsx";
 import { CookiePage, PrivacyPage, SupportPage, TermsPage } from "./components/site-footer/site-pages.tsx";
-import ForeverHome, { ForeverLanding } from "./components/forever/forever-home.tsx";
+import ForeverHome from "./components/forever/forever-home.tsx";
 import ForeverCharacter from "./components/forever/forever-character.tsx";
 import ForeverStats from "./components/forever/forever-stats.tsx";
 import ForeverGuild from "./components/forever/forever-guild.tsx";
@@ -62,12 +62,15 @@ const ladderRoutes = (
   </Route>
 );
 
-// WoW: Forever has its landing page, character and guild pages, the ruleset stats page and the
-// footer pages so far. Every other Forever path goes back to the landing page rather than to a page
+// WoW: Forever has the news home page and blue tracker, character and guild pages, the ruleset stats
+// page and the footer pages so far. Every other Forever path goes back to the landing page rather than to a page
 // with no Forever data.
 const foreverRoutes = (
   <Route path="/" element={<div><NavBar></NavBar><ForeverHome></ForeverHome></div>}>
-    <Route index element={<ForeverLanding />} />
+    {/* the same home page as retail and MoP: a featured stream and Blizzard's Forever blue posts */}
+    <Route index element={<News />} />
+    <Route path="blue-tracker" element={<BlueTracker />} />
+    <Route path="blue-tracker/:region/:postId" element={<BluePostPage />} />
     <Route path="character/:region/:characterSlug/:urlTab?" element={<ForeverCharacter />} />
     <Route path="stats" element={<ForeverStats />} />
     <Route path="guild/:region/:guildSlug" element={<ForeverGuild />} />

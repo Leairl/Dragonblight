@@ -9,13 +9,12 @@ interface FlavorOption {
   label: string;
   subtitle: string;
   icon: string; //transparent PNG in public/GameVersions
-  soon?: boolean;
 }
 
 const options: FlavorOption[] = [
   { flavor: "retail", label: "Retail", subtitle: "Current expansion", icon: "/GameVersions/retail.png" },
   { flavor: "classic", label: "MoP", subtitle: "Mists of Pandaria Classic", icon: "/GameVersions/mop.png" },
-  { flavor: "forever", label: "Forever", subtitle: "Rulesets & Legacy progression", icon: "/GameVersions/forever.png", soon: true },
+  { flavor: "forever", label: "Forever", subtitle: "WoW Forever", icon: "/GameVersions/forever.png" },
 ];
 
 //The game logo. Until its PNG exists it shows an empty rounded box, so the layout doesn't shift.
@@ -73,14 +72,7 @@ function FlavorToggle() {
               <DropdownMenu.Item key={option.flavor} className={className} onSelect={() => setFlavor(option.flavor, pathname)}>
                 <FlavorIcon src={option.icon} size="h-9 w-9" />
                 <div className="flex min-w-0 flex-1 flex-col">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-white">{option.label}</span>
-                    {option.soon && (
-                      <span className="rounded border border-amber-500/40 bg-amber-500/15 px-1.5 text-[10px] font-bold uppercase tracking-wide text-amber-400">
-                        Soon
-                      </span>
-                    )}
-                  </div>
+                  <span className="font-semibold text-white">{option.label}</span>
                   <span className="text-sm text-gray-400">{option.subtitle}</span>
                 </div>
                 {active && <CheckIcon className="h-5 w-5 flex-none text-[#4dc4fd]" />}
