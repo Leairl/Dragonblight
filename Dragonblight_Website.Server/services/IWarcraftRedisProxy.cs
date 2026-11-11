@@ -12,6 +12,16 @@ public interface IWarcraftRedisProxy
     Task<CharacterMediaSummary?> GetForeverMedia(string characterSlug, string region);
     Task<List<string>> ForeverCachedCharacters();
     Task InsertForeverCachedCharacter(string characterSlug, string region);
+    Task<ForeverGuild?> GetForeverGuild(string guildSlug, string region);
+    Task<ForeverGuildRoster?> GetForeverGuildRoster(string guildSlug, string region);
+    Task<string?> GetForeverSpecName(string characterSlug, string region);
+    Task<ForeverNameLists?> GetForeverNameLists(string region);
+    Task SaveForeverStatsCharacters(IEnumerable<ForeverStatsCharacter> characters);
+    Task<List<ForeverStatsCharacter>> GetForeverStatsCharacters();
+    Task<ForeverStatsCharacter?> GetForeverStatsCharacter(string characterSlug, string region);
+    Task RemoveForeverStatsCharacters(IEnumerable<ForeverStatsCharacter> characters);
+    Task SaveForeverStatsSummary(ForeverStatsSummary summary);
+    Task<ForeverStatsSummary?> GetForeverStatsSummary();
     Task RecordCharacter(int id, string name, string realm, string region, GameFlavor flavor);
     Task<CharacterIdentity?> GetCharacterIdentity(int id, string region, GameFlavor flavor);
     Task<PlayableSpecializationsIndex?> PlayableSpecializationsIndex(string region, GameFlavor flavor);

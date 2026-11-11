@@ -25,6 +25,7 @@ import CompositionScorePage from "./components/composition-score/composition-sco
 import { CookiePage, PrivacyPage, SupportPage, TermsPage } from "./components/site-footer/site-pages.tsx";
 import ForeverHome, { ForeverLanding } from "./components/forever/forever-home.tsx";
 import ForeverCharacter from "./components/forever/forever-character.tsx";
+import ForeverStats from "./components/forever/forever-stats.tsx";
 
 // every /api/ call carries the current flavor
 installFlavorHeader()
@@ -60,12 +61,14 @@ const ladderRoutes = (
   </Route>
 );
 
-// WoW: Forever has its landing page, character pages and the footer pages so far. Every
-// other Forever path goes back to the landing page rather than to a page with no Forever data.
+// WoW: Forever has its landing page, character pages, the ruleset stats page and the footer
+// pages so far. Every other Forever path goes back to the landing page rather than to a page
+// with no Forever data.
 const foreverRoutes = (
   <Route path="/" element={<div><NavBar></NavBar><ForeverHome></ForeverHome></div>}>
     <Route index element={<ForeverLanding />} />
     <Route path="character/:region/:characterSlug" element={<ForeverCharacter />} />
+    <Route path="stats" element={<ForeverStats />} />
     <Route path="terms" element={<TermsPage />} />
     <Route path="cookies" element={<CookiePage />} />
     <Route path="privacy" element={<PrivacyPage />} />

@@ -112,6 +112,103 @@ function SkeletonSlotRow(props: { right: boolean }) {
   );
 }
 
+// "joe-gun" as "Joe Gun", for roster records saved before they kept the name and surname
+function nameFromSlug(slug: string): string {
+  return slug
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+// A character Blizzard's API has no profile for, drawn from what the stats crawl last saw of
+// them in a guild roster: the same header card the full page has, and a note where the gear
+// would be. Rosters carry no gender, so the race icon is the male one.
+function RosterOnlyCharacter(props: { character: Dragonblight.ForeverStatsCharacter; region: string }) {
+  const c = props.character;
+  let fullName = `${c.name} ${c.surname}`;
+  if (c.name === "") {
+    fullName = nameFromSlug(c.slug);
+  }
+  let factionName = "Alliance";
+  if (c.faction === "HORDE") {
+    factionName = "Horde";
+  }
+  const seenAt = new Date(c.seenAt);
+
+  return (
+    <div className="profile-page grid">
+      <div className="flex-wrap flex flex-row justify-center">
+        <div className="flex flex-col">
+          <div className="page-container">
+            <div className="center-column">
+              <Card className="mb-3 header-card border-card">
+                <div className="header-row flex items-center">
+                  <div className="header-main">
+                    <div className="flex flex-row px[1px]">
+                      <img
+                        className="m-1"
+                        src={`/ProfileClassIcons/${c.className.toLowerCase().replace(" ", "")}.png`}
+                        height="34px"
+                        width="34px"
+                        style={headerIconStyle}
+                      ></img>
+                      <img
+                        className="my-1"
+                        src={`/RaceIcons/${c.raceName.toLowerCase().split(" ").join("")}-m.png`}
+                        onError={(e) => {
+                          if (!e.currentTarget.src.endsWith("/unknown.png")) {
+                            e.currentTarget.src = "/unknown.png";
+                          }
+                        }}
+                        height="34px"
+                        width="34px"
+                        style={headerIconStyle}
+                      ></img>
+                      <img
+                        className="m-1"
+                        src={`/ProfileFactions/${factionName}.png`}
+                        height="34px"
+                        width="34px"
+                        style={headerIconStyle}
+                      ></img>
+                      <div className="pl-2 flex flex-col justify-center min-w-0">
+                        <Heading className="character-text" size="3" style={{ color: `${ClassColor.get(c.className)}` }}>
+                          {fullName} - {c.rulesetName}
+                        </Heading>
+                        <Heading size="2" className="guild-text">
+                          {c.guildName !== "" && `<${c.guildName}>`}{" "}
+                        </Heading>
+                      </div>
+                      <div className="flex-1"></div>
+                    </div>
+                  </div>
+                  <Flex direction="column" align="end" className="ml-auto pr-2 flex-none">
+                    <Heading size="3">{c.level}</Heading>
+                    <Heading size="1" color="gray" weight="regular">Level</Heading>
+                  </Flex>
+                </div>
+              </Card>
+              <Card className="border-card">
+                <Callout.Root color="amber">
+                  <Callout.Icon>
+                    <InfoCircledIcon />
+                  </Callout.Icon>
+                  <Callout.Text>
+                    Blizzard's API hasn't published this character's profile yet, so their gear isn't available.
+                    <div>
+                    What's shown comes from their guild's roster, last seen {seenAt.toLocaleString()} ({props.region.toUpperCase()}).
+                    </div>
+                  </Callout.Text>
+                </Callout.Root>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // A WoW: Forever character, laid out like the retail and classic profile: a header card
 // with the character's icons and name, then the paperdoll with gear down both sides.
 // Route: /forever/character/:region/:characterSlug, where the slug is "name-surname".
@@ -158,7 +255,7 @@ function ForeverCharacter() {
   }, [page]);
 
   if (state === "notFound" || state === "error") {
-    let message = `${characterSlug} not found. Blizzard only lists Forever characters that are level 10 or higher and have logged out since reaching it.`;
+    let message = `${characterSlug} not found. Blizzard's API has no profile for this character yet. New characters appear once they're level 10 and have logged out, and some the Armory already shows take longer to reach the API. Check the spelling and region, and try again later.`;
     if (state === "error") {
       message = "Couldn't load this character: Blizzard's API didn't answer. Try again in a minute.";
     }
@@ -172,6 +269,12 @@ function ForeverCharacter() {
         </Callout.Root>
       </div>
     );
+  }
+
+  // Blizzard's API had no profile, but the stats crawl has seen the character in a guild roster
+  const rosterCharacter = page?.rosterCharacter;
+  if (state === "loaded" && !page?.profile && rosterCharacter) {
+    return <RosterOnlyCharacter character={rosterCharacter} region={region ?? ""} />;
   }
 
   const profile = page?.profile;
@@ -220,7 +323,7 @@ function ForeverCharacter() {
                         ></img>
                         <img
                           className="my-1"
-                          src={`/RaceIcons/${profile.race?.name?.toLowerCase().replace(" ", "")}${gender}.png`}
+                          src={`/RaceIcons/${(profile.race?.name ?? "").toLowerCase().split(" ").join("")}${gender}.png`}
                           height="34px"
                           width="34px"
                           style={headerIconStyle}
