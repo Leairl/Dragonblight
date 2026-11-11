@@ -504,7 +504,7 @@ function ForeverCharacter() {
             </div>
           </div>
         </div>
-        {tab === "gear" && <ForeverCharacterStats key={requestKey} />}
+        <ForeverCharacterStats key={requestKey} />
       </div>
     </div>
   );

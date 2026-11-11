@@ -29,7 +29,7 @@ function ForeverCharacterStats() {
   const [state, setState] = useState<StatsState>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
 
-  //Mounted only on Gear and keyed by character, independently of the paperdoll request.
+  //Keep mounted across tabs, keyed by character, independently of the paperdoll request.
   useEffect(() => {
     let cancelled = false;
     if (!region || !characterSlug) return;
