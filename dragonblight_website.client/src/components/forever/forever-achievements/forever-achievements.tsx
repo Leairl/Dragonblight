@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { Button, Callout, Flex, Heading, Select, Skeleton, Text, TextField } from "@radix-ui/themes";
 import { Dragonblight } from "../../../clients/Dragonblight";
-import { achievementDate, filterAchievements, reportedAchievements } from "./achievement-helpers";
+import { filterAchievements, reportedAchievements } from "./achievement-helpers";
 import AchievementCard from "./achievement-card";
+import RecentAchievements from "./recent-achievements";
 import "./forever-achievements.css";
 
 type SummaryState = { status: "loading" } | { status: "loaded"; data: Dragonblight.ForeverAchievementsSummary } | { status: "error"; message: string };
@@ -92,10 +93,7 @@ export default function ForeverAchievements() {
           {summary?.total_points != null && summary.total_points > 0 && <Text size="2">Achievement points: {summary.total_points.toLocaleString()}</Text>}
         </Flex>
         <Text as="p" size="1" color="gray" mb="4">Only achievements reported for this character are shown. Legacy rewards are listed separately from achievement points.</Text>
-        {recent.length > 0 && <details className="forever-achievement-recent">
-          <summary>Recent achievements</summary>
-          <ul>{recent.map((event, index) => <li key={`${event.achievement?.id}/${index}`}><Text size="2">{event.achievement?.name ?? "Unknown achievement"}</Text>{achievementDate(event.timestamp) && <Text size="1" color="gray"> · {achievementDate(event.timestamp)}</Text>}</li>)}</ul>
-        </details>}
+        <RecentAchievements events={recent} details={details} loading={detailsLoading} />
         {entries.length === 0 ? <Text as="p" size="2" color="gray" role="status">No achievements reported for this character.</Text> : <>
           <div className="forever-achievement-filters">
             <TextField.Root aria-label="Search achievements" placeholder="Search achievements…" value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} />

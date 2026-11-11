@@ -5,17 +5,28 @@ import ts from "typescript";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
+const moduleUrls = new Map();
 async function loadModule(path) {
-  const source = await readFile(new URL(path, import.meta.url), "utf8");
+  const file = new URL(path, import.meta.url);
+  const source = await readFile(file, "utf8");
   const { outputText } = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.ReactJSX },
   });
-  const resolved = outputText.replace(/from (["'])(react|react\/jsx-runtime|@radix-ui\/themes)\1/g, (_, quote, name) => `from ${quote}${import.meta.resolve(name)}${quote}`);
-  return import(`data:text/javascript;base64,${Buffer.from(resolved).toString("base64")}`);
+  const resolved = outputText
+    .replace(/from (["'])(react|react\/jsx-runtime|@radix-ui\/themes|@radix-ui\/react-icons)\1/g, (_, quote, name) => `from ${quote}${import.meta.resolve(name)}${quote}`)
+    .replace(/from (["'])(\.\/[^"']+)\1/g, (_, quote, name) => {
+      const dependency = moduleUrls.get(new URL(`${name}.ts`, file).href) ?? moduleUrls.get(new URL(`${name}.tsx`, file).href);
+      assert.ok(dependency, `Load ${name} before ${path}`);
+      return `from ${quote}${dependency}${quote}`;
+    });
+  const url = `data:text/javascript;base64,${Buffer.from(resolved).toString("base64")}`;
+  moduleUrls.set(file.href, url);
+  return import(url);
 }
 const { Dragonblight } = await loadModule("../src/clients/Dragonblight.ts");
 const { achievementStatus, reportedAchievements, filterAchievements, achievementCriteria, achievementDate } = await loadModule("../src/components/forever/forever-achievements/achievement-helpers.ts");
 const { default: AchievementIcon } = await loadModule("../src/components/forever/forever-achievements/achievement-icon.tsx");
+const { default: RecentAchievements } = await loadModule("../src/components/forever/forever-achievements/recent-achievements.tsx");
 
 const completed = { id: 61997, achievement: { id: 61997, name: "Novice Paladin" }, criteria: { id: 221473, is_completed: true }, completed_timestamp: 1794171240000 };
 const inProgress = { id: 62015, achievement: { id: 62015, name: "Journeyman Blacksmith" }, criteria: { id: 221509, is_completed: false, child_criteria: [{ id: 221510, amount: 132, is_completed: false }] } };
@@ -108,4 +119,30 @@ test("Achievement icons show skeletons while pending, reserving the fallback for
   assert.doesNotMatch(downloading, /unknown.png/);
   const missing = renderToStaticMarkup(createElement(AchievementIcon, { pending: false }));
   assert.match(missing, /unknown.png/);
+  const small = renderToStaticMarkup(createElement(AchievementIcon, { pending: true, size: 32 }));
+  assert.match(small, /width:32px;height:32px/);
+});
+
+test("Recent achievements render a collapsed, icon-backed panel with categories and semantic dates", () => {
+  const events = [{ achievement: completed.achievement, timestamp: completed.completed_timestamp }];
+  const details = new Map([[61997, { id: 61997, achievement: { name: "Novice Paladin", category: { name: "Paladin" } }, icon: "https://example.com/icon.jpg" }]]);
+  const html = renderToStaticMarkup(createElement(RecentAchievements, { events, details, loading: false }));
+  assert.match(html, /Recent achievements/);
+  assert.match(html, /forever-recent-row/);
+  assert.match(html, /Novice Paladin/);
+  assert.match(html, /Paladin/);
+  assert.match(html, /datetime="2026-11-08T/i);
+  assert.match(html, /icon.jpg/);
+  assert.doesNotMatch(html, /<details[^>]*\bopen/);
+  assert.equal(renderToStaticMarkup(createElement(RecentAchievements, { events: [], details, loading: false })), "");
+});
+
+test("Recent achievements retain reported names and skeletons when metadata is pending", () => {
+  const html = renderToStaticMarkup(createElement(RecentAchievements, {
+    events: [{ achievement: { id: 779, name: "Explore Loch Modan" } }], details: new Map(), loading: true,
+  }));
+  assert.match(html, /Explore Loch Modan/);
+  assert.match(html, /Date unavailable/);
+  assert.match(html, /rt-Skeleton/);
+  assert.doesNotMatch(html, /unknown.png/);
 });
