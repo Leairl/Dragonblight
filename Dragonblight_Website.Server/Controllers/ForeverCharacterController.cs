@@ -384,6 +384,50 @@ namespace Dragonblight_Website.Server.Controllers
             }
         }
 
+        //Legacy Points the character's account has earned, out of every point Forever's achievements
+        //award. Blizzard has no Legacy Point endpoint, so this counts completed achievements whose
+        //reward is Legacy Points. Points spent, or earned some other way, aren't in the API.
+        [HttpGet("GetLegacyPoints")]
+        [ProducesResponseType(typeof(ForeverLegacyPoints), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<ForeverLegacyPoints>> GetLegacyPoints(string region, string characterSlug)
+        {
+            region = region.ToLowerInvariant();
+            if (region != "us" && region != "eu") return BadRequest("region must be us or eu");
+            characterSlug = characterSlug.ToLowerInvariant();
+            if (characterSlug.Length > 64 || !IsCharacterSlug(characterSlug)) return BadRequest("characterSlug must be name-surname");
+            try
+            {
+                var achievementsTask = _warcraftCachedData.GetForeverAchievements(characterSlug, region);
+                var rewardsTask = _warcraftCachedData.GetForeverLegacyRewards(region);
+                await Task.WhenAll(achievementsTask, rewardsTask);
+                var achievements = achievementsTask.Result;
+                if (achievements == null) return NotFound(new ProblemDetails
+                {
+                    Status = StatusCodes.Status404NotFound,
+                    Title = "Achievement data is not available for this character."
+                });
+                var rewards = rewardsTask.Result;
+                if (rewards == null) throw new HttpRequestException("Forever achievement definitions could not all be read.");
+                //the same test the achievements tab uses for "completed"
+                var completed = (achievements.Achievements ?? [])
+                    .Where(a => a.Criteria?.IsCompleted == true || a.CompletedTimestamp > 0)
+                    .Select(a => a.Id > 0 ? a.Id : a.Achievement?.Id ?? 0)
+                    .ToHashSet();
+                CacheCharacterData();
+                return Ok(new ForeverLegacyPoints
+                {
+                    earned = completed.Sum(id => rewards.GetValueOrDefault(id)),
+                    total = rewards.Values.Sum(),
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting Forever Legacy Points for {Slug} in {Region}.", characterSlug, region);
+                return StatusCode(500);
+            }
+        }
+
         //Static definitions and icons for a character's whole achievement list. Forever characters report a few
         //dozen, so one request covers them. Cached lookups answer at once; Blizzard calls on a cold cache are
         //throttled process-wide in the proxy, not per request.
@@ -584,6 +628,13 @@ namespace Dragonblight_Website.Server.Controllers
         public int id { get; init; }
         //null when Blizzard has no picture for it, or the lookup failed and will be tried again
         public string? icon { get; init; }
+    }
+
+    public class ForeverLegacyPoints
+    {
+        public int earned { get; init; }
+        //every Legacy Point Forever's achievements award
+        public int total { get; init; }
     }
 
     public class ForeverCharacterPage

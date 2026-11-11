@@ -18,6 +18,8 @@ export default function ForeverAchievements() {
     missing: "Achievement data is not available for this character.",
     failed: "Unable to load achievements. Please try again.",
   });
+  // Legacy Points come from their own request; the tab works without them if it fails
+  const [legacy] = useForeverTab("legacy", region, characterSlug, { missing: "", failed: "" });
   const [detailAttempt, setDetailAttempt] = useState(0);
   const [detailResult, setDetailResult] = useState<DetailResult>();
   const [query, setQuery] = useState("");
@@ -95,8 +97,11 @@ export default function ForeverAchievements() {
         <Flex gap="4" wrap="wrap" mb="3">
           <Text size="2">Completed: <strong>{summary?.total_quantity?.toLocaleString() ?? "—"}</strong></Text>
           {summary?.total_points != null && summary.total_points > 0 && <Text size="2">Achievement points: {summary.total_points.toLocaleString()}</Text>}
+          {legacy.status === "loaded" && legacy.data.total > 0 && (
+            <Text size="2">Legacy Points: <strong>{legacy.data.earned.toLocaleString()}</strong> / {legacy.data.total.toLocaleString()}</Text>
+          )}
         </Flex>
-        <Text as="p" size="1" color="gray" mb="4">Only achievements reported for this character are shown. Legacy rewards are listed separately from achievement points.</Text>
+        <Text as="p" size="1" color="gray" mb="4">Only achievements reported for this character are shown. Legacy Points count the account's completed achievements that award them; points spent aren't in Blizzard's data.</Text>
         <RecentAchievements events={recent} details={details} loading={detailsLoading} />
         {entries.length === 0 ? <Text as="p" size="2" color="gray" role="status">No achievements reported for this character.</Text> : <>
           <div className="forever-achievement-filters">

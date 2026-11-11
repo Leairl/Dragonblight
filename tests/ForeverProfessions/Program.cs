@@ -404,6 +404,27 @@ Check((await controller.GetCollectionIcons("eu", "pet", [])).Result is BadReques
 Check((await controller.GetCollectionIcons("eu", "pet", [0])).Result is BadRequestObjectResult, "Nonpositive icon IDs must be rejected");
 Check((await controller.GetCollectionIcons("eu", "pet", Enumerable.Range(1, ForeverCharacterController.MaxCollectionIconBatch + 1).ToArray())).Result is BadRequestObjectResult, "Icon batches must be bounded");
 Check(typeof(ProfileController).GetMethod("GetCollections") == null, "The collections endpoint must remain Forever-only");
+
+//---- Legacy Points ----
+handler.Status = HttpStatusCode.OK;
+calls = handler.Paths.Count;
+var legacy = ((await controller.GetLegacyPoints("EU", "JUDGEMENT-JUDY")).Result as OkObjectResult)?.Value as ForeverLegacyPoints;
+Check(legacy is { earned: 1, total: 3 }, "Legacy Points count completed achievements that award them, out of every awarding achievement");
+Check(handler.Paths.Skip(calls).Any(path => path.Contains("/achievement/index?namespace=static-forever-eu")), "Legacy rewards come from Forever's achievement index");
+calls = handler.Paths.Count;
+await controller.GetLegacyPoints("eu", "judgement-judy");
+Check(handler.Paths.Count == calls, "Legacy rewards and achievements must be cached");
+Check(CacheControlOf(() => controller.GetLegacyPoints("eu", "judgement-judy")) == "private, max-age=300", "Legacy Points may be reused briefly by the browser");
+Check((await controller.GetLegacyPoints("xx", "judgement-judy")).Result is BadRequestObjectResult, "Legacy Point regions must be validated");
+Check((await controller.GetLegacyPoints("eu", "../x")).Result is BadRequestObjectResult, "Legacy Point slugs must be validated");
+handler.Status = HttpStatusCode.NotFound;
+Check((await controller.GetLegacyPoints("eu", "nobody-here")).Result is NotFoundObjectResult { Value: ProblemDetails { Status: 404 } }, "A character with no achievements must return a structured 404");
+handler.Status = HttpStatusCode.OK;
+//one definition Blizzard can't find means the list can't be trusted; it fails rather than undercounting, and isn't kept
+BlizzardHandler.AchievementIndex = """{"achievements":[{"id":61997,"name":"a"},{"id":9999,"name":"missing"}]}""";
+Check((await controller.GetLegacyPoints("us", "judgement-judy")).Result is StatusCodeResult { StatusCode: 500 }, "An unreadable definition must fail, not undercount");
+BlizzardHandler.AchievementIndex = """{"achievements":[{"id":61997,"name":"a"}]}""";
+Check(((await controller.GetLegacyPoints("us", "judgement-judy")).Result as OkObjectResult)?.Value is ForeverLegacyPoints { earned: 1, total: 1 }, "A failed Legacy reward list must not be cached");
 Console.WriteLine($"Passed {checks} Forever character checks.");
 
 public class Stub : DispatchProxy
@@ -424,6 +445,8 @@ class BlizzardHandler : HttpMessageHandler
     //Collections, their game data indexes and the static data their pictures come from.
     //Two items share appearance 29124: it is named after the better one. 63427 has only the common item;
     //5, 6 and 7 have no item at all, as about a quarter of a real character's appearances do.
+    //every fixture definition rewards "Earn 1 Legacy Point."; 9999 is missing from Blizzard
+    public static string AchievementIndex = """{"achievements":[{"id":61997,"name":"a"},{"id":62015,"name":"b"},{"id":70001,"name":"c"}]}""";
     public static int Searches;
     static string SearchItems { get { Interlocked.Increment(ref Searches); return """{"results":[{"data":{"id":101,"name":{"en_US":"Plain Helm","en_GB":"Plain Helm (GB)"},"quality":{"type":"COMMON","name":{"en_US":"Common"}},"media":{"id":101},"appearances":[{"id":29124},{"id":63427}]}},{"data":{"id":100,"name":{"en_US":"Stalwart Helm","en_GB":"Stalwart Helm"},"quality":{"type":"EPIC","name":{"en_US":"Epic"}},"media":{"id":100},"appearances":[{"id":29124}]}}]}"""; } }
 
@@ -433,6 +456,7 @@ class BlizzardHandler : HttpMessageHandler
         _ when path.EndsWith("/collections/pets") => """{"pets":[{"species":{"name":"Green Wing Macaw","id":50},"level":1,"quality":{"type":"UNCOMMON","name":"Uncommon"},"stats":{"breed_id":0},"creature_display":{"id":5207},"id":1},{"species":{"name":"Green Wing Macaw","id":50},"level":3,"id":2}],"unlocked_battle_pet_slots":0}""",
         _ when path.EndsWith("/collections/toys") => """{"_links":{}}""",
         _ when path.EndsWith("/collections/transmogs") => """{"slots":[{"slot":{"type":"HEAD","name":"Head"},"appearances":[{"key":{"href":"x"},"id":29124},{"id":63427}]},{"slot":{"type":"CHEST","name":"Chest"}},{"slot":{"type":"ROBE","name":"Chest"},"appearances":[{"id":5},{"id":6},{"id":5}]},{"slot":{"type":"HELM","name":"Head"},"appearances":[{"id":63427},{"id":7}]}]}""",
+        _ when path.EndsWith("/achievement/index") => AchievementIndex,
         _ when path.EndsWith("/search/item") => SearchItems,
         _ when path.Contains("/data/wow/item-appearance/") => $$$"""{"id":{{{path.Split('/')[^1]}}},"media":{"id":{{{900 + int.Parse(path.Split('/')[^1])}}}}}""",
         _ when path.EndsWith("/mount/index") => """{"mounts":[{"name":"a","id":1},{"name":"b","id":2},{"name":"c","id":2995}]}""",
