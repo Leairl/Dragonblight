@@ -1,0 +1,71 @@
+.forever-achievements-pane {
+  padding: 12px;
+  min-height: 260px;
+  min-width: 0;
+}
+
+.forever-achievement-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.forever-achievement-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.forever-achievement-icon {
+  display: block;
+  position: relative;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 4px;
+}
+
+.forever-achievement-icon img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.forever-achievement-body {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.forever-achievement-criteria,
+.forever-achievement-recent ul {
+  margin-top: 12px;
+}
+
+.forever-achievement-criteria li + li,
+.forever-achievement-recent li + li {
+  margin-top: 8px;
+}
+
+.forever-achievement-recent {
+  margin-bottom: 16px;
+}
+
+.forever-achievement-requirements {
+  margin-top: 12px;
+}
+
+.forever-achievement-recent summary,
+.forever-achievement-requirements summary {
+  cursor: pointer;
+  font-size: 14px;
+}
+
+@media (max-width: 1000px) {
+  .forever-achievement-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

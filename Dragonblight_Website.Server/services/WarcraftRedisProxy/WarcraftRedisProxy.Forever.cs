@@ -129,6 +129,38 @@ partial class WarcraftRedisProxy
         }, TimeSpan.FromHours(2));
     }
 
+    public async Task<ForeverAchievementsSummary?> GetForeverAchievements(string characterSlug, string region)
+    {
+        var ns = GetProfileRegion(region, GameFlavor.Forever);
+        return await GetBlizzardDataCached<ForeverAchievementsSummary?>("GetForeverAchievements" + characterSlug + ns, async () =>
+        {
+            var result = await warcraftClient.GetForeverCharacterAchievementsAsync(characterSlug, ns, GetRegion(region), GetLocale(region));
+            if (result?.Success == true) return result.Value;
+            if (result?.Error?.Code == 404) return null;
+            throw new HttpRequestException("Blizzard Forever character achievements request failed.");
+        }, TimeSpan.FromHours(2));
+    }
+
+    public async Task<ForeverAchievement?> GetForeverAchievement(int achievementId, string region)
+    {
+        var ns = GetStaticRegion(region, GameFlavor.Forever);
+        return await GetBlizzardDataCached<ForeverAchievement?>("ForeverAchievement" + achievementId + ns, async () =>
+        {
+            var result = await warcraftClient.GetForeverAchievementAsync(achievementId, ns, GetRegion(region), GetLocale(region));
+            return result?.Success == true ? result.Value : null;
+        }, TimeSpan.FromDays(7));
+    }
+
+    public async Task<string?> GetForeverAchievementIcon(int achievementId, string region)
+    {
+        var ns = GetStaticRegion(region, GameFlavor.Forever);
+        return await GetBlizzardDataCached<string?>("ForeverAchievementIcon" + achievementId + ns, async () =>
+        {
+            var result = await warcraftClient.GetAchievementMediaAsync(achievementId, ns, GetRegion(region), GetLocale(region));
+            return result?.Success == true ? result.Value.Assets?.FirstOrDefault(asset => asset.Key == "icon")?.Value?.ToString() : null;
+        }, TimeSpan.FromDays(7));
+    }
+
     public async Task<Recipe?> GetForeverRecipe(int recipeId, string region)
     {
         var ns = GetStaticRegion(region, GameFlavor.Forever);

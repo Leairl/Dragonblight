@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { Callout, Card, Flex, Heading, SegmentedControl, Skeleton } from "@radix-ui/themes";
 import { InfoCircledIcon } from "@radix-ui/react-icons";
@@ -10,6 +10,7 @@ import ForeverProfessions from "./forever-professions/forever-professions";
 import ForeverPvp from "./forever-pvp/forever-pvp";
 import ForeverCharacterStats from "./forever-character-stats/forever-character-stats";
 import ForeverReputations from "./forever-reputations/forever-reputations";
+import ForeverAchievements from "./forever-achievements/forever-achievements";
 import "../profile/profile.css";
 import "../profile/profile-equipment/profile-equipment.css";
 import "./forever-character.css";
@@ -178,16 +179,35 @@ function nameFromSlug(slug: string): string {
 function CharacterTabs() {
   const { region, characterSlug, urlTab } = useParams();
   const navigate = useNavigate();
-  const tab = urlTab === "professions" || urlTab === "pvp" || urlTab === "reputations" ? urlTab : "gear";
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const tab = urlTab === "professions" || urlTab === "pvp" || urlTab === "reputations" || urlTab === "achievements" ? urlTab : "gear";
+  useEffect(() => {
+    const root = tabsRef.current;
+    if (!root) return;
+    //Only scroll the tab strip, not the page, when the active label is offscreen.
+    const revealSelected = () => {
+      const selected = root.querySelector('[aria-checked="true"]');
+      if (!selected) return;
+      const bounds = root.getBoundingClientRect();
+      const item = selected.getBoundingClientRect();
+      if (item.right > bounds.right) root.scrollLeft += item.right - bounds.right;
+      else if (item.left < bounds.left) root.scrollLeft += item.left - bounds.left;
+    };
+    revealSelected();
+    const observer = new ResizeObserver(revealSelected);
+    observer.observe(root);
+    return () => observer.disconnect();
+  }, [tab]);
   return (
     <div className="button-row">
-      <SegmentedControl.Root className="forever-character-tabs" value={tab} onValueChange={(value) => {
+      <SegmentedControl.Root ref={tabsRef} className="forever-character-tabs" value={tab} onValueChange={(value) => {
         navigate(`/character/${region}/${encodeURIComponent(characterSlug ?? "")}${value === "gear" ? "" : `/${value}`}`, { replace: true });
       }}>
         <SegmentedControl.Item value="gear">Gear</SegmentedControl.Item>
         <SegmentedControl.Item value="professions">Professions</SegmentedControl.Item>
         <SegmentedControl.Item value="pvp">PvP</SegmentedControl.Item>
         <SegmentedControl.Item value="reputations">Reputations</SegmentedControl.Item>
+        <SegmentedControl.Item value="achievements">Achievements</SegmentedControl.Item>
       </SegmentedControl.Root>
     </div>
   );
@@ -269,7 +289,7 @@ function RosterOnlyCharacter(props: { character: Dragonblight.ForeverStatsCharac
                 </div>
               </Card>
               <Card className="talent-row border-card">
-                {urlTab === "professions" ? <ForeverProfessions key={`${c.region}/${c.slug}`} /> : urlTab === "pvp" ? <ForeverPvp key={`${c.region}/${c.slug}`} faction={c.faction} /> : urlTab === "reputations" ? <ForeverReputations key={`${c.region}/${c.slug}`} /> : (
+                {urlTab === "professions" ? <ForeverProfessions key={`${c.region}/${c.slug}`} /> : urlTab === "pvp" ? <ForeverPvp key={`${c.region}/${c.slug}`} faction={c.faction} /> : urlTab === "reputations" ? <ForeverReputations key={`${c.region}/${c.slug}`} /> : urlTab === "achievements" ? <ForeverAchievements key={`${c.region}/${c.slug}`} /> : (
                 <Callout.Root color="amber">
                   <Callout.Icon>
                     <InfoCircledIcon />
@@ -295,7 +315,7 @@ function RosterOnlyCharacter(props: { character: Dragonblight.ForeverStatsCharac
 // Route: /forever/character/:region/:characterSlug, where the slug is "name-surname".
 function ForeverCharacter() {
   const { region, characterSlug, urlTab } = useParams();
-  const tab = urlTab === "professions" || urlTab === "pvp" || urlTab === "reputations" ? urlTab : "gear";
+  const tab = urlTab === "professions" || urlTab === "pvp" || urlTab === "reputations" || urlTab === "achievements" ? urlTab : "gear";
   const requestKey = `${region}/${characterSlug}`;
   const [result, setResult] = useState<LoadResult>();
 
@@ -459,6 +479,10 @@ function ForeverCharacter() {
               ) : tab === "reputations" ? (
                 <Card className="talent-row border-card">
                   <ForeverReputations key={requestKey} />
+                </Card>
+              ) : tab === "achievements" ? (
+                <Card className="talent-row border-card">
+                  <ForeverAchievements key={requestKey} />
                 </Card>
               ) : <Card className="paperdoll-card overflow-visible border-card">
                 {/* while loading, the same layout the retail and classic profile shows */}

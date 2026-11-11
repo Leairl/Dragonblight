@@ -80,6 +80,20 @@ public partial class WarcraftClient
         return await GetAsync<ForeverReputationsSummary>($"{host}/profile/wow/character/{ForeverSlug(characterSlug)}/reputations?namespace={@namespace}&locale={locale}");
     }
 
+    /// <summary>Gets a Forever character's completed achievements and reported criteria progress.</summary>
+    public async Task<RequestResult<ForeverAchievementsSummary>> GetForeverCharacterAchievementsAsync(string characterSlug, string @namespace, Region region, Locale locale)
+    {
+        string host = GetHost(region);
+        return await GetAsync<ForeverAchievementsSummary>($"{host}/profile/wow/character/{ForeverSlug(characterSlug)}/achievements?namespace={@namespace}&locale={locale}");
+    }
+
+    /// <summary>Gets a Forever achievement definition, including Legacy reward text and nested criteria.</summary>
+    public async Task<RequestResult<ForeverAchievement>> GetForeverAchievementAsync(int achievementId, string @namespace, Region region, Locale locale)
+    {
+        string host = GetHost(region);
+        return await GetAsync<ForeverAchievement>($"{host}/data/wow/achievement/{achievementId}?namespace={@namespace}&locale={locale}");
+    }
+
     //names can carry accented letters, so the slug is escaped after lowercasing
     private static string ForeverSlug(string characterSlug)
     {

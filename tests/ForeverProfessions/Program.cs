@@ -201,7 +201,64 @@ Check(JsonSerializer.Deserialize<ForeverReputationsSummary>("{}")?.Reputations =
 var missingStanding = JsonSerializer.Deserialize<ForeverReputationsSummary>("""{"reputations":[{"standing":{}}]}""")!.Reputations![0].Standing!;
 Check(missingStanding.Value == null && missingStanding.Max == null && missingStanding.Tier == null, "Missing standing fields must not become zero");
 Check(typeof(ProfileController).GetMethod("GetReputations") == null, "Reputations must remain Forever-only");
-Console.WriteLine($"Passed {checks} Forever professions, PvP, stats and reputation checks.");
+var achievements = await proxy.GetForeverAchievements("judgement-judy", "eu");
+Check(achievements?.TotalQuantity == 4 && achievements.TotalPoints == 0, "Completed counts and zero achievement points must remain distinct from row counts and Legacy rewards");
+Check(achievements!.Achievements![0].CompletedTimestamp == 1794171240000, "Achievement timestamps must remain epoch milliseconds");
+Check(achievements.Achievements[1].Criteria?.ChildCriteria?[0].Amount == 132, "Nested character criterion progress must be preserved");
+Check(achievements.RecentEvents?[0].Achievement?.Name == "Novice Paladin", "Recent achievement names and timestamps must be preserved");
+Check(handler.Paths.Last().Contains("/character/judgement-judy/achievements?namespace=profile-forever-eu"), "Achievements must use the realmless Forever endpoint");
+calls = handler.Paths.Count;
+await proxy.GetForeverAchievements("judgement-judy", "eu");
+Check(handler.Paths.Count == calls, "Achievement summaries must be cached");
+await proxy.GetForeverAchievements("judgement-judy", "us");
+Check(handler.Paths.Last().StartsWith("https://us.api.blizzard.com/") && handler.Paths.Last().Contains("namespace=profile-forever-us"), "Achievement caches must isolate regions");
+await proxy.GetForeverAchievements("élise-example", "eu");
+Check(handler.Paths.Last().Contains("%C3%A9lise-example"), "Achievement slugs must be escaped");
+Check((await controller.GetAchievements("EU", "JUDGEMENT-JUDY")).Result is OkObjectResult { Value: ForeverAchievementsSummary }, "Achievement controller must normalize input");
+calls = handler.Paths.Count;
+Check((await controller.GetAchievements("invalid", "example-player")).Result is BadRequestObjectResult, "Achievement regions must be validated");
+Check((await controller.GetAchievements("us", "../example")).Result is BadRequestObjectResult, "Achievement slugs must be validated");
+Check((await controller.GetAchievements("us", new string('a', 65) + "-player")).Result is BadRequestObjectResult, "Achievement slug length must be bounded");
+Check(handler.Paths.Count == calls, "Invalid achievement requests must not call Blizzard");
+handler.Status = HttpStatusCode.NotFound;
+Check((await controller.GetAchievements("us", "missing-player")).Result is NotFoundObjectResult { Value: ProblemDetails { Status: 404 } }, "Missing achievements must return structured 404");
+handler.Status = HttpStatusCode.InternalServerError;
+Check((await controller.GetAchievements("us", "retry-player")).Result is StatusCodeResult { StatusCode: 500 }, "Failed achievements must not return empty success");
+handler.Status = HttpStatusCode.OK;
+Check((await controller.GetAchievements("us", "retry-player")).Result is OkObjectResult, "Achievement failures must not poison the cache");
+Check(JsonSerializer.Deserialize<ForeverAchievementsSummary>("{}")?.Achievements == null, "Omitted achievement arrays must remain absent");
+var emptyCriteria = JsonSerializer.Deserialize<ForeverAchievementCriteriaProgress>("""{"id":1}""")!;
+Check(emptyCriteria.Amount == null && emptyCriteria.IsCompleted == null, "Missing criterion progress must not become zero or incomplete");
+
+calls = handler.Paths.Count;
+var achievementRows = ((await controller.GetAchievementDetails("EU", [62015, 62015])).Result as OkObjectResult)?.Value as ForeverAchievementDetails[];
+Check(achievementRows?.Length == 1, "Achievement batches must deduplicate IDs");
+Check(achievementRows![0].achievement?.RewardDescription == "Earn 1 Legacy Point.", "Legacy reward text must not be discarded or converted into achievement points");
+Check(achievementRows[0].achievement?.Criteria?.ChildCriteria?[0].Amount == 150, "Nested definition targets must survive deserialization");
+Check(achievementRows[0].achievement?.Criteria?.ChildCriteria?[0].ShowProgressBar == true, "Criterion progress bar flags must survive deserialization");
+Check(achievementRows[0].icon == "https://example.com/achievement.jpg", "Achievement icons must use media assets");
+Check(handler.Paths.Count == calls + 2 && handler.Paths.Skip(calls).All(path => path.Contains("namespace=static-forever-eu")), "Static achievements must use the Forever namespace");
+calls = handler.Paths.Count;
+await controller.GetAchievementDetails("eu", [62015]);
+Check(handler.Paths.Count == calls, "Achievement definitions and icons must be cached");
+await controller.GetAchievementDetails("us", [62015]);
+Check(handler.Paths.Last().StartsWith("https://us.api.blizzard.com/") && handler.Paths.Last().Contains("namespace=static-forever-us"), "Static achievement caches must isolate regions");
+calls = handler.Paths.Count;
+Check((await controller.GetAchievementDetails("invalid", [62015])).Result is BadRequestObjectResult, "Achievement detail regions must be validated");
+Check((await controller.GetAchievementDetails("us", [])).Result is BadRequestObjectResult, "Empty achievement batches must be rejected");
+Check((await controller.GetAchievementDetails("us", [0])).Result is BadRequestObjectResult, "Nonpositive achievement IDs must be rejected");
+Check((await controller.GetAchievementDetails("us", Enumerable.Range(1, 11).ToArray())).Result is BadRequestObjectResult, "Achievement batches must be bounded to ten IDs");
+Check(handler.Paths.Count == calls, "Invalid achievement detail requests must not call Blizzard");
+var partialAchievements = ((await controller.GetAchievementDetails("us", [62015, 9999])).Result as OkObjectResult)?.Value as ForeverAchievementDetails[];
+Check(partialAchievements?.Length == 2 && partialAchievements[0].achievement != null && partialAchievements[1].achievement == null, "Missing static achievements must not hide available rows");
+handler.Status = HttpStatusCode.InternalServerError;
+var failedDetails = ((await controller.GetAchievementDetails("us", [62016])).Result as OkObjectResult)?.Value as ForeverAchievementDetails[];
+Check(failedDetails?[0].achievement == null, "Unavailable static details must remain distinguishable from empty definitions");
+handler.Status = HttpStatusCode.OK;
+var retriedDetails = ((await controller.GetAchievementDetails("us", [62016])).Result as OkObjectResult)?.Value as ForeverAchievementDetails[];
+Check(retriedDetails?[0].achievement != null, "Failed static achievements must not poison the cache");
+Check(typeof(ProfileController).GetMethod("GetAchievements") == null, "The new achievements endpoint must remain Forever-only");
+Console.WriteLine($"Passed {checks} Forever character checks.");
 
 public class Stub : DispatchProxy
 {
@@ -226,6 +283,22 @@ class BlizzardHandler : HttpMessageHandler
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""{"access_token":"test-token","expires_in":3600,"token_type":"bearer"}""") });
         var path = request.RequestUri.AbsoluteUri;
         Paths.Add(path);
+        if (request.RequestUri.AbsolutePath.EndsWith("/achievements"))
+        {
+            var body = Status != HttpStatusCode.OK ? $$"""{"code":{{(int)Status}},"detail":"Test error"}"""
+                : """{"total_quantity":4,"total_points":0,"achievements":[{"id":61997,"achievement":{"id":61997,"name":"Novice Paladin"},"criteria":{"id":221473,"is_completed":true},"completed_timestamp":1794171240000},{"id":62015,"achievement":{"id":62015,"name":"Journeyman Blacksmith"},"criteria":{"id":221509,"is_completed":false,"child_criteria":[{"id":221510,"amount":132,"is_completed":false}]}}],"recent_events":[{"achievement":{"id":61997,"name":"Novice Paladin"},"timestamp":1794171240000}]}""";
+            return Task.FromResult(new HttpResponseMessage(Status) { Content = new StringContent(body) });
+        }
+        if (request.RequestUri.AbsolutePath.Contains("/achievement/"))
+        {
+            var id = int.Parse(request.RequestUri.AbsolutePath.Split('/')[^1]);
+            var status = id == 9999 ? HttpStatusCode.NotFound : Status;
+            var body = status != HttpStatusCode.OK ? $$"""{"code":{{(int)status}},"detail":"Unavailable achievement"}"""
+                : request.RequestUri.AbsolutePath.Contains("/media/")
+                    ? $$"""{"id":{{id}},"assets":[{"key":"icon","value":"https://example.com/achievement.jpg"}]}"""
+                    : $$$"""{"id":{{{id}}},"name":"Journeyman Blacksmith","description":"Reach 150 skill in Blacksmithing for the first time.","category":{"id":15588,"name":"Blacksmithing"},"is_account_wide":true,"reward_description":"Earn 1 Legacy Point.","criteria":{"id":221509,"amount":0,"child_criteria":[{"id":221510,"description":"150 Blacksmithing Skill","amount":150,"show_progress_bar":true}]}}""";
+            return Task.FromResult(new HttpResponseMessage(status) { Content = new StringContent(body) });
+        }
         if (request.RequestUri.AbsolutePath.EndsWith("/reputations"))
         {
             var body = Status != HttpStatusCode.OK ? $$"""{"code":{{(int)Status}},"detail":"Test error"}"""

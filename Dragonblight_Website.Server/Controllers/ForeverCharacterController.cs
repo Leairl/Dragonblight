@@ -237,6 +237,63 @@ namespace Dragonblight_Website.Server.Controllers
             }
         }
 
+        [HttpGet("GetAchievements")]
+        [ProducesResponseType(typeof(ForeverAchievementsSummary), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<ForeverAchievementsSummary>> GetAchievements(string region, string characterSlug)
+        {
+            region = region.ToLowerInvariant();
+            if (region != "us" && region != "eu") return BadRequest("region must be us or eu");
+            characterSlug = characterSlug.ToLowerInvariant();
+            if (characterSlug.Length > 64 || !IsCharacterSlug(characterSlug)) return BadRequest("characterSlug must be name-surname");
+            try
+            {
+                var result = await _warcraftCachedData.GetForeverAchievements(characterSlug, region);
+                if (result == null) return NotFound(new ProblemDetails
+                {
+                    Status = StatusCodes.Status404NotFound,
+                    Title = "Achievement data is not available for this character."
+                });
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting Forever achievements for {Slug} in {Region}.", characterSlug, region);
+                return StatusCode(500);
+            }
+        }
+
+        //The client sends sequential batches so metadata and icons do not fan out unbounded requests.
+        [HttpGet("GetAchievementDetails")]
+        public async Task<ActionResult<ForeverAchievementDetails[]>> GetAchievementDetails(string region, [FromQuery] int[] achievementIds)
+        {
+            region = region.ToLowerInvariant();
+            if (region != "us" && region != "eu") return BadRequest("region must be us or eu");
+            if (achievementIds.Length == 0 || achievementIds.Length > 10 || achievementIds.Any(id => id <= 0))
+                return BadRequest("Provide between 1 and 10 positive achievement IDs.");
+            try
+            {
+                using var limit = new SemaphoreSlim(4);
+                return Ok(await Task.WhenAll(achievementIds.Distinct().Select(async id =>
+                {
+                    await limit.WaitAsync();
+                    try
+                    {
+                        var achievement = _warcraftCachedData.GetForeverAchievement(id, region);
+                        var icon = _warcraftCachedData.GetForeverAchievementIcon(id, region);
+                        await Task.WhenAll(achievement, icon);
+                        return new ForeverAchievementDetails { id = id, achievement = achievement.Result, icon = icon.Result };
+                    }
+                    finally { limit.Release(); }
+                })));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting Forever achievement details in {Region}.", region);
+                return StatusCode(500);
+            }
+        }
+
         //Only the visible page is enriched. Bound the batch and concurrency so opening a
         //large recipe collection does not fan out hundreds of Blizzard requests.
         [HttpGet("GetRecipes")]
@@ -348,6 +405,13 @@ namespace Dragonblight_Website.Server.Controllers
                 return StatusCode(500);
             }
         }
+    }
+
+    public class ForeverAchievementDetails
+    {
+        public int id { get; init; }
+        public ForeverAchievement? achievement { get; init; }
+        public string? icon { get; init; }
     }
 
     public class ForeverRecipeDetails
