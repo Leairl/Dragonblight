@@ -701,10 +701,14 @@ partial class WarcraftRedisProxy
     //for every class each run, so a visitor rarely meets a cold build. When an icon lookup failed
     //(Blizzard answers some calls with an error under load), the trees are kept for 10 minutes instead,
     //so the missing icons are filled in by the next build rather than left out for the week.
+    //Raise to rebuild every class's trees under a new key, e.g. after trees were cached with icons
+    //missing: version 2 came with the icon retry, replacing trees cached a week before it.
+    private const int ClassTalentsVersion = 2;
+
     public async Task<ForeverClassTalents?> GetForeverClassTalents(int classId, string region)
     {
         var ns = GetStaticRegion(region, GameFlavor.Forever);
-        var key = VersionedKey("GetForeverClassTalents" + classId + ns);
+        var key = VersionedKey("GetForeverClassTalents" + ClassTalentsVersion + "-" + classId + ns);
         var cached = await GetRedisData<ForeverClassTalents>(key);
         if (cached != null)
         {
