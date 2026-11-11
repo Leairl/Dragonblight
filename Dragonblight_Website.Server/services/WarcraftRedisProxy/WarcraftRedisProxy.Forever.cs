@@ -75,6 +75,26 @@ partial class WarcraftRedisProxy
         }, TimeSpan.FromHours(2));
     }
 
+    public async Task<Recipe?> GetForeverRecipe(int recipeId, string region)
+    {
+        var ns = GetStaticRegion(region, GameFlavor.Forever);
+        return await GetBlizzardDataCached<Recipe?>("ForeverRecipe" + recipeId + ns, async () =>
+        {
+            var result = await warcraftClient.GetRecipeAsync(recipeId, ns, GetRegion(region), GetLocale(region));
+            return result?.Success == true ? result.Value : null;
+        }, TimeSpan.FromDays(7));
+    }
+
+    public async Task<string?> GetForeverRecipeIcon(int recipeId, string region)
+    {
+        var ns = GetStaticRegion(region, GameFlavor.Forever);
+        return await GetBlizzardDataCached<string?>("ForeverRecipeIcon" + recipeId + ns, async () =>
+        {
+            var result = await warcraftClient.GetRecipeMediaAsync(recipeId, ns, GetRegion(region), GetLocale(region));
+            return result?.Success == true ? result.Value.Assets?.FirstOrDefault(asset => asset.Key == "icon")?.Value?.ToString() : null;
+        }, TimeSpan.FromDays(7));
+    }
+
     //Forever's character images can 404 for many hours after the profile works, so a
     //missing image is normal here, not an error
     public async Task<CharacterMediaSummary?> GetForeverMedia(string characterSlug, string region)

@@ -2,6 +2,7 @@ import { FC, useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { Button, Card, Progress, Skeleton } from "@radix-ui/themes";
 import { Dragonblight } from "../../../clients/Dragonblight";
+import KnownRecipes from "./known-recipes";
 import "./forever-professions.css";
 
 type ProfessionState =
@@ -28,7 +29,7 @@ function SkillProgress({ name, points, maximum }: { name: string; points?: numbe
   );
 }
 
-function ProfessionCard({ entry }: { entry: Dragonblight.CharacterProfession }) {
+function ProfessionCard({ entry, region }: { entry: Dragonblight.CharacterProfession; region: string }) {
   const name = entry.profession?.name ?? "Unknown profession";
   const tiers = entry.tiers ?? [];
   const hasOverallSkill = entry.skill_points != null || entry.max_skill_points != null;
@@ -46,10 +47,7 @@ function ProfessionCard({ entry }: { entry: Dragonblight.CharacterProfession }) 
             <h4>{tierName}</h4>
             <SkillProgress name={tierName} points={tier.skill_points} maximum={tier.max_skill_points} />
             {recipes.length > 0 ? (
-              <details className="profession-recipes">
-                <summary>Known recipes ({recipes.length})</summary>
-                <ul>{recipes.map((recipe) => <li key={recipe.id}>{recipe.name ?? `Recipe ${recipe.id}`}</li>)}</ul>
-              </details>
+              <KnownRecipes recipes={recipes} region={region} label={tierName} />
             ) : <p className="profession-muted">No known recipes reported.</p>}
           </div>
         );
@@ -123,7 +121,7 @@ const ForeverProfessions: FC = () => {
             {group.entries.length === 0
               ? <p className="profession-muted">None reported.</p>
               : <div className="professions-grid">{group.entries.map((entry, index) => (
-                <ProfessionCard key={entry.profession?.id ?? index} entry={entry} />
+                <ProfessionCard key={entry.profession?.id ?? index} entry={entry} region={region} />
               ))}</div>}
           </section>
         ))))}

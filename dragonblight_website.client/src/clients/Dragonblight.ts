@@ -649,6 +649,47 @@ export class ForeverCharacterClient {
         return Promise.resolve<CharacterProfessionsSummary>(null as any);
     }
 
+    getRecipes(region: string | undefined, recipeIds: number[] | undefined): Promise<ForeverRecipeDetails[]> {
+        let url_ = this.baseUrl + "/api/ForeverCharacter/GetRecipes?";
+        if (region === null)
+            throw new globalThis.Error("The parameter 'region' cannot be null.");
+        else if (region !== undefined)
+            url_ += "region=" + encodeURIComponent("" + region) + "&";
+        if (recipeIds === null)
+            throw new globalThis.Error("The parameter 'recipeIds' cannot be null.");
+        else if (recipeIds !== undefined)
+            recipeIds && recipeIds.forEach(item => { url_ += "recipeIds=" + encodeURIComponent("" + item) + "&"; });
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetRecipes(_response);
+        });
+    }
+
+    protected processGetRecipes(response: Response): Promise<ForeverRecipeDetails[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ForeverRecipeDetails[];
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ForeverRecipeDetails[]>(null as any);
+    }
+
     search(search: string | undefined): Promise<ForeverCharacterProfile[]> {
         let url_ = this.baseUrl + "/api/ForeverCharacter/Search?";
         if (search === null)
@@ -2607,6 +2648,52 @@ export interface ProblemDetails {
     [key: string]: any;
 }
 
+export interface ForeverRecipeDetails {
+    id: number;
+    recipe?: Recipe | undefined;
+    icon?: string | undefined;
+}
+
+export interface Recipe {
+    _links?: Links | undefined;
+    id: number;
+    name?: string | undefined;
+    description?: string | undefined;
+    media?: Media | undefined;
+    crafted_item?: ItemReference | undefined;
+    alliance_crafted_item?: ItemReference | undefined;
+    horde_crafted_item?: ItemReference | undefined;
+    reagents?: RecipeReagent[] | undefined;
+    crafted_quantity?: CraftedQuantity | undefined;
+    modified_crafting_slots?: ModifiedCraftingSlot[] | undefined;
+}
+
+export interface Media {
+    key?: Self | undefined;
+    id: number;
+}
+
+export interface RecipeReagent {
+    reagent?: ItemReference | undefined;
+    quantity: number;
+}
+
+export interface CraftedQuantity {
+    minimum?: number | undefined;
+    maximum?: number | undefined;
+    value?: number | undefined;
+}
+
+export interface ModifiedCraftingSlot {
+    slot_type?: ModifiedCraftingReagentSlotTypeReferenceWithoutName | undefined;
+    display_order: number;
+}
+
+export interface ModifiedCraftingReagentSlotTypeReferenceWithoutName {
+    key?: Self | undefined;
+    id: number;
+}
+
 export interface ForeverGuildPage {
     name: string;
     slug: string;
@@ -2709,11 +2796,6 @@ export interface GuildCrestEmblemWithColor {
     id: number;
     media?: Media | undefined;
     color?: Color | undefined;
-}
-
-export interface Media {
-    key?: Self | undefined;
-    id: number;
 }
 
 export interface Color {

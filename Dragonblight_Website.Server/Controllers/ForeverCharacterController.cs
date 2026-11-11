@@ -132,6 +132,47 @@ namespace Dragonblight_Website.Server.Controllers
             }
         }
 
+        //Only the visible page is enriched. Bound the batch and concurrency so opening a
+        //large recipe collection does not fan out hundreds of Blizzard requests.
+        [HttpGet("GetRecipes")]
+        public async Task<ActionResult<ForeverRecipeDetails[]>> GetRecipes(string region, [FromQuery] int[] recipeIds)
+        {
+            region = region.ToLowerInvariant();
+            if (region != "us" && region != "eu")
+            {
+                return BadRequest("region must be us or eu");
+            }
+            if (recipeIds.Length == 0 || recipeIds.Length > 10 || recipeIds.Any(id => id <= 0))
+            {
+                return BadRequest("Provide between 1 and 10 positive recipe IDs.");
+            }
+            try
+            {
+                using var limit = new SemaphoreSlim(4);
+                var results = await Task.WhenAll(recipeIds.Distinct().Select(async id =>
+                {
+                    await limit.WaitAsync();
+                    try
+                    {
+                        var recipe = _warcraftCachedData.GetForeverRecipe(id, region);
+                        var icon = _warcraftCachedData.GetForeverRecipeIcon(id, region);
+                        await Task.WhenAll(recipe, icon);
+                        return new ForeverRecipeDetails { id = id, recipe = recipe.Result, icon = icon.Result };
+                    }
+                    finally
+                    {
+                        limit.Release();
+                    }
+                }));
+                return Ok(results);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting Forever recipes in {Region}.", region);
+                return StatusCode(500);
+            }
+        }
+
         //Letters typed with alt codes that have no accent to strip, so RemoveDiacritics leaves
         //them alone, mapped to the plain letters people type instead: "Ðreamx" is found by "dreamx".
         private static readonly Dictionary<char, string> PlainLetters = new()
@@ -202,6 +243,14 @@ namespace Dragonblight_Website.Server.Controllers
                 return StatusCode(500);
             }
         }
+    }
+
+    public class ForeverRecipeDetails
+    {
+        public int id { get; init; }
+        //Keep the known recipe visible even when Blizzard has no static details or icon.
+        public Recipe? recipe { get; init; }
+        public string? icon { get; init; }
     }
 
     public class ForeverCharacterPage

@@ -50,3 +50,43 @@ test("server failures remain distinguishable from missing professions", async ()
 test("Retail/MoP client does not expose the Forever professions feature", () => {
   assert.equal(Dragonblight.ProfileClient.prototype.getProfessions, undefined);
 });
+
+test("recipe batches encode IDs and preserve missing details without losing known rows", async () => {
+  const data = [{ id: 2359, icon: "https://example.com/icon.jpg", recipe: { id: 2359, name: "Bolt of Linen Cloth", crafted_item: { id: 2996, name: "Bolt of Linen Cloth" } } }, { id: 9999, recipe: null, icon: null }];
+  let requested;
+  const client = new Dragonblight.ForeverCharacterClient("", { fetch: async (url) => {
+    requested = new URL(url, "http://localhost");
+    return Response.json(data);
+  } });
+  assert.deepEqual(await client.getRecipes("eu", [2359, 9999]), data);
+  assert.equal(requested.pathname, "/api/ForeverCharacter/GetRecipes");
+  assert.equal(requested.searchParams.get("region"), "eu");
+  assert.deepEqual(requested.searchParams.getAll("recipeIds"), ["2359", "9999"]);
+});
+
+const helperSource = await readFile(new URL("../src/components/forever/forever-professions/recipe-helpers.ts", import.meta.url), "utf8");
+const helperJs = ts.transpileModule(helperSource, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 } }).outputText;
+const helpers = await import(`data:text/javascript;base64,${Buffer.from(helperJs).toString("base64")}`);
+
+test("recipe output quantities handle fixed, ranged, equal and missing values", () => {
+  assert.equal(helpers.craftedQuantityText({ value: 2 }), "2");
+  assert.equal(helpers.craftedQuantityText({ minimum: 1, maximum: 3 }), "1–3");
+  assert.equal(helpers.craftedQuantityText({ minimum: 2, maximum: 2 }), "2");
+  assert.equal(helpers.craftedQuantityText(undefined), "—");
+});
+
+test("Wowhead links use output item IDs, never Blizzard recipe IDs as spell IDs", () => {
+  assert.equal(helpers.recipeWowheadTarget({ id: 2359, crafted_item: { id: 2996 } }, "Bolt of Linen Cloth"), "item=2996");
+  assert.equal(helpers.recipeWowheadTarget(undefined, "Enchant Boots - Minor Speed"), "search?q=Enchant%20Boots%20-%20Minor%20Speed");
+  assert.deepEqual(helpers.recipeOutputs({ alliance_crafted_item: { id: 10 }, horde_crafted_item: { id: 11 } }), [
+    { item: { id: 10 }, faction: "Alliance" }, { item: { id: 11 }, faction: "Horde" },
+  ]);
+});
+
+test("known recipe filtering is case-insensitive, sorted, deduplicated and does not mutate inputs", () => {
+  const recipes = [{ id: 2, name: "Wool" }, { id: 1, name: "Linen" }, { id: 1, name: "Linen" }];
+  assert.deepEqual(helpers.filterKnownRecipes(recipes, "  LIN  "), [{ id: 1, name: "Linen" }]);
+  assert.deepEqual(helpers.filterKnownRecipes(recipes, "").map((recipe) => recipe.id), [1, 2]);
+  assert.equal(recipes.length, 3);
+  assert.equal(recipes[0].name, "Wool");
+});

@@ -87,6 +87,38 @@ Check((await controller.GetProfessions("us", "not-found")).Result is NotFoundObj
 Check((await controller.GetProfessions("us", "not-found")).Result is NotFoundObjectResult { Value: ProblemDetails { Status: 404 } }, "The generated client needs a structured 404 with its status");
 handler.Status = HttpStatusCode.InternalServerError;
 Check((await controller.GetProfessions("us", "failed-player")).Result is StatusCodeResult { StatusCode: 500 }, "Upstream failures should return 500, not an empty success");
+
+handler.Status = HttpStatusCode.OK;
+calls = handler.Paths.Count;
+var recipes = (await controller.GetRecipes("US", [2359, 2359])).Result as OkObjectResult;
+var recipeRows = recipes?.Value as ForeverRecipeDetails[];
+Check(recipeRows?.Length == 1, "Recipe batches must deduplicate IDs");
+Check(recipeRows![0].recipe?.CraftedItem.Id == 2996, "Recipe details must include the real crafted item ID, not treat the recipe ID as a spell ID");
+Check(recipeRows[0].recipe?.Reagents[0].Quantity == 2, "Recipe details must include reagent quantities");
+Check(recipeRows[0].recipe?.CraftedQuantity.Value == 1, "Recipe details must include output quantities");
+Check(recipeRows[0].icon == "https://example.com/recipe-icon.jpg", "Recipe icons must come from recipe media");
+Check(handler.Paths.Count == calls + 2, "One recipe needs one detail request and one media request");
+Check(handler.Paths.Skip(calls).All(path => path.Contains("namespace=static-forever-us")), "Recipe requests must use Forever static data only");
+calls = handler.Paths.Count;
+await controller.GetRecipes("us", [2359]);
+Check(handler.Paths.Count == calls, "Static recipe data and icons must be cached");
+await controller.GetRecipes("eu", [2359]);
+Check(handler.Paths.Last().StartsWith("https://eu.api.blizzard.com/") && handler.Paths.Last().Contains("namespace=static-forever-eu"), "Static recipe caches must be region-specific");
+calls = handler.Paths.Count;
+Check((await controller.GetRecipes("invalid", [2359])).Result is BadRequestObjectResult, "Recipe batches must validate the region");
+Check((await controller.GetRecipes("us", [])).Result is BadRequestObjectResult, "Reject empty recipe batches");
+Check((await controller.GetRecipes("us", [0])).Result is BadRequestObjectResult, "Reject nonpositive recipe IDs");
+Check((await controller.GetRecipes("us", Enumerable.Range(1, 11).ToArray())).Result is BadRequestObjectResult, "Reject batches over ten recipes");
+Check(handler.Paths.Count == calls, "Invalid batches must not call Blizzard");
+var partial = (await controller.GetRecipes("us", [2359, 9999])).Result as OkObjectResult;
+var partialRows = partial?.Value as ForeverRecipeDetails[];
+Check(partialRows?.Length == 2 && partialRows[0].recipe != null && partialRows[1].recipe == null, "One missing recipe must not hide the other known recipes");
+handler.Status = HttpStatusCode.InternalServerError;
+var unavailable = (await controller.GetRecipes("us", [2360])).Result as OkObjectResult;
+Check((unavailable?.Value as ForeverRecipeDetails[])?[0].recipe == null, "Unavailable details must remain distinguishable from an empty recipe");
+handler.Status = HttpStatusCode.OK;
+var retry = (await controller.GetRecipes("us", [2360])).Result as OkObjectResult;
+Check((retry?.Value as ForeverRecipeDetails[])?[0].recipe != null, "Failed recipe requests must not poison the cache");
 Console.WriteLine($"Passed {checks} Forever professions checks.");
 
 public class Stub : DispatchProxy
@@ -112,6 +144,16 @@ class BlizzardHandler : HttpMessageHandler
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""{"access_token":"test-token","expires_in":3600,"token_type":"bearer"}""") });
         var path = request.RequestUri.ToString();
         Paths.Add(path);
+        if (request.RequestUri.AbsolutePath.Contains("/recipe/"))
+        {
+            var id = int.Parse(request.RequestUri.AbsolutePath.Split('/')[^1]);
+            var status = id == 9999 ? HttpStatusCode.NotFound : Status;
+            var body = status != HttpStatusCode.OK ? $$"""{"code":{{(int)status}},"detail":"Unavailable recipe"}"""
+                : request.RequestUri.AbsolutePath.Contains("/media/")
+                    ? $$"""{"id":{{id}},"assets":[{"key":"icon","value":"https://example.com/recipe-icon.jpg"}]}"""
+                    : $$$"""{"id":{{{id}}},"name":"Bolt of Linen Cloth","crafted_item":{"id":2996,"name":"Bolt of Linen Cloth"},"reagents":[{"reagent":{"id":2589,"name":"Linen Cloth"},"quantity":2}],"crafted_quantity":{"value":1}}""";
+            return Task.FromResult(new HttpResponseMessage(status) { Content = new StringContent(body) });
+        }
         var json = Status != HttpStatusCode.OK ? $$"""{"code":{{(int)Status}},"detail":"Test error"}""" : FlatSkills
             ? """{"primaries":[{"profession":{"id":164,"name":"Blacksmithing"},"skill_points":0,"max_skill_points":75}],"secondaries":[{"profession":{"id":356,"name":"Fishing"},"skill_points":30,"max_skill_points":75}]}"""
             : """{"primaries":[{"profession":{"id":197,"name":"Tailoring"},"tiers":[{"tier":{"id":2948,"name":"Tailoring"},"skill_points":42,"max_skill_points":100,"known_recipes":[{"id":2359,"name":"Test recipe"}]}]}]}""";
