@@ -3330,6 +3330,8 @@ export interface ForeverRecipeDetails {
     id: number;
     recipe?: Recipe | undefined;
     icon?: string | undefined;
+    taughtBy?: ForeverRecipeItem | undefined;
+    source?: string | undefined;
 }
 
 export interface Recipe {
@@ -3372,10 +3374,18 @@ export interface ModifiedCraftingReagentSlotTypeReferenceWithoutName {
     id: number;
 }
 
+export interface ForeverRecipeItem {
+    id: number;
+    name: string;
+    icon?: string | undefined;
+}
+
 export interface ForeverSkillTierRecipe {
     id: number;
     name: string;
     category: string;
+    requiredSkill?: number | undefined;
+    requiredSkillEstimated: boolean;
 }
 
 export interface ForeverTalentsPage {
