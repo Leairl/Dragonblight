@@ -167,6 +167,19 @@ Check((unavailable?.Value as ForeverRecipeDetails[])?[0].recipe == null, "Unavai
 handler.Status = HttpStatusCode.OK;
 var retry = (await controller.GetRecipes("us", [2360])).Result as OkObjectResult;
 Check((retry?.Value as ForeverRecipeDetails[])?[0].recipe != null, "Failed recipe requests must not poison the cache");
+var tierResult = (await controller.GetSkillTierRecipes("US", 197, 2948)).Result as OkObjectResult;
+var tierRows = tierResult?.Value as ForeverSkillTierRecipe[];
+Check(tierRows?.Length == 3 && tierRows[0].category == "Reagents" && tierRows[2].name == "Linen Cloak", "Skill tier recipes must be flattened in order with their categories");
+Check(tierRows!.All(row => row.id != 52147), "Season of Discovery recipes aren't in Forever and must be left out");
+Check(handler.Paths.Last().Contains("/profession/197/skill-tier/2948?namespace=static-forever-us"), "Skill tiers must use the Forever static namespace");
+calls = handler.Paths.Count;
+await controller.GetSkillTierRecipes("us", 197, 2948);
+Check(handler.Paths.Count == calls, "Skill tier recipe lists must be cached");
+Check((await controller.GetSkillTierRecipes("us", 197, 9999)).Result is NotFoundObjectResult, "A tier Blizzard doesn't have must be a 404");
+calls = handler.Paths.Count;
+Check((await controller.GetSkillTierRecipes("xx", 197, 2948)).Result is BadRequestObjectResult, "Skill tier recipes must validate the region");
+Check((await controller.GetSkillTierRecipes("us", 0, 2948)).Result is BadRequestObjectResult, "Reject nonpositive profession IDs");
+Check(handler.Paths.Count == calls, "Invalid skill tier requests must not call Blizzard");
 var pvp = await proxy.GetForeverPvpSummary("luna-amariyo", "eu");
 Check(pvp?.HonorableKills == 94 && pvp.PvpRank == 0, "Forever PvP must preserve kills and unranked zero");
 Check(pvp!.PvpMapStatistics![0].MatchStatistics.Won == 0, "Battleground zero wins must be preserved");
@@ -518,6 +531,14 @@ class BlizzardHandler : HttpMessageHandler
             var body = Status != HttpStatusCode.OK ? $$"""{"code":{{(int)Status}},"detail":"Test error"}"""
                 : """{"honorable_kills":94,"pvp_rank":0,"pvp_map_statistics":[{"world_map":{"id":529,"name":"Arathi Basin"},"match_statistics":{"played":3,"won":0,"lost":3}}]}""";
             return Task.FromResult(new HttpResponseMessage(Status) { Content = new StringContent(body) });
+        }
+        if (request.RequestUri.AbsolutePath.Contains("/skill-tier/"))
+        {
+            var missing = request.RequestUri.AbsolutePath.EndsWith("/9999");
+            var status = missing ? HttpStatusCode.NotFound : Status;
+            var body = status != HttpStatusCode.OK ? $$"""{"code":{{(int)status}},"detail":"Unavailable skill tier"}"""
+                : """{"id":2948,"name":"Tailoring","minimum_skill_level":1,"maximum_skill_level":75,"categories":[{"name":"Reagents","recipes":[{"id":2359,"name":"Bolt of Linen Cloth"},{"id":2370,"name":"Bolt of Woolen Cloth"}]},{"name":"Cloaks","recipes":[{"id":2387,"name":"Linen Cloak"}]},{"name":"SEASON OF DISCOVERY","recipes":[{"id":52147,"name":"Crimson Dawnwoven Bag"}]},{"name":"Empty"}]}""";
+            return Task.FromResult(new HttpResponseMessage(status) { Content = new StringContent(body) });
         }
         if (request.RequestUri.AbsolutePath.Contains("/recipe/"))
         {

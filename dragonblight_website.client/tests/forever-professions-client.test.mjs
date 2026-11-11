@@ -90,3 +90,31 @@ test("known recipe filtering is case-insensitive, sorted, deduplicated and does 
   assert.equal(recipes.length, 3);
   assert.equal(recipes[0].name, "Wool");
 });
+
+test("skill tier recipes client sends the profession and tier and keeps categories", async () => {
+  const data = [{ id: 2359, name: "Bolt of Linen Cloth", category: "Reagents" }];
+  let url;
+  const client = new Dragonblight.ForeverCharacterClient("", { fetch: async (requested) => {
+    url = requested;
+    return Response.json(data);
+  } });
+  assert.deepEqual(await client.getSkillTierRecipes("us", 197, 2948), data);
+  assert.equal(url, "/api/ForeverCharacter/GetSkillTierRecipes?region=us&professionId=197&skillTierId=2948");
+});
+
+test("not-learned recipes leave out known ids and known names listed under another id", () => {
+  const tier = [
+    { id: 1, name: "Linen Cloak", category: "Cloaks" },
+    { id: 2, name: "Glacial Cloak", category: "Cloaks" },
+    { id: 3, name: "Glacial Cloak", category: "Season of Discovery" },
+    { id: 4, name: "Runecloth Bag", category: "Bags" },
+  ];
+  const known = [{ id: 1, name: "Linen Cloak" }, { id: 2, name: "glacial cloak" }];
+  assert.deepEqual(helpers.unlearnedRecipes(tier, known).map((recipe) => recipe.id), [4]);
+  assert.deepEqual(helpers.unlearnedRecipes(tier, []).length, 4);
+});
+
+test("recipe search also matches the category", () => {
+  const recipes = [{ id: 4, name: "Runecloth Bag", category: "Bags" }, { id: 5, name: "Runecloth Robe", category: "Robes and Vests" }];
+  assert.deepEqual(helpers.filterKnownRecipes(recipes, "bags").map((recipe) => recipe.id), [4]);
+});

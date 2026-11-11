@@ -489,6 +489,39 @@ namespace Dragonblight_Website.Server.Controllers
             }
         }
 
+        //Every recipe in one of a character's skill tiers, for the professions tab's "not learned" list:
+        //the page takes away the ones the character knows. 404 when Blizzard has no such tier.
+        [HttpGet("GetSkillTierRecipes")]
+        [ProducesResponseType(typeof(ForeverSkillTierRecipe[]), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<ForeverSkillTierRecipe[]>> GetSkillTierRecipes(string region, int professionId, int skillTierId)
+        {
+            region = region.ToLowerInvariant();
+            if (region != "us" && region != "eu")
+            {
+                return BadRequest("region must be us or eu");
+            }
+            if (professionId <= 0 || skillTierId <= 0)
+            {
+                return BadRequest("professionId and skillTierId must be positive");
+            }
+            try
+            {
+                var recipes = await _warcraftCachedData.GetForeverSkillTierRecipes(professionId, skillTierId, region);
+                if (recipes == null)
+                {
+                    return NotFound(new ProblemDetails { Status = StatusCodes.Status404NotFound, Title = "Blizzard has no recipe list for this skill tier." });
+                }
+                CacheStaticRows(true);
+                return Ok(recipes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting Forever skill tier {Profession}/{Tier} recipes in {Region}.", professionId, skillTierId, region);
+                return StatusCode(500);
+            }
+        }
+
         //Static game data changes with patches, not with play, so a complete answer can sit in the browser and
         //any shared cache for a day. A batch missing a definition or icon is left uncached, since a transient failure
         //looks the same as a missing row, and "Retry details" has to reach the server.

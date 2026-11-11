@@ -82,6 +82,18 @@ export function useForeverTab<K extends ForeverTab>(tab: K, region: string | und
   return [state, retry];
 }
 
+// Every recipe in a profession's skill tier, for the "not learned" list. Game data, the same for
+// every character, so it is kept for the session.
+const skillTierRequests = new RequestCache(30, 60 * 60 * 1000);
+
+export function loadSkillTierRecipes(region: string, professionId: number, skillTierId: number) {
+  return skillTierRequests.get(`${region}/${professionId}/${skillTierId}`, () => client.getSkillTierRecipes(region, professionId, skillTierId));
+}
+
+export function peekSkillTierRecipes(region: string, professionId: number, skillTierId: number) {
+  return skillTierRequests.peek<Dragonblight.ForeverSkillTierRecipe[]>(`${region}/${professionId}/${skillTierId}`)?.value;
+}
+
 // A character reports a few dozen achievements; the server answers up to 50 definitions per request.
 export const achievementBatchSize = 50;
 export const achievementDetails = new DetailCache<Dragonblight.ForeverAchievementDetails>(1500, (row) => row.achievement != null);
