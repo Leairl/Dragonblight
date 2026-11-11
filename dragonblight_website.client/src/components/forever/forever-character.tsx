@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router";
-import { Callout, Card, Flex, Heading, Skeleton } from "@radix-ui/themes";
+import { Link, useNavigate, useParams } from "react-router";
+import { Callout, Card, Flex, Heading, SegmentedControl, Skeleton, Text } from "@radix-ui/themes";
 import { InfoCircledIcon } from "@radix-ui/react-icons";
 import { Dragonblight } from "../../clients/Dragonblight";
 import { ClassColor } from "../../helpers/classColorHelper";
 import { findSlotItem, getEnchant, getEnchantName, itemTooltipParams } from "../../helpers/equipmentHelper";
 import { wowheadUrl } from "../../helpers/game-flavor";
 import "../profile/profile.css";
+import ForeverTalents from "./forever-talents";
 import "../profile/profile-equipment/profile-equipment.css";
 declare const $WowheadPower: { refreshLinks: () => void } | undefined;
 
@@ -266,9 +267,24 @@ function RosterOnlyCharacter(props: { character: Dragonblight.ForeverStatsCharac
 
 // A WoW: Forever character, laid out like the retail and classic profile: a header card
 // with the character's icons and name, then the paperdoll with gear down both sides.
-// Route: /forever/character/:region/:characterSlug, where the slug is "name-surname".
+// Route: /forever/character/:region/:characterSlug/:urlTab?, where the slug is "name-surname"
+// and the tab is "talents" or left out for gear, as on the retail and classic profile.
 function ForeverCharacter() {
-  const { region, characterSlug } = useParams();
+  const { region, characterSlug, urlTab } = useParams();
+  const navigate = useNavigate();
+  let currTab = "gear";
+  if (urlTab === "talents") {
+    currTab = "talents";
+  }
+
+  //the tab lives in the url, so a shared link opens on it
+  function ChangeTab(tab: string) {
+    let path = `/character/${region}/${characterSlug}`;
+    if (tab === "talents") {
+      path += "/talents";
+    }
+    navigate(path, { replace: true });
+  }
   const requestKey = `${region}/${characterSlug}`;
   const [result, setResult] = useState<LoadResult>();
 
@@ -302,12 +318,14 @@ function ForeverCharacter() {
     };
   }, [region, characterSlug, requestKey]);
 
-  // Wowhead decorates item links once they are in the page
+  // Wowhead adds each item link's icon and quality colour once the link is in the page. Item names
+  // are transparent until it does. Switching to Talents removes the gear links and switching back
+  // puts new ones in, so this runs again whenever the tab changes, not just when the data arrives.
   useEffect(() => {
-    if (page?.equipment && typeof $WowheadPower !== "undefined") {
+    if (currTab === "gear" && page?.equipment && typeof $WowheadPower !== "undefined") {
       $WowheadPower.refreshLinks();
     }
-  }, [page]);
+  }, [page, currTab]);
 
   if (state === "notFound" || state === "error") {
     let message = `${characterSlug} not found. Blizzard's API has no profile for this character yet. New characters appear once they're level 10 and have logged out, and some the Armory already shows take longer to reach the API. Check the spelling and region, and try again later.`;
@@ -341,6 +359,11 @@ function ForeverCharacter() {
     gender = "-f";
   }
   const guildSlug = guildSlugOf(profile?.guild);
+  //the Gear / Talents switch can't be used until the character has loaded
+  let tabSwitchClass = "";
+  if (state === "loading") {
+    tabSwitchClass = "div-disabled";
+  }
   let renderClass = "character-render";
   if (profile?.race?.name === "Tauren") {
     renderClass = "character-render character-render-tauren";
@@ -348,6 +371,23 @@ function ForeverCharacter() {
 
   return (
     <div className="profile-page grid">
+      {/* the Gear / Talents switch, in the same place and markup as the retail and classic profile */}
+      <div className="button-row">
+        <Text as="label" size="2">
+          <Flex className="button-row" gap="2">
+            <div className={tabSwitchClass}>
+              <SegmentedControl.Root className=" w-[250px] grow-0" value={currTab} defaultValue={"gear"}>
+                <SegmentedControl.Item onClick={() => ChangeTab("gear")} value="gear">
+                  Gear
+                </SegmentedControl.Item>
+                <SegmentedControl.Item onClick={() => ChangeTab("talents")} value="talents">
+                  Talents
+                </SegmentedControl.Item>
+              </SegmentedControl.Root>
+            </div>
+          </Flex>
+        </Text>
+      </div>
       <div className="flex-wrap flex flex-row justify-center">
         <div className="flex flex-col">
           <div className="page-container">
@@ -420,47 +460,57 @@ function ForeverCharacter() {
                   </div>
                 )}
               </Card>
-              <Card className="paperdoll-card overflow-visible border-card">
-                {/* while loading, the same layout the retail and classic profile shows */}
-                {state === "loading" && (
-                  <div>
-                    <Flex className="flex-row items-center">
-                      <div className="flex-1"></div>
-                    </Flex>
+              {currTab === "gear" && (
+                <Card className="paperdoll-card overflow-visible border-card">
+                  {/* while loading, the same layout the retail and classic profile shows */}
+                  {state === "loading" && (
+                    <div>
+                      <Flex className="flex-row items-center">
+                        <div className="flex-1"></div>
+                      </Flex>
+                      <div className="paperdoll pt-2">
+                        <div className="paperdoll-column paperdoll-left">
+                          {leftSlots.map((slot) => (
+                            <SkeletonSlotRow key={slot} slot={slot} right={false} />
+                          ))}
+                        </div>
+                        <Skeleton width="0px"></Skeleton>
+                        <Skeleton className="model-skeleton mx-auto mt-1" width="350px" height="500px"></Skeleton>
+                        <div className="paperdoll-column paperdoll-right">
+                          {rightSlots.map((slot) => (
+                            <SkeletonSlotRow key={slot} slot={slot} right={true} />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {state === "loaded" && (
                     <div className="paperdoll pt-2">
-                      <div className="paperdoll-column paperdoll-left">
+                      <div className="paperdoll-column">
                         {leftSlots.map((slot) => (
-                          <SkeletonSlotRow key={slot} slot={slot} right={false} />
+                          <SlotRow key={slot} slot={slot} right={false} equipment={equipment} />
                         ))}
                       </div>
-                      <Skeleton width="0px"></Skeleton>
-                      <Skeleton className="model-skeleton mx-auto mt-1" width="350px" height="500px"></Skeleton>
-                      <div className="paperdoll-column paperdoll-right">
+                      <div className="model3dx">
+                        {render && <img src={render} alt="" className={renderClass} />}
+                      </div>
+                      <div className="paperdoll-column">
                         {rightSlots.map((slot) => (
-                          <SkeletonSlotRow key={slot} slot={slot} right={true} />
+                          <SlotRow key={slot} slot={slot} right={true} equipment={equipment} />
                         ))}
                       </div>
                     </div>
-                  </div>
-                )}
-                {state === "loaded" && (
-                  <div className="paperdoll pt-2">
-                    <div className="paperdoll-column">
-                      {leftSlots.map((slot) => (
-                        <SlotRow key={slot} slot={slot} right={false} equipment={equipment} />
-                      ))}
-                    </div>
-                    <div className="model3dx">
-                      {render && <img src={render} alt="" className={renderClass} />}
-                    </div>
-                    <div className="paperdoll-column">
-                      {rightSlots.map((slot) => (
-                        <SlotRow key={slot} slot={slot} right={true} equipment={equipment} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </Card>
+                  )}
+                </Card>
+              )}
+              {currTab === "talents" && (
+                <Card className="talent-row border-card">
+                  {state === "loading" && <Skeleton height="420px"></Skeleton>}
+                  {state === "loaded" && profile && (
+                    <ForeverTalents region={region ?? ""} characterSlug={characterSlug ?? ""} className={className} />
+                  )}
+                </Card>
+              )}
             </div>
           </div>
         </div>

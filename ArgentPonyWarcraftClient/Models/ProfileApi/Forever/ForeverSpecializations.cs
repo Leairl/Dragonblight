@@ -50,10 +50,16 @@ public record ForeverTalentTree
 }
 
 /// <summary>
-/// A talent and the points in it. Only the rank is kept; it is all the stats page needs.
+/// A talent and the points in it.
 /// </summary>
 public record ForeverTalentRank
 {
+    /// <summary>
+    /// Gets the talent; its id matches the talents in the class's talent tree.
+    /// </summary>
+    [JsonPropertyName("talent")]
+    public TalentReference Talent { get; init; }
+
     /// <summary>
     /// Gets the number of points in the talent.
     /// </summary>

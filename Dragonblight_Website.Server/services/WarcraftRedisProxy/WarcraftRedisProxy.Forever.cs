@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text.Json;
 using ArgentPonyWarcraftClient;
 using StackExchange.Redis;
@@ -251,5 +252,123 @@ partial class WarcraftRedisProxy
     public async Task<ForeverStatsSummary?> GetForeverStatsSummary()
     {
         return await GetRedisData<ForeverStatsSummary>(ForeverStatsSummaryKey);
+    }
+
+    //---- the talents tab ----
+
+    //A character's talent groups with every talent and rank. Kept apart from GetForeverSpecName,
+    //which keeps only the spec name for three days; this is the full answer, for two hours.
+    public async Task<ForeverSpecializations?> GetForeverSpecializations(string characterSlug, string region)
+    {
+        var ns = GetProfileRegion(region, GameFlavor.Forever);
+        return await GetBlizzardDataCached<ForeverSpecializations?>("GetForeverSpecializations" + characterSlug + ns, async () =>
+        {
+            var result = await warcraftClient.GetForeverCharacterSpecializationsAsync(characterSlug, ns, GetRegion(region), GetLocale(region));
+            if (result == null || !result.Success)
+            {
+                return null;
+            }
+            return result.Value;
+        }, TimeSpan.FromHours(2));
+    }
+
+    //A class's three talent trees as the game lays them out, with each talent's icon. Built from
+    //the class (its specs, in the game's order), each spec (its tree's id), each tree (the talents
+    //and their grid slots) and each talent's spell (its icon), so it is a few dozen calls the first
+    //time; talent trees only change with a patch, so it is kept for a week.
+    public async Task<ForeverClassTalents?> GetForeverClassTalents(int classId, string region)
+    {
+        var ns = GetStaticRegion(region, GameFlavor.Forever);
+        return await GetBlizzardDataCached<ForeverClassTalents?>("GetForeverClassTalents" + classId + ns, async () =>
+        {
+            var playableClass = await warcraftClient.GetPlayableClassAsync(classId, ns, GetRegion(region), GetLocale(region));
+            if (playableClass == null || !playableClass.Success)
+            {
+                return null;
+            }
+            var talents = new ForeverClassTalents { ClassId = classId };
+            foreach (var spec in playableClass.Value.Specializations ?? [])
+            {
+                var tree = await GetForeverTalentTreeLayout(spec.Id, ns, region);
+                if (tree == null)
+                {
+                    return null;
+                }
+                talents.Trees.Add(tree);
+            }
+            return talents;
+        }, TimeSpan.FromDays(7));
+    }
+
+    private async Task<ForeverTalentTreeLayout?> GetForeverTalentTreeLayout(int specId, string ns, string region)
+    {
+        var spec = await warcraftClient.GetPlayableSpecializationAsync(specId, ns, GetRegion(region), GetLocale(region));
+        if (spec == null || !spec.Success)
+        {
+            return null;
+        }
+        //the spec only links its tree: .../data/wow/talent-tree/1089/playable-specialization/134
+        var treeId = TalentTreeIdOf(spec.Value.SpecTalentTree?.Key?.Href);
+        if (treeId == null)
+        {
+            return null;
+        }
+        var tree = await warcraftClient.GetTalentTreeAsync(treeId.Value, specId, ns, GetRegion(region), GetLocale(region));
+        if (tree == null || !tree.Success)
+        {
+            return null;
+        }
+
+        var layout = new ForeverTalentTreeLayout { SpecId = specId, SpecName = spec.Value.Name ?? "" };
+        var nodes = new ConcurrentBag<ForeverTalentNode>();
+        var options = new ParallelOptions { MaxDegreeOfParallelism = 4 };
+        await Parallel.ForEachAsync(tree.Value.SpecializationTalentNodes ?? [], options, async (node, _) =>
+        {
+            var firstRank = node.Ranks?.FirstOrDefault()?.Tooltip;
+            if (firstRank?.Talent == null)
+            {
+                return;
+            }
+            var spellId = firstRank.SpellTooltip?.Spell?.Id ?? 0;
+            var icon = "";
+            if (spellId != 0)
+            {
+                var media = await warcraftClient.GetSpellMediaAsync(spellId, ns, GetRegion(region), GetLocale(region));
+                if (media != null && media.Success)
+                {
+                    icon = media.Value.Assets?.FirstOrDefault(a => a.Key == "icon")?.Value?.ToString() ?? "";
+                }
+            }
+            nodes.Add(new ForeverTalentNode
+            {
+                NodeId = node.Id,
+                Row = (int)node.DisplayRow,
+                Column = (int)node.DisplayColumn,
+                MaxRank = node.Ranks?.Length ?? 0,
+                TalentId = firstRank.Talent.Id,
+                SpellId = spellId,
+                Name = firstRank.Talent.Name ?? "",
+                Icon = icon,
+                RankDescriptions = (node.Ranks ?? []).Select(r => r.Tooltip?.SpellTooltip?.Description ?? "").ToList(),
+                LockedBy = (node.LockedBy ?? []).ToList(),
+            });
+        });
+        layout.Nodes = nodes.OrderBy(n => n.Row).ThenBy(n => n.Column).ToList();
+        return layout;
+    }
+
+    private static int? TalentTreeIdOf(Uri? href)
+    {
+        if (href == null)
+        {
+            return null;
+        }
+        var segments = href.AbsolutePath.Trim('/').Split('/');
+        var at = Array.IndexOf(segments, "talent-tree");
+        if (at >= 0 && at + 1 < segments.Length && int.TryParse(segments[at + 1], out var id))
+        {
+            return id;
+        }
+        return null;
     }
 }

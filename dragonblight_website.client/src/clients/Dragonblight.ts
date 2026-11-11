@@ -638,6 +638,47 @@ export class ForeverCharacterClient {
         }
         return Promise.resolve<ForeverCharacterProfile[]>(null as any);
     }
+
+    getTalents(region: string | undefined, characterSlug: string | undefined): Promise<ForeverTalentsPage> {
+        let url_ = this.baseUrl + "/api/ForeverCharacter/GetTalents?";
+        if (region === null)
+            throw new globalThis.Error("The parameter 'region' cannot be null.");
+        else if (region !== undefined)
+            url_ += "region=" + encodeURIComponent("" + region) + "&";
+        if (characterSlug === null)
+            throw new globalThis.Error("The parameter 'characterSlug' cannot be null.");
+        else if (characterSlug !== undefined)
+            url_ += "characterSlug=" + encodeURIComponent("" + characterSlug) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetTalents(_response);
+        });
+    }
+
+    protected processGetTalents(response: Response): Promise<ForeverTalentsPage> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ForeverTalentsPage;
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ForeverTalentsPage>(null as any);
+    }
 }
 
 export class ForeverGuildClient {
@@ -2511,6 +2552,35 @@ export interface Asset {
     key?: string | undefined;
     value?: string | undefined;
     file_data_id: number;
+}
+
+export interface ForeverTalentsPage {
+    trees: ForeverTalentTreeLayout[];
+    groups: ForeverTalentGroup[];
+}
+
+export interface ForeverTalentTreeLayout {
+    specId: number;
+    specName: string;
+    nodes: ForeverTalentNode[];
+}
+
+export interface ForeverTalentNode {
+    nodeId: number;
+    row: number;
+    column: number;
+    maxRank: number;
+    talentId: number;
+    spellId: number;
+    name: string;
+    icon: string;
+    rankDescriptions: string[];
+    lockedBy: number[];
+}
+
+export interface ForeverTalentGroup {
+    isActive: boolean;
+    ranks: { [key: string]: number; };
 }
 
 export interface ForeverGuildPage {
