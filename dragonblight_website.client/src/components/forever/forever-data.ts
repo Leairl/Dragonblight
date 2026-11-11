@@ -3,7 +3,57 @@ import { Dragonblight } from "../../clients/Dragonblight";
 import { DetailCache, RequestCache } from "./request-cache";
 import type { CollectionKind } from "./forever-collections/collection-helpers";
 
-const client = new Dragonblight.ForeverCharacterClient();
+// After the Refresh button clears the server's copy of a character, the browser still holds the
+// five-minute copies its responses allow (private, max-age=300). Until those run out, that
+// character's requests skip them. Kept in sessionStorage because Refresh reloads the page.
+const refreshedStorageKey = "foreverRefreshed";
+const browserCacheMs = 5 * 60 * 1000;
+
+function characterKey(region: string, slug: string) {
+  return `${region}/${slug}`.toLowerCase();
+}
+
+// Each refreshed character, with when its browser copies run out.
+function refreshedCharacters(): Record<string, number> {
+  try {
+    const stored = JSON.parse(sessionStorage.getItem(refreshedStorageKey) ?? "{}") as Record<string, number>;
+    const now = Date.now();
+    return Object.fromEntries(Object.entries(stored).filter(([, until]) => until > now));
+  } catch {
+    return {};
+  }
+}
+
+export function markForeverRefreshed(region: string, slug: string) {
+  const refreshed = refreshedCharacters();
+  refreshed[characterKey(region, slug)] = Date.now() + browserCacheMs;
+  try {
+    sessionStorage.setItem(refreshedStorageKey, JSON.stringify(refreshed));
+  } catch {
+    // without storage the page shows the browser's copy until it runs out
+  }
+}
+
+function skipsBrowserCache(url: string): boolean {
+  const query = new URL(url, window.location.origin).searchParams;
+  const region = query.get("region");
+  const slug = query.get("characterSlug");
+  if (!region || !slug) {
+    return false;
+  }
+  return characterKey(region, slug) in refreshedCharacters();
+}
+
+// The Forever client every character request goes through.
+export const foreverClient = new Dragonblight.ForeverCharacterClient(undefined, {
+  fetch(url: RequestInfo, init?: RequestInit) {
+    if (typeof url === "string" && skipsBrowserCache(url)) {
+      return window.fetch(url, { ...init, cache: "reload" });
+    }
+    return window.fetch(url, init);
+  },
+});
+const client = foreverClient;
 
 // The server keeps a character's tabs for two hours; five minutes here makes switching tabs instant
 // without holding on to a character for a whole session.

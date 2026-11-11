@@ -29,6 +29,30 @@ partial class WarcraftRedisProxy
         await db.ListRightPushAsync(ForeverCachedCharactersKey, entry);
     }
 
+    //The parts of a Forever character cached under "GetForever" + part + slug + namespace.
+    private static readonly string[] ForeverCharacterParts =
+    [
+        "Character", "Equipment", "Media", "Professions", "PvpSummary", "CharacterStats", "Reputations",
+        "Achievements", "Mounts", "Pets", "Toys", "Transmogs", "SpecName", "Specializations",
+    ];
+
+    //Forgets everything cached for one Forever character, like ClearCharacterCache does for retail and
+    //classic, so the page's next requests go to Blizzard. Returns false while the character is on its
+    //five-minute cooldown.
+    public async Task<bool> ClearForeverCharacterCache(string characterSlug, string region)
+    {
+        var db = redis.GetDatabase();
+        var cooldown = GameFlavor.Forever.KeyPrefix() + "RefreshCooldown" + characterSlug + region;
+        if (!await db.StringSetAsync(cooldown, "1", TimeSpan.FromMinutes(5), When.NotExists))
+        {
+            return false;
+        }
+        var ns = GetProfileRegion(region, GameFlavor.Forever);
+        var keys = ForeverCharacterParts.Select(part => (RedisKey)VersionedKey("GetForever" + part + characterSlug + ns)).ToArray();
+        await db.KeyDeleteAsync(keys);
+        return true;
+    }
+
     public async Task<ForeverCharacterProfile?> GetForeverCharacter(string characterSlug, string region)
     {
         var ns = GetProfileRegion(region, GameFlavor.Forever);

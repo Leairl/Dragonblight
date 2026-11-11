@@ -72,3 +72,8 @@
     opacity: 0.3;
   }
 }
+
+/* the header card's Refresh icon */
+.forever-refresh {
+  border: 1px solid #000000;
+}

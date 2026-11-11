@@ -1,3 +1,5 @@
+using System.Text.Json;
+
     public class CSVLoader
     {
 
@@ -12,7 +14,8 @@
             //the Optimize tab's stat weights; without the file, it suggests nothing it would have to rank
             ForeverStatWeights.Load(@"ForeverStatWeights.json");
             //Tab-separated, since sources like "Vendor: Qia (Winterspring)" can hold commas: recipe id, required
-            //skill (blank when unknown), pattern|estimate|unknown, item id, item name, item icon, source.
+            //skill (blank when unknown), pattern|estimate|unknown, item id, item name, item icon, source, and
+            //the source's parts as JSON (left out by files written before it was added).
             //Without the file, recipes have no required skill or source and the page shows them all.
             ForeverRecipes.data.Clear();
             if (File.Exists(@"ForeverRecipes.tsv"))
@@ -34,6 +37,11 @@
                     {
                         itemId = item;
                     }
+                    ForeverRecipeSource[] sources = [];
+                    if (values.Length > 7 && values[7] != "")
+                    {
+                        sources = JsonSerializer.Deserialize<ForeverRecipeSource[]>(values[7]) ?? [];
+                    }
                     ForeverRecipes.data[recipeId] = new ForeverRecipeInfo
                     {
                         requiredSkill = skill,
@@ -43,6 +51,7 @@
                         itemName = values[4],
                         itemIcon = values[5],
                         source = values[6],
+                        sources = sources,
                     };
                 }
             }
