@@ -57,6 +57,397 @@ partial class WarcraftRedisProxy
         }, TimeSpan.FromHours(2));
     }
 
+    public async Task<CharacterProfessionsSummary?> GetForeverProfessions(string characterSlug, string region)
+    {
+        var ns = GetProfileRegion(region, GameFlavor.Forever);
+        return await GetBlizzardDataCached<CharacterProfessionsSummary?>("GetForeverProfessions" + characterSlug + ns, async () =>
+        {
+            var result = await warcraftClient.GetForeverCharacterProfessionsAsync(characterSlug, ns, GetRegion(region), GetLocale(region));
+            if (result?.Success == true)
+            {
+                return result.Value;
+            }
+            if (result?.Error?.Code == 404)
+            {
+                return null;
+            }
+            //Do not cache an upstream failure as an empty list of professions.
+            throw new HttpRequestException("Blizzard Forever character professions request failed.");
+        }, TimeSpan.FromHours(2));
+    }
+
+    public async Task<ForeverPvpSummary?> GetForeverPvpSummary(string characterSlug, string region)
+    {
+        var ns = GetProfileRegion(region, GameFlavor.Forever);
+        return await GetBlizzardDataCached<ForeverPvpSummary?>("GetForeverPvpSummary" + characterSlug + ns, async () =>
+        {
+            var result = await warcraftClient.GetForeverCharacterPvpSummaryAsync(characterSlug, ns, GetRegion(region), GetLocale(region));
+            if (result?.Success == true)
+            {
+                return result.Value;
+            }
+            if (result?.Error?.Code == 404)
+            {
+                return null;
+            }
+            throw new HttpRequestException("Blizzard Forever character PvP summary request failed.");
+        }, TimeSpan.FromHours(2));
+    }
+
+    public async Task<ForeverCharacterStatistics?> GetForeverCharacterStats(string characterSlug, string region)
+    {
+        var ns = GetProfileRegion(region, GameFlavor.Forever);
+        return await GetBlizzardDataCached<ForeverCharacterStatistics?>("GetForeverCharacterStats" + characterSlug + ns, async () =>
+        {
+            var result = await warcraftClient.GetForeverCharacterStatisticsAsync(characterSlug, ns, GetRegion(region), GetLocale(region));
+            if (result?.Success == true)
+            {
+                return result.Value;
+            }
+            if (result?.Error?.Code == 404)
+            {
+                return null;
+            }
+            throw new HttpRequestException("Blizzard Forever character statistics request failed.");
+        }, TimeSpan.FromHours(2));
+    }
+
+    public async Task<ForeverReputationsSummary?> GetForeverReputations(string characterSlug, string region)
+    {
+        var ns = GetProfileRegion(region, GameFlavor.Forever);
+        return await GetBlizzardDataCached<ForeverReputationsSummary?>("GetForeverReputations" + characterSlug + ns, async () =>
+        {
+            var result = await warcraftClient.GetForeverCharacterReputationsAsync(characterSlug, ns, GetRegion(region), GetLocale(region));
+            if (result?.Success == true)
+            {
+                return result.Value;
+            }
+            if (result?.Error?.Code == 404)
+            {
+                return null;
+            }
+            throw new HttpRequestException("Blizzard Forever character reputations request failed.");
+        }, TimeSpan.FromHours(2));
+    }
+
+    public async Task<ForeverAchievementsSummary?> GetForeverAchievements(string characterSlug, string region)
+    {
+        var ns = GetProfileRegion(region, GameFlavor.Forever);
+        return await GetBlizzardDataCached<ForeverAchievementsSummary?>("GetForeverAchievements" + characterSlug + ns, async () =>
+        {
+            var result = await warcraftClient.GetForeverCharacterAchievementsAsync(characterSlug, ns, GetRegion(region), GetLocale(region));
+            if (result?.Success == true) return result.Value;
+            if (result?.Error?.Code == 404) return null;
+            throw new HttpRequestException("Blizzard Forever character achievements request failed.");
+        }, TimeSpan.FromHours(2));
+    }
+
+    //One of a character's collections: null when Blizzard has none for the character (404), an
+    //exception for any other failure so it isn't cached as an empty collection.
+    private Task<T?> GetForeverCollection<T>(string name, string characterSlug, string region,
+        Func<string, string, Region, Locale, Task<RequestResult<T>>> call) where T : class
+    {
+        var ns = GetProfileRegion(region, GameFlavor.Forever);
+        return GetBlizzardDataCached<T?>("GetForever" + name + characterSlug + ns, async () =>
+        {
+            var result = await call(characterSlug, ns, GetRegion(region), GetLocale(region));
+            if (result?.Success == true) return result.Value;
+            if (result?.Error?.Code == 404) return null;
+            throw new HttpRequestException($"Blizzard Forever character {name.ToLowerInvariant()} request failed.");
+        }, TimeSpan.FromHours(2));
+    }
+
+    public Task<ForeverMountsCollection?> GetForeverMounts(string characterSlug, string region)
+        => GetForeverCollection("Mounts", characterSlug, region, warcraftClient.GetForeverCharacterMountsAsync);
+
+    public Task<ForeverPetsCollection?> GetForeverPets(string characterSlug, string region)
+        => GetForeverCollection("Pets", characterSlug, region, warcraftClient.GetForeverCharacterPetsAsync);
+
+    public Task<ForeverToysCollection?> GetForeverToys(string characterSlug, string region)
+        => GetForeverCollection("Toys", characterSlug, region, warcraftClient.GetForeverCharacterToysAsync);
+
+    public Task<ForeverTransmogsCollection?> GetForeverTransmogs(string characterSlug, string region)
+        => GetForeverCollection("Transmogs", characterSlug, region, warcraftClient.GetForeverCharacterTransmogsAsync);
+
+    //How many mounts, pets and toys Forever's game data has, for "collected of total". Null when any
+    //index failed; a cached null counts as a miss, so the next request asks again.
+    public async Task<ForeverCollectionTotals?> GetForeverCollectionTotals(string region)
+    {
+        var ns = GetStaticRegion(region, GameFlavor.Forever);
+        return await GetBlizzardDataCached<ForeverCollectionTotals?>("GetForeverCollectionTotals" + ns, async () =>
+        {
+            var mounts = warcraftClient.GetForeverMountsIndexAsync(ns, GetRegion(region), GetLocale(region));
+            var pets = warcraftClient.GetForeverPetsIndexAsync(ns, GetRegion(region), GetLocale(region));
+            var toys = warcraftClient.GetForeverToysIndexAsync(ns, GetRegion(region), GetLocale(region));
+            await Task.WhenAll(mounts, pets, toys);
+            if (mounts.Result?.Success != true || pets.Result?.Success != true || toys.Result?.Success != true)
+            {
+                return null;
+            }
+            return new ForeverCollectionTotals
+            {
+                mounts = mounts.Result.Value.Mounts?.Length ?? 0,
+                pets = pets.Result.Value.Pets?.Length ?? 0,
+                toys = toys.Result.Value.Toys?.Length ?? 0,
+            };
+        }, TimeSpan.FromDays(7));
+    }
+
+    //Static achievement and recipe data is shared by every character, so one cold page can ask for
+    //dozens of definitions and icons at once. Only the Blizzard calls are throttled, and the limit is
+    //process-wide: cached lookups never wait, and several visitors at once can't multiply the load.
+    private static readonly SemaphoreSlim ForeverStaticFetches = new(8);
+
+    //A definition or icon Blizzard reports missing (404) is remembered for a day, so a recipe with no icon
+    //doesn't call Blizzard on every view. Other failures are not cached and the next request retries.
+    private record StaticLookup<T>(T? Value);
+
+    private async Task<TValue?> GetForeverStaticCached<TResult, TValue>(string key, Func<Task<RequestResult<TResult>>> call, Func<TResult, TValue?> select)
+    {
+        var versionedKey = VersionedKey(key);
+        var cached = await GetRedisData<StaticLookup<TValue>>(versionedKey);
+        if (cached != null)
+        {
+            return cached.Value;
+        }
+        var lookup = await FetchOnce(key, async () =>
+        {
+            RequestResult<TResult>? result;
+            await ForeverStaticFetches.WaitAsync();
+            try
+            {
+                result = await call();
+            }
+            finally
+            {
+                ForeverStaticFetches.Release();
+            }
+            if (result?.Success == true)
+            {
+                var found = new StaticLookup<TValue>(select(result.Value));
+                await SaveToRedis(versionedKey, found, TimeSpan.FromDays(7));
+                return found;
+            }
+            if (result?.Error?.Code == 404)
+            {
+                var missing = new StaticLookup<TValue>(default);
+                await SaveToRedis(versionedKey, missing, TimeSpan.FromDays(1));
+                return missing;
+            }
+            return new StaticLookup<TValue>(default);
+        });
+        return lookup.Value;
+    }
+
+    private static string? IconAsset(IEnumerable<Asset>? assets)
+        => assets?.FirstOrDefault(asset => asset.Key == "icon")?.Value?.ToString();
+
+    public Task<ForeverAchievement?> GetForeverAchievement(int achievementId, string region)
+    {
+        var ns = GetStaticRegion(region, GameFlavor.Forever);
+        return GetForeverStaticCached<ForeverAchievement, ForeverAchievement>("ForeverAchievementLookup" + achievementId + ns,
+            () => warcraftClient.GetForeverAchievementAsync(achievementId, ns, GetRegion(region), GetLocale(region)), value => value);
+    }
+
+    public Task<string?> GetForeverAchievementIcon(int achievementId, string region)
+    {
+        var ns = GetStaticRegion(region, GameFlavor.Forever);
+        return GetForeverStaticCached<AchievementMedia, string>("ForeverAchievementIconLookup" + achievementId + ns,
+            () => warcraftClient.GetAchievementMediaAsync(achievementId, ns, GetRegion(region), GetLocale(region)), media => IconAsset(media.Assets));
+    }
+
+    //Legacy Points have no endpoint of their own: Forever awards them through achievements whose
+    //reward reads "Earn 1 Legacy Point." This maps each such achievement to the points it gives,
+    //from every achievement definition (about 176, each cached and throttled like the tab's own
+    //lookups). Null when any definition couldn't be read, so a partial list is never kept.
+    private static readonly System.Text.RegularExpressions.Regex LegacyReward = new(@"(\d+)\s+Legacy Points?", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+    public async Task<Dictionary<int, int>?> GetForeverLegacyRewards(string region)
+    {
+        var ns = GetStaticRegion(region, GameFlavor.Forever);
+        return await GetBlizzardDataCached<Dictionary<int, int>?>("GetForeverLegacyRewards" + ns, async () =>
+        {
+            var index = await warcraftClient.GetAchievementsIndexAsync(ns, GetRegion(region), GetLocale(region));
+            if (index?.Success != true)
+            {
+                return null;
+            }
+            var definitions = await Task.WhenAll(index.Value.Achievements.Select(a => GetForeverAchievement(a.Id, region)));
+            if (definitions.Any(d => d == null))
+            {
+                return null;
+            }
+            var rewards = new Dictionary<int, int>();
+            foreach (var definition in definitions)
+            {
+                var match = LegacyReward.Match(definition!.RewardDescription ?? "");
+                if (match.Success)
+                {
+                    rewards[definition.Id] = int.Parse(match.Groups[1].Value);
+                }
+            }
+            return rewards;
+        }, TimeSpan.FromDays(7));
+    }
+
+    public Task<Recipe?> GetForeverRecipe(int recipeId, string region)
+    {
+        var ns = GetStaticRegion(region, GameFlavor.Forever);
+        return GetForeverStaticCached<Recipe, Recipe>("ForeverRecipeLookup" + recipeId + ns,
+            () => warcraftClient.GetRecipeAsync(recipeId, ns, GetRegion(region), GetLocale(region)), value => value);
+    }
+
+    public Task<string?> GetForeverRecipeIcon(int recipeId, string region)
+    {
+        var ns = GetStaticRegion(region, GameFlavor.Forever);
+        return GetForeverStaticCached<RecipeMedia, string>("ForeverRecipeIconLookup" + recipeId + ns,
+            () => warcraftClient.GetRecipeMediaAsync(recipeId, ns, GetRegion(region), GetLocale(region)), media => IconAsset(media.Assets));
+    }
+
+    //A mount's picture is the render of its first creature display; mounts have no icon of their own.
+    public async Task<string?> GetForeverMountImage(int mountId, string region)
+    {
+        var ns = GetStaticRegion(region, GameFlavor.Forever);
+        var displayId = await GetForeverStaticCached<ForeverMount, int>("ForeverMountDisplayLookup" + mountId + ns,
+            () => warcraftClient.GetForeverMountAsync(mountId, ns, GetRegion(region), GetLocale(region)),
+            mount => mount.CreatureDisplays?.FirstOrDefault()?.Id ?? 0);
+        if (displayId <= 0)
+        {
+            return null;
+        }
+        return await GetForeverStaticCached<CreatureDisplayMedia, string>("ForeverCreatureDisplayLookup" + displayId + ns,
+            () => warcraftClient.GetCreatureDisplayMediaAsync(displayId, ns, GetRegion(region), GetLocale(region)),
+            media => media.Assets?.FirstOrDefault(asset => asset.Key == "zoom")?.Value?.ToString());
+    }
+
+    public Task<string?> GetForeverPetIcon(int petId, string region)
+    {
+        var ns = GetStaticRegion(region, GameFlavor.Forever);
+        return GetForeverStaticCached<ForeverPet, string>("ForeverPetIconLookup" + petId + ns,
+            () => warcraftClient.GetForeverPetAsync(petId, ns, GetRegion(region), GetLocale(region)), pet => pet.Icon);
+    }
+
+    public async Task<string?> GetForeverToyIcon(int toyId, string region)
+    {
+        var ns = GetStaticRegion(region, GameFlavor.Forever);
+        var mediaId = await GetForeverStaticCached<ForeverToy, int>("ForeverToyMediaLookup" + toyId + ns,
+            () => warcraftClient.GetForeverToyAsync(toyId, ns, GetRegion(region), GetLocale(region)), toy => toy.Media?.Id ?? 0);
+        if (mediaId <= 0)
+        {
+            return null;
+        }
+        return await GetForeverItemMediaIcon(mediaId, ns, region);
+    }
+
+    //Icons are shared by many items and appearances, so they are cached by item media id.
+    private Task<string?> GetForeverItemMediaIcon(int mediaId, string ns, string region)
+        => GetForeverStaticCached<ItemMedia, string>("ForeverItemIconLookup" + mediaId + ns,
+            () => warcraftClient.GetItemMediaAsync(mediaId, ns, GetRegion(region), GetLocale(region)), media => IconAsset(media.Assets));
+
+    //---- appearances: which item each collected appearance belongs to ----
+
+    //Every equippable item's appearances, as one hash per region: field = appearance id, value = the
+    //item's name, quality and icon media. A character collects hundreds of appearances and Blizzard
+    //has no bulk lookup by appearance, but the whole catalog is about 8 item searches, so it is built
+    //once a week and each character page reads only its own fields.
+    private static string AppearanceCatalogKey(string ns) => GameFlavor.Forever.KeyPrefix() + "AppearanceCatalog_" + ns;
+    private static string AppearanceCatalogBuiltKey(string ns) => AppearanceCatalogKey(ns) + "_built";
+    private static readonly string[] QualityOrder = ["POOR", "COMMON", "UNCOMMON", "RARE", "EPIC", "LEGENDARY", "ARTIFACT", "HEIRLOOM"];
+
+    public async Task<Dictionary<int, ForeverAppearanceName>> GetForeverAppearanceNames(IReadOnlyCollection<int> appearanceIds, string region)
+    {
+        var found = new Dictionary<int, ForeverAppearanceName>();
+        if (appearanceIds.Count == 0)
+        {
+            return found;
+        }
+        var ns = GetStaticRegion(region, GameFlavor.Forever);
+        await EnsureAppearanceCatalog(ns, region);
+        var ids = appearanceIds.Distinct().ToArray();
+        var values = await redis.GetDatabase().HashGetAsync(AppearanceCatalogKey(ns), ids.Select(id => (RedisValue)id).ToArray());
+        for (var i = 0; i < ids.Length; i++)
+        {
+            if (!values[i].IsNullOrEmpty && JsonSerializer.Deserialize<ForeverAppearanceName>(values[i].ToString()) is { } name)
+            {
+                found[ids[i]] = name;
+            }
+        }
+        return found;
+    }
+
+    private async Task EnsureAppearanceCatalog(string ns, string region)
+    {
+        if (await redis.GetDatabase().KeyExistsAsync(AppearanceCatalogBuiltKey(ns)))
+        {
+            return;
+        }
+        await FetchOnce("AppearanceCatalog" + ns, () => BuildAppearanceCatalog(ns, region));
+    }
+
+    //Built under a temporary key and renamed into place, so readers never see half a catalog. When
+    //Blizzard fails part way the old catalog, if any, stays and the next request tries again.
+    private async Task<bool> BuildAppearanceCatalog(string ns, string region)
+    {
+        var locale = GetLocale(region).ToString();
+        var best = new Dictionary<int, (ForeverAppearanceName name, int rank, int itemId)>();
+        var fromId = 0;
+        for (var page = 0; page < 100; page++)
+        {
+            var result = await warcraftClient.SearchForeverEquippableItemsAsync(fromId, ns, GetRegion(region));
+            if (result?.Success != true)
+            {
+                throw new HttpRequestException("Blizzard Forever item search failed while building the appearance catalog.");
+            }
+            var items = result.Value.Results?.Select(r => r.Data).OfType<ForeverSearchItem>().ToArray() ?? [];
+            foreach (var item in items)
+            {
+                var quality = item.Quality?.Type;
+                var rank = Array.IndexOf(QualityOrder, quality);
+                var name = item.Name?.GetValueOrDefault(locale) ?? item.Name?.GetValueOrDefault("en_US");
+                foreach (var appearance in item.Appearances ?? [])
+                {
+                    //several items can share a look; name it after the best of them, then the oldest
+                    if (best.TryGetValue(appearance.Id, out var current) && (current.rank > rank || (current.rank == rank && current.itemId < item.Id)))
+                    {
+                        continue;
+                    }
+                    best[appearance.Id] = (new ForeverAppearanceName { name = name, quality = quality, mediaId = item.Media?.Id }, rank, item.Id);
+                }
+            }
+            if (items.Length < 1000)
+            {
+                break;
+            }
+            fromId = items[^1].Id + 1;
+        }
+        var db = redis.GetDatabase();
+        var building = AppearanceCatalogKey(ns) + "_building";
+        await db.KeyDeleteAsync(building);
+        var entries = best.Select(pair => new HashEntry(pair.Key, JsonSerializer.Serialize(pair.Value.name))).ToArray();
+        if (entries.Length > 0)
+        {
+            await db.HashSetAsync(building, entries);
+            await db.KeyRenameAsync(building, AppearanceCatalogKey(ns));
+        }
+        await db.StringSetAsync(AppearanceCatalogBuiltKey(ns), DateTime.UtcNow.ToString("O"), TimeSpan.FromDays(7));
+        return true;
+    }
+
+    //An appearance's icon: its item's (catalogMediaId, from GetForeverAppearanceNames). An appearance
+    //with no item links to an item media id that 404s, but that id is the icon's file id, which is
+    //all the render URL needs.
+    public async Task<string?> GetForeverAppearanceIcon(int appearanceId, int? catalogMediaId, string region)
+    {
+        var ns = GetStaticRegion(region, GameFlavor.Forever);
+        if (catalogMediaId > 0)
+        {
+            return await GetForeverItemMediaIcon(catalogMediaId.Value, ns, region);
+        }
+        var fileId = await GetForeverStaticCached<ForeverItemAppearance, int>("ForeverAppearanceMediaLookup" + appearanceId + ns,
+            () => warcraftClient.GetForeverItemAppearanceAsync(appearanceId, ns, GetRegion(region), GetLocale(region)), a => a.Media?.Id ?? 0);
+        return fileId > 0 ? $"https://render.worldofwarcraft.com/forever-{region}/icons/56/{fileId}.jpg" : null;
+    }
+
     //Forever's character images can 404 for many hours after the profile works, so a
     //missing image is normal here, not an error
     public async Task<CharacterMediaSummary?> GetForeverMedia(string characterSlug, string region)

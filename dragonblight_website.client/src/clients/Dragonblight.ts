@@ -602,6 +602,462 @@ export class ForeverCharacterClient {
         return Promise.resolve<ForeverCharacterPage>(null as any);
     }
 
+    getProfessions(region: string | undefined, characterSlug: string | undefined): Promise<CharacterProfessionsSummary> {
+        let url_ = this.baseUrl + "/api/ForeverCharacter/GetProfessions?";
+        if (region === null)
+            throw new globalThis.Error("The parameter 'region' cannot be null.");
+        else if (region !== undefined)
+            url_ += "region=" + encodeURIComponent("" + region) + "&";
+        if (characterSlug === null)
+            throw new globalThis.Error("The parameter 'characterSlug' cannot be null.");
+        else if (characterSlug !== undefined)
+            url_ += "characterSlug=" + encodeURIComponent("" + characterSlug) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetProfessions(_response);
+        });
+    }
+
+    protected processGetProfessions(response: Response): Promise<CharacterProfessionsSummary> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as CharacterProfessionsSummary;
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            result404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ProblemDetails;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<CharacterProfessionsSummary>(null as any);
+    }
+
+    getPvpSummary(region: string | undefined, characterSlug: string | undefined): Promise<ForeverPvpSummary> {
+        let url_ = this.baseUrl + "/api/ForeverCharacter/GetPvpSummary?";
+        if (region === null)
+            throw new globalThis.Error("The parameter 'region' cannot be null.");
+        else if (region !== undefined)
+            url_ += "region=" + encodeURIComponent("" + region) + "&";
+        if (characterSlug === null)
+            throw new globalThis.Error("The parameter 'characterSlug' cannot be null.");
+        else if (characterSlug !== undefined)
+            url_ += "characterSlug=" + encodeURIComponent("" + characterSlug) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetPvpSummary(_response);
+        });
+    }
+
+    protected processGetPvpSummary(response: Response): Promise<ForeverPvpSummary> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ForeverPvpSummary;
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            result404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ProblemDetails;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ForeverPvpSummary>(null as any);
+    }
+
+    getStats(region: string | undefined, characterSlug: string | undefined): Promise<ForeverCharacterStatistics> {
+        let url_ = this.baseUrl + "/api/ForeverCharacter/GetStats?";
+        if (region === null)
+            throw new globalThis.Error("The parameter 'region' cannot be null.");
+        else if (region !== undefined)
+            url_ += "region=" + encodeURIComponent("" + region) + "&";
+        if (characterSlug === null)
+            throw new globalThis.Error("The parameter 'characterSlug' cannot be null.");
+        else if (characterSlug !== undefined)
+            url_ += "characterSlug=" + encodeURIComponent("" + characterSlug) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetStats(_response);
+        });
+    }
+
+    protected processGetStats(response: Response): Promise<ForeverCharacterStatistics> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ForeverCharacterStatistics;
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            result404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ProblemDetails;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ForeverCharacterStatistics>(null as any);
+    }
+
+    getReputations(region: string | undefined, characterSlug: string | undefined): Promise<ForeverReputationsSummary> {
+        let url_ = this.baseUrl + "/api/ForeverCharacter/GetReputations?";
+        if (region === null)
+            throw new globalThis.Error("The parameter 'region' cannot be null.");
+        else if (region !== undefined)
+            url_ += "region=" + encodeURIComponent("" + region) + "&";
+        if (characterSlug === null)
+            throw new globalThis.Error("The parameter 'characterSlug' cannot be null.");
+        else if (characterSlug !== undefined)
+            url_ += "characterSlug=" + encodeURIComponent("" + characterSlug) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetReputations(_response);
+        });
+    }
+
+    protected processGetReputations(response: Response): Promise<ForeverReputationsSummary> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ForeverReputationsSummary;
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            result404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ProblemDetails;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ForeverReputationsSummary>(null as any);
+    }
+
+    getAchievements(region: string | undefined, characterSlug: string | undefined): Promise<ForeverAchievementsSummary> {
+        let url_ = this.baseUrl + "/api/ForeverCharacter/GetAchievements?";
+        if (region === null)
+            throw new globalThis.Error("The parameter 'region' cannot be null.");
+        else if (region !== undefined)
+            url_ += "region=" + encodeURIComponent("" + region) + "&";
+        if (characterSlug === null)
+            throw new globalThis.Error("The parameter 'characterSlug' cannot be null.");
+        else if (characterSlug !== undefined)
+            url_ += "characterSlug=" + encodeURIComponent("" + characterSlug) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetAchievements(_response);
+        });
+    }
+
+    protected processGetAchievements(response: Response): Promise<ForeverAchievementsSummary> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ForeverAchievementsSummary;
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            result404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ProblemDetails;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ForeverAchievementsSummary>(null as any);
+    }
+
+    getCollections(region: string | undefined, characterSlug: string | undefined): Promise<ForeverCollectionsPage> {
+        let url_ = this.baseUrl + "/api/ForeverCharacter/GetCollections?";
+        if (region === null)
+            throw new globalThis.Error("The parameter 'region' cannot be null.");
+        else if (region !== undefined)
+            url_ += "region=" + encodeURIComponent("" + region) + "&";
+        if (characterSlug === null)
+            throw new globalThis.Error("The parameter 'characterSlug' cannot be null.");
+        else if (characterSlug !== undefined)
+            url_ += "characterSlug=" + encodeURIComponent("" + characterSlug) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetCollections(_response);
+        });
+    }
+
+    protected processGetCollections(response: Response): Promise<ForeverCollectionsPage> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ForeverCollectionsPage;
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            result404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ProblemDetails;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ForeverCollectionsPage>(null as any);
+    }
+
+    getCollectionIcons(region: string | undefined, kind: string | undefined, ids: number[] | undefined): Promise<ForeverCollectionIcon[]> {
+        let url_ = this.baseUrl + "/api/ForeverCharacter/GetCollectionIcons?";
+        if (region === null)
+            throw new globalThis.Error("The parameter 'region' cannot be null.");
+        else if (region !== undefined)
+            url_ += "region=" + encodeURIComponent("" + region) + "&";
+        if (kind === null)
+            throw new globalThis.Error("The parameter 'kind' cannot be null.");
+        else if (kind !== undefined)
+            url_ += "kind=" + encodeURIComponent("" + kind) + "&";
+        if (ids === null)
+            throw new globalThis.Error("The parameter 'ids' cannot be null.");
+        else if (ids !== undefined)
+            ids && ids.forEach(item => { url_ += "ids=" + encodeURIComponent("" + item) + "&"; });
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetCollectionIcons(_response);
+        });
+    }
+
+    protected processGetCollectionIcons(response: Response): Promise<ForeverCollectionIcon[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ForeverCollectionIcon[];
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ForeverCollectionIcon[]>(null as any);
+    }
+
+    getLegacyPoints(region: string | undefined, characterSlug: string | undefined): Promise<ForeverLegacyPoints> {
+        let url_ = this.baseUrl + "/api/ForeverCharacter/GetLegacyPoints?";
+        if (region === null)
+            throw new globalThis.Error("The parameter 'region' cannot be null.");
+        else if (region !== undefined)
+            url_ += "region=" + encodeURIComponent("" + region) + "&";
+        if (characterSlug === null)
+            throw new globalThis.Error("The parameter 'characterSlug' cannot be null.");
+        else if (characterSlug !== undefined)
+            url_ += "characterSlug=" + encodeURIComponent("" + characterSlug) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetLegacyPoints(_response);
+        });
+    }
+
+    protected processGetLegacyPoints(response: Response): Promise<ForeverLegacyPoints> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ForeverLegacyPoints;
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            result404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ProblemDetails;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ForeverLegacyPoints>(null as any);
+    }
+
+    getAchievementDetails(region: string | undefined, achievementIds: number[] | undefined): Promise<ForeverAchievementDetails[]> {
+        let url_ = this.baseUrl + "/api/ForeverCharacter/GetAchievementDetails?";
+        if (region === null)
+            throw new globalThis.Error("The parameter 'region' cannot be null.");
+        else if (region !== undefined)
+            url_ += "region=" + encodeURIComponent("" + region) + "&";
+        if (achievementIds === null)
+            throw new globalThis.Error("The parameter 'achievementIds' cannot be null.");
+        else if (achievementIds !== undefined)
+            achievementIds && achievementIds.forEach(item => { url_ += "achievementIds=" + encodeURIComponent("" + item) + "&"; });
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetAchievementDetails(_response);
+        });
+    }
+
+    protected processGetAchievementDetails(response: Response): Promise<ForeverAchievementDetails[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ForeverAchievementDetails[];
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ForeverAchievementDetails[]>(null as any);
+    }
+
+    getRecipes(region: string | undefined, recipeIds: number[] | undefined): Promise<ForeverRecipeDetails[]> {
+        let url_ = this.baseUrl + "/api/ForeverCharacter/GetRecipes?";
+        if (region === null)
+            throw new globalThis.Error("The parameter 'region' cannot be null.");
+        else if (region !== undefined)
+            url_ += "region=" + encodeURIComponent("" + region) + "&";
+        if (recipeIds === null)
+            throw new globalThis.Error("The parameter 'recipeIds' cannot be null.");
+        else if (recipeIds !== undefined)
+            recipeIds && recipeIds.forEach(item => { url_ += "recipeIds=" + encodeURIComponent("" + item) + "&"; });
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetRecipes(_response);
+        });
+    }
+
+    protected processGetRecipes(response: Response): Promise<ForeverRecipeDetails[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ForeverRecipeDetails[];
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ForeverRecipeDetails[]>(null as any);
+    }
+
     search(search: string | undefined): Promise<ForeverCharacterProfile[]> {
         let url_ = this.baseUrl + "/api/ForeverCharacter/Search?";
         if (search === null)
@@ -2554,6 +3010,317 @@ export interface Asset {
     file_data_id: number;
 }
 
+export interface CharacterProfessionsSummary {
+    _links?: Links | undefined;
+    primaries?: CharacterProfession[] | undefined;
+    secondaries?: CharacterProfession[] | undefined;
+}
+
+export interface CharacterProfession {
+    profession?: ProfessionReference | undefined;
+    tiers?: CharacterSkillTier[] | undefined;
+    skill_points?: number | undefined;
+    max_skill_points?: number | undefined;
+}
+
+export interface ProfessionReference {
+    key?: Self | undefined;
+    name?: string | undefined;
+    id: number;
+}
+
+export interface CharacterSkillTier {
+    skill_points: number;
+    max_skill_points: number;
+    tier?: SkillTierReferenceWithoutKey | undefined;
+    known_recipes?: RecipeReference[] | undefined;
+}
+
+export interface SkillTierReferenceWithoutKey {
+    name?: string | undefined;
+    id: number;
+}
+
+export interface RecipeReference {
+    key?: Self | undefined;
+    name?: string | undefined;
+    id: number;
+}
+
+export interface ProblemDetails {
+    type?: string | undefined;
+    title?: string | undefined;
+    status?: number | undefined;
+    detail?: string | undefined;
+    instance?: string | undefined;
+
+    [key: string]: any;
+}
+
+export interface ForeverPvpSummary {
+    honorable_kills?: number | undefined;
+    pvp_rank?: number | undefined;
+    pvp_map_statistics?: PvpMapStatistic[] | undefined;
+}
+
+export interface PvpMapStatistic {
+    world_map?: Map | undefined;
+    match_statistics?: PvpMatchStatistics | undefined;
+}
+
+export interface Map {
+    name?: string | undefined;
+    id: number;
+}
+
+export interface PvpMatchStatistics {
+    played: number;
+    won: number;
+    lost: number;
+}
+
+export interface ForeverCharacterStatistics {
+    health?: number | undefined;
+    power?: number | undefined;
+    power_type?: PowerTypeReference | undefined;
+    movement_speed?: number | undefined;
+    strength?: PrimaryStatistic | undefined;
+    agility?: PrimaryStatistic | undefined;
+    stamina?: PrimaryStatistic | undefined;
+    intellect?: PrimaryStatistic | undefined;
+    spirit?: PrimaryStatistic | undefined;
+    attack_power?: number | undefined;
+    main_hand_damage_min?: number | undefined;
+    main_hand_damage_max?: number | undefined;
+    main_hand_speed?: number | undefined;
+    main_hand_dps?: number | undefined;
+    melee_hit?: RatingStatistic | undefined;
+    melee_crit?: RatingStatistic | undefined;
+    ranged_attack_power?: number | undefined;
+    ranged_damage_min?: number | undefined;
+    ranged_damage_max?: number | undefined;
+    ranged_hit?: RatingStatistic | undefined;
+    ranged_crit?: RatingStatistic | undefined;
+    spell_power?: number | undefined;
+    spell_healing?: number | undefined;
+    spell_penetration?: number | undefined;
+    spell_hit?: RatingStatistic | undefined;
+    spell_crit?: RatingStatistic | undefined;
+    mana_regen?: number | undefined;
+    mana_regen_combat?: number | undefined;
+    armor?: PrimaryStatistic | undefined;
+    defense?: PrimaryStatistic | undefined;
+    dodge?: RatingStatistic | undefined;
+    parry?: RatingStatistic | undefined;
+    block?: RatingStatistic | undefined;
+    fire_resistance?: PrimaryStatistic | undefined;
+    frost_resistance?: PrimaryStatistic | undefined;
+    nature_resistance?: PrimaryStatistic | undefined;
+    shadow_resistance?: PrimaryStatistic | undefined;
+    arcane_resistance?: PrimaryStatistic | undefined;
+}
+
+export interface PowerTypeReference {
+    key?: Self | undefined;
+    name?: string | undefined;
+    id: number;
+}
+
+export interface PrimaryStatistic {
+    base: number;
+    effective: number;
+}
+
+export interface RatingStatistic {
+    rating: number;
+    rating_normalized?: number | undefined;
+    rating_bonus: number;
+    value: number;
+}
+
+export interface ForeverReputationsSummary {
+    reputations?: ForeverReputation[] | undefined;
+}
+
+export interface ForeverReputation {
+    faction?: ReputationFactionReference | undefined;
+    standing?: ForeverReputationStanding | undefined;
+}
+
+export interface ReputationFactionReference {
+    key?: Self | undefined;
+    name?: string | undefined;
+    id: number;
+}
+
+export interface ForeverReputationStanding {
+    name?: string | undefined;
+    tier?: number | undefined;
+    raw?: number | undefined;
+    value?: number | undefined;
+    max?: number | undefined;
+}
+
+export interface ForeverAchievementsSummary {
+    total_quantity?: number | undefined;
+    total_points?: number | undefined;
+    achievements?: ForeverAchievementProgress[] | undefined;
+    recent_events?: ForeverAchievementEvent[] | undefined;
+}
+
+export interface ForeverAchievementProgress {
+    id: number;
+    achievement?: AchievementReference | undefined;
+    criteria?: ForeverAchievementCriteriaProgress | undefined;
+    completed_timestamp?: number | undefined;
+}
+
+export interface ForeverAchievementCriteriaProgress {
+    id: number;
+    is_completed?: boolean | undefined;
+    amount?: number | undefined;
+    child_criteria?: ForeverAchievementCriteriaProgress[] | undefined;
+}
+
+export interface ForeverAchievementEvent {
+    achievement?: AchievementReference | undefined;
+    timestamp?: number | undefined;
+}
+
+export interface ForeverCollectionsPage {
+    mounts: ForeverCollectedMount[];
+    pets: ForeverCollectedPet[];
+    toys: ForeverCollectedToy[];
+    unlockedBattlePetSlots?: number | undefined;
+    appearanceSlots: ForeverAppearanceSlot[];
+    totals?: ForeverCollectionTotals | undefined;
+}
+
+export interface ForeverCollectedMount {
+    mount?: ForeverNamedReference | undefined;
+    is_useable?: boolean | undefined;
+}
+
+export interface ForeverNamedReference {
+    id: number;
+    name?: string | undefined;
+}
+
+export interface ForeverCollectedPet {
+    id: number;
+    species?: ForeverNamedReference | undefined;
+    level?: number | undefined;
+    quality?: EnumType | undefined;
+    creature_display?: ForeverIdReference | undefined;
+}
+
+export interface ForeverIdReference {
+    id: number;
+}
+
+export interface ForeverCollectedToy {
+    toy?: ForeverNamedReference | undefined;
+}
+
+export interface ForeverAppearanceSlot {
+    type: string;
+    name: string;
+    count: number;
+    appearances: ForeverAppearance[];
+}
+
+export interface ForeverAppearance {
+    id: number;
+    name?: string | undefined;
+    quality?: string | undefined;
+}
+
+export interface ForeverCollectionTotals {
+    mounts: number;
+    pets: number;
+    toys: number;
+}
+
+export interface ForeverCollectionIcon {
+    id: number;
+    icon?: string | undefined;
+}
+
+export interface ForeverLegacyPoints {
+    earned: number;
+    total: number;
+}
+
+export interface ForeverAchievementDetails {
+    id: number;
+    achievement?: ForeverAchievement | undefined;
+    icon?: string | undefined;
+}
+
+export interface ForeverAchievement {
+    id: number;
+    name?: string | undefined;
+    description?: string | undefined;
+    category?: AchievementCategoryReference | undefined;
+    is_account_wide?: boolean | undefined;
+    reward_description?: string | undefined;
+    criteria?: ForeverAchievementCriteria | undefined;
+}
+
+export interface ForeverAchievementCriteria {
+    id: number;
+    description?: string | undefined;
+    amount?: number | undefined;
+    show_progress_bar?: boolean | undefined;
+    child_criteria?: ForeverAchievementCriteria[] | undefined;
+}
+
+export interface ForeverRecipeDetails {
+    id: number;
+    recipe?: Recipe | undefined;
+    icon?: string | undefined;
+}
+
+export interface Recipe {
+    _links?: Links | undefined;
+    id: number;
+    name?: string | undefined;
+    description?: string | undefined;
+    media?: Media | undefined;
+    crafted_item?: ItemReference | undefined;
+    alliance_crafted_item?: ItemReference | undefined;
+    horde_crafted_item?: ItemReference | undefined;
+    reagents?: RecipeReagent[] | undefined;
+    crafted_quantity?: CraftedQuantity | undefined;
+    modified_crafting_slots?: ModifiedCraftingSlot[] | undefined;
+}
+
+export interface Media {
+    key?: Self | undefined;
+    id: number;
+}
+
+export interface RecipeReagent {
+    reagent?: ItemReference | undefined;
+    quantity: number;
+}
+
+export interface CraftedQuantity {
+    minimum?: number | undefined;
+    maximum?: number | undefined;
+    value?: number | undefined;
+}
+
+export interface ModifiedCraftingSlot {
+    slot_type?: ModifiedCraftingReagentSlotTypeReferenceWithoutName | undefined;
+    display_order: number;
+}
+
+export interface ModifiedCraftingReagentSlotTypeReferenceWithoutName {
+    key?: Self | undefined;
+    id: number;
+}
+
 export interface ForeverTalentsPage {
     trees: ForeverTalentTreeLayout[];
     groups: ForeverTalentGroup[];
@@ -2685,11 +3452,6 @@ export interface GuildCrestEmblemWithColor {
     id: number;
     media?: Media | undefined;
     color?: Color | undefined;
-}
-
-export interface Media {
-    key?: Self | undefined;
-    id: number;
 }
 
 export interface Color {
@@ -2875,12 +3637,6 @@ export interface PvpSeasonReference {
     id: number;
 }
 
-export interface PvpMatchStatistics {
-    played: number;
-    won: number;
-    lost: number;
-}
-
 export interface RealmsIndex {
     _links?: Links | undefined;
     realms?: RealmReference[] | undefined;
@@ -2932,28 +3688,10 @@ export interface CharacterStatisticsSummary {
     corruption?: CorruptionStatistics | undefined;
 }
 
-export interface PowerTypeReference {
-    key?: Self | undefined;
-    name?: string | undefined;
-    id: number;
-}
-
 export interface RatingStatisticWithoutValue {
     rating: number;
     rating_normalized?: number | undefined;
     rating_bonus: number;
-}
-
-export interface PrimaryStatistic {
-    base: number;
-    effective: number;
-}
-
-export interface RatingStatistic {
-    rating: number;
-    rating_normalized?: number | undefined;
-    rating_bonus: number;
-    value: number;
 }
 
 export interface CorruptionStatistics {

@@ -1,0 +1,209 @@
+.forever-collections-pane {
+  padding: 12px;
+  min-height: 260px;
+  min-width: 0;
+}
+
+.forever-collection-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.forever-collection-tile {
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-3);
+  background: var(--gray-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.forever-collection-sections {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.forever-collection-section {
+  min-width: 0;
+}
+
+.forever-collection-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.forever-collection-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  padding: 4px;
+  border: 0;
+  border-radius: var(--radius-2);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+button.forever-collection-row {
+  cursor: pointer;
+}
+
+button.forever-collection-row:hover {
+  background: var(--gray-a3);
+}
+
+button.forever-collection-row:focus-visible {
+  outline: 2px solid var(--accent-9);
+  outline-offset: -2px;
+}
+
+.forever-collection-row.is-muted {
+  opacity: 0.6;
+}
+
+.forever-collection-icon {
+  display: block;
+  position: relative;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.forever-collection-icon img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* a mount fills the middle third to half of its render; the rest is dark backdrop. 1.6x keeps
+   large mounts whole while small ones still read at 36px */
+.forever-collection-icon.is-render {
+  background: #1a1a1a;
+}
+
+.forever-collection-icon.is-render img {
+  transform: scale(1.6);
+}
+
+.forever-collection-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.forever-collection-name {
+  overflow-wrap: anywhere;
+}
+
+.forever-appearance-slots {
+  display: flex;
+  flex-direction: column;
+}
+
+.forever-appearance-slot {
+  border-bottom: 1px solid var(--gray-a4);
+}
+
+.forever-appearance-slot > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 4px;
+  list-style: none;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+
+.forever-appearance-slot > summary:hover {
+  background: var(--gray-a3);
+}
+
+.forever-appearance-slot > summary:focus-visible {
+  outline: 2px solid var(--accent-9);
+  outline-offset: -2px;
+}
+
+.forever-appearance-slot > summary::-webkit-details-marker {
+  display: none;
+}
+
+.forever-appearance-slot-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.forever-appearance-chevron {
+  flex-shrink: 0;
+  color: var(--gray-11);
+}
+
+.forever-appearance-slot[open] .forever-appearance-chevron {
+  transform: rotate(180deg);
+}
+
+.forever-appearance-slot > summary.is-muted {
+  opacity: 0.55;
+}
+
+/* an open slot's items flow into as many columns as fit */
+.forever-appearance-slot > .forever-collection-list,
+.forever-appearance-slot > p {
+  padding: 4px 0 12px;
+}
+
+.forever-appearance-slot > .forever-collection-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
+  gap: 4px 12px;
+}
+
+@media (max-width: 1000px) {
+  .forever-collection-sections {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .forever-collection-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ---- preview dialog ---- */
+
+/* creature renders are square with the creature in the middle; zoomed a little so it fills more */
+.forever-render-preview {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--radius-3);
+  background: #1a1a1a;
+}
+
+.forever-render-preview img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: scale(1.25);
+}
+
+.forever-render-skeleton {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}

@@ -1,0 +1,45 @@
+/* On phones the tabs wrap onto more lines instead of scrolling, each line filled edge to edge. */
+@media (max-width: 800px) {
+  .forever-character-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    min-width: 0;
+    width: 100%;
+    height: auto;
+  }
+
+  .forever-character-tabs .rt-SegmentedControlItem {
+    flex: 1 1 auto;
+    height: var(--space-6);
+  }
+
+  .forever-character-tabs .rt-SegmentedControlItemLabel {
+    padding-inline: 10px;
+  }
+
+  /* a divider can't tell when its tab starts a new line, where it would sit on the left edge */
+  .forever-character-tabs .rt-SegmentedControlItemSeparator {
+    display: none;
+  }
+
+  /* Radix slides one highlight along a single row by tab index, sized 1/n of the strip, which can't
+     follow tabs onto a second line. The highlight is drawn on the selected tab itself instead,
+     matching Radix's surface variant. */
+  .forever-character-tabs .rt-SegmentedControlIndicator {
+    display: none;
+  }
+
+  .forever-character-tabs .rt-SegmentedControlItem {
+    position: relative;
+  }
+
+  .forever-character-tabs .rt-SegmentedControlItem[data-state="on"]::before {
+    content: "";
+    position: absolute;
+    inset: 1px;
+    z-index: -1;
+    border-radius: max(0.5px, calc(var(--segmented-control-border-radius) - 1px));
+    background-color: var(--segmented-control-indicator-background-color);
+    box-shadow: 0 0 0 1px var(--gray-a4);
+  }
+}

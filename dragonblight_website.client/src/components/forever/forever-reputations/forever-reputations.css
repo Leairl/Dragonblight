@@ -1,0 +1,22 @@
+.forever-reputations-pane {
+  padding: 12px;
+  min-height: 260px;
+  min-width: 0;
+}
+
+.forever-reputations-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.forever-reputation-card {
+  min-width: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 800px) {
+  .forever-reputations-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
