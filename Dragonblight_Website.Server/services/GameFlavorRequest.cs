@@ -12,9 +12,15 @@ public static class GameFlavorRequest
     public static GameFlavor GetGameFlavor(this HttpContext? context)
     {
         var raw = context?.Request?.Headers[HeaderName].ToString();
+        if (string.Equals(raw, "retail", StringComparison.OrdinalIgnoreCase))
+        {
+            return GameFlavor.Retail;
+        }
+        if (string.Equals(raw, "forever", StringComparison.OrdinalIgnoreCase))
+        {
+            return GameFlavor.Forever;
+        }
         //anything unrecognised, including no header at all, stays on classic
-        return string.Equals(raw, "retail", StringComparison.OrdinalIgnoreCase)
-            ? GameFlavor.Retail
-            : GameFlavor.MistsClassic;
+        return GameFlavor.MistsClassic;
     }
 }

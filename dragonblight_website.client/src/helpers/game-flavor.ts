@@ -1,17 +1,24 @@
-// Which version of WoW the site is showing: MoP Classic or retail.
+// Which version of WoW the site is showing: MoP Classic, retail or WoW: Forever.
 //
 // Every route names its flavor as its first path segment - /classic/rankings,
-// /retail/profile/... - so the URL alone decides, with no stored preference to fall back
+// /retail/profile/..., /forever/ - so the URL alone decides, with no stored preference to fall back
 // on. The router's basename adds the segment to every Link and navigate(), so route
 // definitions and the paths in this file stay flavor-free.
 
-export type GameFlavor = "classic" | "retail";
+export type GameFlavor = "classic" | "retail" | "forever";
 
 const HEADER = "X-Game-Flavor";
 
-// Retail is the exception; anything else, including a URL missing its flavor, is classic.
+// Retail and Forever are named; anything else, including a URL missing its flavor, is classic.
 export function getFlavor(): GameFlavor {
-  return window.location.pathname.split("/")[1] === "retail" ? "retail" : "classic";
+  const segment = window.location.pathname.split("/")[1];
+  if (segment === "retail") {
+    return "retail";
+  }
+  if (segment === "forever") {
+    return "forever";
+  }
+  return "classic";
 }
 
 // Prefixes a path for plain browser navigation. Links inside the router don't need this -
@@ -22,7 +29,9 @@ export function flavorHref(path: string): string {
 
 // Where the toggle lands you, given the flavor-free path you are on now. A character
 // belongs to one flavor, so switching leaves its page; retail has no 5v5 ladder.
+// Forever only has its landing page so far, and none of its pages exist elsewhere.
 function destination(flavor: GameFlavor, path: string): string {
+  if (flavor === "forever" || getFlavor() === "forever") return "/";
   if (path.startsWith("/blue-tracker/")) return "/blue-tracker";
   if (path.startsWith("/profile") || path.startsWith("/compare")) return "/rankings";
   if (flavor === "retail" && path.endsWith("/5v5")) return path.replace("/5v5", "/3v3");
@@ -84,9 +93,16 @@ export function wowheadUrl(path: string, flavor: GameFlavor = getFlavor()): stri
   return `https://www.wowhead.com/${wowheadPath(flavor)}${path}`;
 }
 
-// The PvP brackets a flavor has ladders for, in display order. Retail has no 5v5.
+// The PvP brackets a flavor has ladders for, in display order. Retail has no 5v5, and
+// Forever has no PvP leaderboard API yet.
 // The server's GameFlavorExtensions.Brackets() returns the same brackets in the same
 // order, and profile-rating labels its cards by position, so the two must agree.
 export function brackets(flavor: GameFlavor = getFlavor()): string[] {
-  return flavor === "retail" ? ["2v2", "3v3", "rbg", "shuffle", "blitz"] : ["2v2", "3v3", "5v5", "rbg"];
+  if (flavor === "retail") {
+    return ["2v2", "3v3", "rbg", "shuffle", "blitz"];
+  }
+  if (flavor === "forever") {
+    return [];
+  }
+  return ["2v2", "3v3", "5v5", "rbg"];
 }
