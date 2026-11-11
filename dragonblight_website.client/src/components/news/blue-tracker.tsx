@@ -12,7 +12,17 @@ interface BluePost {
 }
 const classNames = Array.from(ClassColor.keys()).filter(name => name !== "" && name !== "hunterpet");
 const classPattern = new RegExp(`\\b(${classNames.join("s?|")}s?)\\b`, "gi");
-const label = () => getFlavor() === "classic" ? "MoP Classic" : "Retail";
+// the game version the tracker shows posts for, as its header and empty state name it
+const label = () => {
+    const flavor = getFlavor();
+    if (flavor === "classic") {
+        return "MoP Classic";
+    }
+    if (flavor === "forever") {
+        return "WoW Forever";
+    }
+    return "Retail";
+};
 const date = (value: string) => new Date(value).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 
 // Rebuild the remote markup with an explicit allowlist; never insert upstream HTML directly.

@@ -64,3 +64,11 @@
   margin-left: auto;
   text-align: right;
 }
+
+/* on phones the paperdoll is too narrow to keep the gear off the character render, so the render is
+   faded to sit behind it */
+@media (max-width: 800px) {
+  .forever-character-render {
+    opacity: 0.3;
+  }
+}
