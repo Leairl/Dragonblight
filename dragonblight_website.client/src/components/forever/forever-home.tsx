@@ -1,10 +1,10 @@
 import { Badge, Card, Container, Flex, Heading, Separator, Text } from "@radix-ui/themes";
 import { Outlet } from "react-router";
 import SiteFooter from "../site-footer/site-footer";
+import ForeverSearch from "./forever-search";
 
-// The page frame for /forever. It matches HomePage but drops the character search:
-// Forever characters are looked up by name and surname with no realm, which the
-// search and profile routes don't support yet.
+// The page frame for /forever. It matches HomePage, with ForeverSearch in place of the
+// realm search: Forever characters are looked up by name and surname with no realm.
 function ForeverHome() {
   return (
     <div>
@@ -13,8 +13,12 @@ function ForeverHome() {
         src={`/Background/background.png`}
       ></img>
       <Container minHeight="100vh">
-        <Flex direction="column" gap="5" className="w-full items-center">
-          <div className="flex flex-row justify-center items-center z-10 w-full mt-10">
+        <Flex direction="column" gap="5" className=" w-full items-center">
+          {/* phones drop the side margins, or the search and its results get squeezed into a third of the screen */}
+          <Card className="mb-5 m-20 max-[800px]:mx-0 max-w-[70vw] max-[800px]:max-w-[90vw] w-full">
+            <ForeverSearch placeholder="Search WoW Character (Name Surname)" />
+          </Card>
+          <div className="flex flex-row justify-center items-center z-10">
             <Outlet></Outlet>
           </div>
         </Flex>
@@ -32,8 +36,8 @@ interface PlannedFeature {
 // What the Forever API has been seen to serve so far, and so what can come next.
 const plannedFeatures: PlannedFeature[] = [
   {
-    title: "Character lookup",
-    description: "Search Forever characters by name and surname, with gear, appearance, achievements and professions.",
+    title: "More of each character",
+    description: "Professions, reputations, achievements and the 3D model viewer on character pages.",
   },
   {
     title: "Guild rosters",
@@ -48,7 +52,7 @@ const plannedFeatures: PlannedFeature[] = [
 // The landing page shown at /forever/.
 export function ForeverLanding() {
   return (
-    <div className="flex flex-col gap-5 w-full max-w-[70vw] max-[800px]:max-w-[90vw]">
+    <div className="flex flex-col gap-5 w-[70vw] max-[800px]:w-[90vw]">
       <Card>
         <Flex direction="column" gap="3" className="p-2">
           <Flex align="center" gap="3" wrap="wrap">

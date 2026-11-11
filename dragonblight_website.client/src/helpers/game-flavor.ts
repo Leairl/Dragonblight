@@ -82,10 +82,16 @@ export function installFlavorHeader(): void {
 }
 
 // The path segment Wowhead serves each game version under: MoP Classic lives at
-// /mop-classic/, retail at the root. Tooltip contents come from the matching `domain`
-// in whTooltips, which index.html sets before tooltips.js loads.
+// /mop-classic/, WoW: Forever at /forever/, retail at the root. Tooltip contents come from
+// the matching `domain` in whTooltips, which index.html sets before tooltips.js loads.
 export function wowheadPath(flavor: GameFlavor = getFlavor()): string {
-  return flavor === "classic" ? "mop-classic/" : "";
+  if (flavor === "classic") {
+    return "mop-classic/";
+  }
+  if (flavor === "forever") {
+    return "forever/";
+  }
+  return "";
 }
 
 // Builds a Wowhead link for the current flavor, e.g. wowheadUrl(`item=${id}`).
