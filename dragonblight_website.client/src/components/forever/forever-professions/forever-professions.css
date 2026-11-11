@@ -86,6 +86,25 @@
   min-width: 600px;
 }
 
+/* Fixed column widths, so the columns stay put from page to page instead of sizing to each
+   page's recipes. Long names and sources wrap within their column. */
+.recipe-table table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.recipe-col-recipe {
+  width: 45%;
+}
+
+.recipe-col-creates {
+  width: 30%;
+}
+
+.recipe-col-source {
+  width: 25%;
+}
+
 .recipe-table td,
 .recipe-table th {
   white-space: normal;

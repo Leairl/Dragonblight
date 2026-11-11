@@ -14,7 +14,7 @@ using System.Text.Json;
             //the Optimize tab's stat weights; without the file, it suggests nothing it would have to rank
             ForeverStatWeights.Load(@"ForeverStatWeights.json");
             //Tab-separated, since sources like "Vendor: Qia (Winterspring)" can hold commas: recipe id, required
-            //skill (blank when unknown), pattern|estimate|unknown, item id, item name, item icon, source, and
+            //skill (blank when unknown), pattern|trainer|learned|estimate|unknown|hidden, item id, item name, item icon, source, and
             //the source's parts as JSON (left out by files written before it was added).
             //Without the file, recipes have no required skill or source and the page shows them all.
             ForeverRecipes.data.Clear();

@@ -89,9 +89,9 @@ function RecipePage({ recipes, region, label, kind }: { recipes: ListedRecipe[];
         <Table.Root variant="surface" size="1" className="recipe-table" aria-label={`${label} ${kind} recipes`}>
           <Table.Header>
             <Table.Row>
-              <Table.ColumnHeaderCell>Recipe</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Creates</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Source</Table.ColumnHeaderCell>
+              <Table.ColumnHeaderCell className="recipe-col-recipe">Recipe</Table.ColumnHeaderCell>
+              <Table.ColumnHeaderCell className="recipe-col-creates">Creates</Table.ColumnHeaderCell>
+              <Table.ColumnHeaderCell className="recipe-col-source">Source</Table.ColumnHeaderCell>
             </Table.Row>
           </Table.Header>
           <Table.Body>
@@ -294,7 +294,7 @@ function UnlearnedContent({ load, known, skill, region, label, onRetry }: {
     <>
       {skill != null && (
         <Text as="p" size="1" color="gray">
-          Recipes up to skill {skill}. Levels marked "about" are estimates for recipes a trainer teaches.
+          Recipes up to skill {skill}. Levels marked "about" are estimates, for the few recipes no item or trainer data covers.
         </Text>
       )}
       <RecipeList recipes={learnable} region={region} label={label} kind="not learned" />
