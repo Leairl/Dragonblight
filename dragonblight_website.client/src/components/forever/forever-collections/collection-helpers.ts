@@ -12,6 +12,8 @@ export interface CollectionEntry {
   detail?: string;
   quality?: string;
   muted?: boolean;
+  // a pet's own creature display, whose render is its large preview
+  displayId?: number;
 }
 
 export function mountEntries(mounts: Dragonblight.ForeverCollectedMount[] | undefined): CollectionEntry[] {
@@ -35,6 +37,7 @@ export function petEntries(pets: Dragonblight.ForeverCollectedPet[] | undefined)
     name: entry.species.name ?? "Unknown pet",
     detail: [entry.level != null ? `Level ${entry.level}` : undefined, entry.quality?.name].filter(Boolean).join(" · ") || undefined,
     quality: entry.quality?.type,
+    displayId: entry.creature_display?.id,
   }] : []);
 }
 
@@ -94,4 +97,9 @@ export function qualityColor(quality: string | undefined): QualityColor | undefi
 export function collectionProgress(collected: number, total: number | undefined) {
   if (!total || total < collected) return undefined;
   return { value: collected, max: total, percent: Math.round((collected / total) * 100) };
+}
+
+// The 600px render Blizzard makes of a creature display: a mount or pet's large preview.
+export function creatureRender(region: string, displayId: number | undefined) {
+  return displayId ? `https://render.worldofwarcraft.com/forever-${region}/npcs/zoom/creature-display-${displayId}.jpg` : undefined;
 }

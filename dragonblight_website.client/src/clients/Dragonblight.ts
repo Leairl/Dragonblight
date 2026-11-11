@@ -3123,6 +3123,11 @@ export interface ForeverCollectedPet {
     species?: ForeverNamedReference | undefined;
     level?: number | undefined;
     quality?: EnumType | undefined;
+    creature_display?: ForeverIdReference | undefined;
+}
+
+export interface ForeverIdReference {
+    id: number;
 }
 
 export interface ForeverCollectedToy {

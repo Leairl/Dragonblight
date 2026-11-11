@@ -43,13 +43,28 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  width: 100%;
   min-width: 0;
   padding: 4px;
+  border: 0;
   border-radius: var(--radius-2);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
 }
 
-.forever-collection-row:hover {
+button.forever-collection-row {
+  cursor: pointer;
+}
+
+button.forever-collection-row:hover {
   background: var(--gray-a3);
+}
+
+button.forever-collection-row:focus-visible {
+  outline: 2px solid var(--accent-9);
+  outline-offset: -2px;
 }
 
 .forever-collection-row.is-muted {
@@ -164,4 +179,31 @@
   .forever-collection-tiles {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+/* ---- preview dialog ---- */
+
+/* creature renders are square with the creature in the middle; zoomed a little so it fills more */
+.forever-render-preview {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--radius-3);
+  background: #1a1a1a;
+}
+
+.forever-render-preview img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: scale(1.25);
+}
+
+.forever-render-skeleton {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }

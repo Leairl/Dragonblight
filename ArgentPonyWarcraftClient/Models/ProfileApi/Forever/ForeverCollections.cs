@@ -51,6 +51,9 @@ public record ForeverCollectedPet
     public int? Level { get; init; }
     [JsonPropertyName("quality")]
     public EnumType? Quality { get; init; }
+    //the pet's own look, which can differ from its species' default; its render is the pet's preview
+    [JsonPropertyName("creature_display")]
+    public ForeverIdReference? CreatureDisplay { get; init; }
 }
 
 public record ForeverToysCollection

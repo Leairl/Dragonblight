@@ -398,6 +398,7 @@ Check(handler.Paths.Count == calls + 2, "Appearance icons need one media call fo
 calls = handler.Paths.Count;
 await controller.GetCollectionIcons("eu", "appearance", [29124, 7]);
 Check(handler.Paths.Count == calls, "Appearance icons must be cached");
+Check(collections.pets[0].CreatureDisplay?.Id == 5207, "A pet's own creature display must be kept for its preview");
 Check((await controller.GetCollectionIcons("eu", "heirloom", [1])).Result is BadRequestObjectResult, "Unknown collection kinds must be rejected");
 Check((await controller.GetCollectionIcons("eu", "pet", [])).Result is BadRequestObjectResult, "Empty icon batches must be rejected");
 Check((await controller.GetCollectionIcons("eu", "pet", [0])).Result is BadRequestObjectResult, "Nonpositive icon IDs must be rejected");

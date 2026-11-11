@@ -11,7 +11,7 @@ async function loadModule(path) {
   return import(`data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`);
 }
 const { Dragonblight } = await loadModule("../src/clients/Dragonblight.ts");
-const { appearanceEntries, collectionProgress, filterEntries, mountEntries, petEntries, qualityColor, toyEntries } =
+const { appearanceEntries, collectionProgress, creatureRender, filterEntries, mountEntries, petEntries, qualityColor, toyEntries } =
   await loadModule("../src/components/forever/forever-collections/collection-helpers.ts");
 
 test("Collections client uses the realmless Forever route", async () => {
@@ -98,4 +98,11 @@ test("Common items keep the default text color, as the game's white", () => {
   assert.equal(qualityColor("COMMON"), undefined);
   assert.equal(qualityColor("POOR"), "gray");
   assert.equal(qualityColor("HEIRLOOM"), "cyan");
+});
+
+test("A pet previews its own creature display's render", () => {
+  const [pet] = petEntries([{ id: 1, species: { id: 50, name: "Green Wing Macaw" }, creature_display: { id: 5207 } }]);
+  assert.equal(pet.displayId, 5207);
+  assert.equal(creatureRender("eu", pet.displayId), "https://render.worldofwarcraft.com/forever-eu/npcs/zoom/creature-display-5207.jpg");
+  assert.equal(creatureRender("us", undefined), undefined);
 });

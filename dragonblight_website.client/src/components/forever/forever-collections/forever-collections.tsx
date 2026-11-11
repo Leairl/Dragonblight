@@ -3,7 +3,8 @@ import { useParams } from "react-router";
 import { Badge, Button, ChevronDownIcon, Flex, Heading, Progress, Skeleton, Text, TextField } from "@radix-ui/themes";
 import { Dragonblight } from "../../../clients/Dragonblight";
 import { collectionIcons, loadCollectionIcons, useForeverTab } from "../forever-data";
-import { appearanceEntries, CollectionEntry, CollectionKind, collectionProgress, filterEntries, mountEntries, petEntries, qualityColor, toyEntries } from "./collection-helpers";
+import CollectionPreview, { PreviewTarget } from "./collection-preview";
+import { appearanceEntries, CollectionEntry, CollectionKind, collectionProgress, creatureRender, filterEntries, mountEntries, petEntries, qualityColor, toyEntries } from "./collection-helpers";
 import "./forever-collections.css";
 
 // Mount pictures are 600px creature renders with the mount in the middle, so they are zoomed to it.
@@ -55,31 +56,54 @@ function useCollectionIcons(kind: CollectionKind, region: string | undefined, en
   return { icon, pending };
 }
 
-function EntryList({ entries, icon, pending, render }: {
+type Select = (target: PreviewTarget) => void;
+
+function EntryContent({ entry, src, pending, render }: { entry: CollectionEntry; src?: string; pending: boolean; render?: boolean }) {
+  return <>
+    <CollectionIcon src={src} pending={pending} render={render} />
+    <span className="forever-collection-text">
+      <Text as="div" size="2" weight="medium" color={qualityColor(entry.quality)} className="forever-collection-name">{entry.name}</Text>
+      {entry.detail && <Text as="div" size="1" color="gray">{entry.detail}</Text>}
+    </span>
+  </>;
+}
+
+// Mounts and pets open their creature render: a mount's thumbnail already is one, and a pet's comes
+// from its own creature display. Toys and appearances only have icons, so their rows don't open.
+function EntryList({ entries, icon, pending, render, region, onSelect }: {
   entries: CollectionEntry[]; icon: (id: number) => string | undefined; pending: boolean; render?: boolean;
+  region: string; onSelect: Select;
 }) {
+  const image = (entry: CollectionEntry) => entry.kind === "mount" ? icon(entry.id) : entry.kind === "pet" ? creatureRender(region, entry.displayId) : undefined;
   return (
     <ul className="forever-collection-list">
-      {entries.map((entry) => (
-        <li key={entry.key} className={entry.muted ? "forever-collection-row is-muted" : "forever-collection-row"}>
-          <CollectionIcon src={icon(entry.id)} pending={pending} render={render} />
-          <span className="forever-collection-text">
-            <Text as="div" size="2" weight="medium" color={qualityColor(entry.quality)} className="forever-collection-name">{entry.name}</Text>
-            {entry.detail && <Text as="div" size="1" color="gray">{entry.detail}</Text>}
-          </span>
-        </li>
-      ))}
+      {entries.map((entry) => {
+        const className = entry.muted ? "forever-collection-row is-muted" : "forever-collection-row";
+        const preview = image(entry);
+        return (
+          <li key={entry.key}>
+            {preview ? (
+              <button type="button" className={className} aria-haspopup="dialog"
+                onClick={(event) => onSelect({ entry, image: preview, trigger: event.currentTarget })}>
+                <EntryContent entry={entry} src={icon(entry.id)} pending={pending} render={render} />
+              </button>
+            ) : (
+              <div className={className}><EntryContent entry={entry} src={icon(entry.id)} pending={pending} render={render} /></div>
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 }
 
 // Only mounted while its slot is open, so a slot's icons are fetched when someone looks at it.
-function AppearanceList({ entries, region }: { entries: CollectionEntry[]; region: string }) {
+function AppearanceList({ entries, region, onSelect }: { entries: CollectionEntry[]; region: string; onSelect: Select }) {
   const { icon, pending } = useCollectionIcons("appearance", region, entries);
-  return <EntryList entries={entries} icon={icon} pending={pending} />;
+  return <EntryList entries={entries} icon={icon} pending={pending} region={region} onSelect={onSelect} />;
 }
 
-function AppearanceSlot({ slot, query, region }: { slot: Dragonblight.ForeverAppearanceSlot; query: string; region: string }) {
+function AppearanceSlot({ slot, query, region, onSelect }: { slot: Dragonblight.ForeverAppearanceSlot; query: string; region: string; onSelect: Select }) {
   const [open, setOpen] = useState(false);
   const entries = useMemo(() => appearanceEntries(slot.appearances), [slot]);
   const filtered = filterEntries(entries, query);
@@ -96,14 +120,14 @@ function AppearanceSlot({ slot, query, region }: { slot: Dragonblight.ForeverApp
         <ChevronDownIcon className="forever-appearance-chevron" aria-hidden />
       </summary>
       {expanded && (slot.count === 0 ? <Text as="p" size="2" color="gray">None collected.</Text>
-        : <AppearanceList entries={filtered} region={region} />)}
+        : <AppearanceList entries={filtered} region={region} onSelect={onSelect} />)}
     </details>
   );
 }
 
-function CollectionSection({ title, empty, entries, filtered, kind, region }: {
+function CollectionSection({ title, empty, entries, filtered, kind, region, onSelect }: {
   title: string; empty: string; entries: CollectionEntry[]; filtered: CollectionEntry[];
-  kind: CollectionKind; region: string;
+  kind: CollectionKind; region: string; onSelect: Select;
 }) {
   const { icon, pending } = useCollectionIcons(kind, region, entries);
   return (
@@ -111,7 +135,7 @@ function CollectionSection({ title, empty, entries, filtered, kind, region }: {
       <Heading as="h3" size="3" mb="2">{title} <Text size="2" color="gray" weight="regular">({entries.length})</Text></Heading>
       {entries.length === 0 ? <Text as="p" size="2" color="gray">{empty}</Text>
         : filtered.length === 0 ? <Text as="p" size="2" color="gray">No matches.</Text> : (
-          <EntryList entries={filtered} icon={icon} pending={pending} render={kind === "mount"} />
+          <EntryList entries={filtered} icon={icon} pending={pending} render={kind === "mount"} region={region} onSelect={onSelect} />
         )}
     </section>
   );
@@ -124,6 +148,7 @@ export default function ForeverCollections() {
     failed: "Unable to load collections. Please try again.",
   });
   const [query, setQuery] = useState("");
+  const [preview, setPreview] = useState<PreviewTarget>();
 
   const data = state.status === "loaded" ? state.data : undefined;
   const mounts = useMemo(() => mountEntries(data?.mounts), [data]);
@@ -162,18 +187,19 @@ export default function ForeverCollections() {
             onChange={(event) => setQuery(event.target.value)} mb="4" />
         )}
         <div className="forever-collection-sections">
-          <CollectionSection title="Mounts" empty="No mounts collected." entries={mounts} filtered={filterEntries(mounts, query)} kind="mount" region={region} />
-          <CollectionSection title="Pets" empty="No pets collected." entries={pets} filtered={filterEntries(pets, query)} kind="pet" region={region} />
-          <CollectionSection title="Toys" empty="No toys collected." entries={toys} filtered={filterEntries(toys, query)} kind="toy" region={region} />
+          <CollectionSection title="Mounts" empty="No mounts collected." entries={mounts} filtered={filterEntries(mounts, query)} kind="mount" region={region} onSelect={setPreview} />
+          <CollectionSection title="Pets" empty="No pets collected." entries={pets} filtered={filterEntries(pets, query)} kind="pet" region={region} onSelect={setPreview} />
+          <CollectionSection title="Toys" empty="No toys collected." entries={toys} filtered={filterEntries(toys, query)} kind="toy" region={region} onSelect={setPreview} />
         </div>
         <section className="forever-collection-section" aria-label="Appearances">
           <Heading as="h3" size="3" mb="2">Appearances <Text size="2" color="gray" weight="regular">({appearances.toLocaleString()})</Text></Heading>
           {appearanceSlots.length === 0 ? <Text as="p" size="2" color="gray">No appearances collected.</Text> : (
             <div className="forever-appearance-slots">
-              {appearanceSlots.map((slot) => <AppearanceSlot key={slot.type || slot.name} slot={slot} query={query} region={region} />)}
+              {appearanceSlots.map((slot) => <AppearanceSlot key={slot.type || slot.name} slot={slot} query={query} region={region} onSelect={setPreview} />)}
             </div>
           )}
         </section>
+        <CollectionPreview target={preview} onClose={() => setPreview(undefined)} />
       </>}
     </section>
   );
