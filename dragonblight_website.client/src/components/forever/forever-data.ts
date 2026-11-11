@@ -17,6 +17,9 @@ const tabLoaders = {
   achievements: (region: string, slug: string) => client.getAchievements(region, slug),
   collections: (region: string, slug: string) => client.getCollections(region, slug),
   talents: (region: string, slug: string) => client.getTalents(region, slug),
+  optimize: (region: string, slug: string) => client.getOptimization(region, slug, false),
+  // the Optimize tab with "Show everything" on
+  optimizeAll: (region: string, slug: string) => client.getOptimization(region, slug, true),
   // shown on the achievements tab, so it loads alongside it
   legacy: (region: string, slug: string) => client.getLegacyPoints(region, slug),
 };

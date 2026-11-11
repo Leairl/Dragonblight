@@ -36,6 +36,7 @@ public interface IWarcraftRedisProxy
     Task<ForeverGuild?> GetForeverGuild(string guildSlug, string region);
     Task<ForeverGuildRoster?> GetForeverGuildRoster(string guildSlug, string region);
     Task<string?> GetForeverSpecName(string characterSlug, string region);
+    Task<ForeverOptimizerCatalog?> GetForeverOptimizerCatalog(string region);
     Task<ForeverNameLists?> GetForeverNameLists(string region);
     Task SaveForeverStatsCharacters(IEnumerable<ForeverStatsCharacter> characters);
     Task<List<ForeverStatsCharacter>> GetForeverStatsCharacters();

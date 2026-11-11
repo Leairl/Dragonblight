@@ -55,6 +55,9 @@
     <None Update="ForeverRecipes.tsv">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="ForeverStatWeights.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
     <!-- Generate openapi.json on build; -->
     <Target Name="OpenAPI" AfterTargets="Build" Condition="'$(Configuration)'=='Debug' AND ('$(OS)' == 'Windows_NT' OR '$(BuildingInsideVisualStudio)' == 'true')">
