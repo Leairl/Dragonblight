@@ -358,14 +358,13 @@ Check(collections.mounts[0].IsUseable == false, "A mount the character can't use
 Check(collections.pets.Length == 2 && collections.pets.All(p => p.Species!.Id == 50) && collections.pets[0].Quality?.Type == "UNCOMMON", "Two pets of one species must both be kept, with quality");
 Check(collections.unlockedBattlePetSlots == 0, "A reported zero pet slots must be preserved");
 Check(collections.toys.Length == 0, "An omitted toy array must become an empty list");
-Check(collections.appearanceSlots.Length == 2 && collections.appearanceSlots[0] is { type: "HEAD", name: "Head", count: 3 },
-    "Slots sharing a name must be merged in Blizzard's order, counting each appearance once");
-Check(collections.appearanceSlots[1] is { type: "CHEST", name: "Chest", count: 2 }, "A slot with an omitted list must merge with its namesake, not count as extra");
+Check(collections.appearanceSlots.Length == 2 && collections.appearanceSlots[0] is { type: "HEAD", name: "Head", count: 2 },
+    "Slots sharing a name must be merged in Blizzard's order, counting each shown appearance once");
+Check(collections.appearanceSlots[1] is { type: "CHEST", name: "Chest", count: 0, appearances.Length: 0 }, "Appearances with no item must be left out of the list and the count");
 var head = collections.appearanceSlots[0].appearances;
-Check(head.Select(a => a.id).SequenceEqual([29124, 63427, 7]), "Each slot must list its appearances once, in Blizzard's order");
+Check(head.Select(a => a.id).SequenceEqual([29124, 63427]), "Each slot must list its appearances once, in Blizzard's order, without the game's Hidden items");
 Check(head[0] is { name: "Stalwart Helm", quality: "EPIC" }, "An appearance shared by several items must be named after the best of them");
 Check(head[1] is { name: "Plain Helm (GB)", quality: "COMMON" }, "Appearances must be named from Forever's item catalog in the region's locale");
-Check(head[2] is { name: null, quality: null }, "An appearance with no item must stay unnamed, not be dropped");
 Check(handler.Paths.Count(path => path.Contains("/search/item?namespace=static-forever-eu") && path.Contains("is_equippable=true")) == 1, "The catalog must come from Forever's equippable item search");
 var searches = BlizzardHandler.Searches;
 await controller.GetCollections("eu", "luna-amariyo");
@@ -461,14 +460,14 @@ class BlizzardHandler : HttpMessageHandler
     //every fixture definition rewards "Earn 1 Legacy Point."; 9999 is missing from Blizzard
     public static string AchievementIndex = """{"achievements":[{"id":61997,"name":"a"},{"id":62015,"name":"b"},{"id":70001,"name":"c"}]}""";
     public static int Searches;
-    static string SearchItems { get { Interlocked.Increment(ref Searches); return """{"results":[{"data":{"id":101,"name":{"en_US":"Plain Helm","en_GB":"Plain Helm (GB)"},"quality":{"type":"COMMON","name":{"en_US":"Common"}},"media":{"id":101},"appearances":[{"id":29124},{"id":63427}]}},{"data":{"id":100,"name":{"en_US":"Stalwart Helm","en_GB":"Stalwart Helm"},"quality":{"type":"EPIC","name":{"en_US":"Epic"}},"media":{"id":100},"appearances":[{"id":29124}]}}]}"""; } }
+    static string SearchItems { get { Interlocked.Increment(ref Searches); return """{"results":[{"data":{"id":102,"name":{"en_US":"Hidden Helm","en_GB":"Hidden Helm"},"quality":{"type":"COMMON","name":{"en_US":"Common"}},"media":{"id":102},"appearances":[{"id":8}]}},{"data":{"id":101,"name":{"en_US":"Plain Helm","en_GB":"Plain Helm (GB)"},"quality":{"type":"COMMON","name":{"en_US":"Common"}},"media":{"id":101},"appearances":[{"id":29124},{"id":63427}]}},{"data":{"id":100,"name":{"en_US":"Stalwart Helm","en_GB":"Stalwart Helm"},"quality":{"type":"EPIC","name":{"en_US":"Epic"}},"media":{"id":100},"appearances":[{"id":29124}]}}]}"""; } }
 
     static string? Collection(string path) => path switch
     {
         _ when path.EndsWith("/collections/mounts") => """{"_links":{},"mounts":[{"mount":{"key":{"href":"x"},"name":"Swift Zebra","id":2},"is_useable":true},{"mount":{"name":"Striped Dawnsaber","id":2995},"is_useable":false}]}""",
         _ when path.EndsWith("/collections/pets") => """{"pets":[{"species":{"name":"Green Wing Macaw","id":50},"level":1,"quality":{"type":"UNCOMMON","name":"Uncommon"},"stats":{"breed_id":0},"creature_display":{"id":5207},"id":1},{"species":{"name":"Green Wing Macaw","id":50},"level":3,"id":2}],"unlocked_battle_pet_slots":0}""",
         _ when path.EndsWith("/collections/toys") => """{"_links":{}}""",
-        _ when path.EndsWith("/collections/transmogs") => """{"slots":[{"slot":{"type":"HEAD","name":"Head"},"appearances":[{"key":{"href":"x"},"id":29124},{"id":63427}]},{"slot":{"type":"CHEST","name":"Chest"}},{"slot":{"type":"ROBE","name":"Chest"},"appearances":[{"id":5},{"id":6},{"id":5}]},{"slot":{"type":"HELM","name":"Head"},"appearances":[{"id":63427},{"id":7}]}]}""",
+        _ when path.EndsWith("/collections/transmogs") => """{"slots":[{"slot":{"type":"HEAD","name":"Head"},"appearances":[{"key":{"href":"x"},"id":29124},{"id":63427}]},{"slot":{"type":"CHEST","name":"Chest"}},{"slot":{"type":"ROBE","name":"Chest"},"appearances":[{"id":5},{"id":6},{"id":5}]},{"slot":{"type":"HELM","name":"Head"},"appearances":[{"id":63427},{"id":7},{"id":8}]}]}""",
         _ when path.EndsWith("/achievement/index") => AchievementIndex,
         _ when path.EndsWith("/search/item") => SearchItems,
         _ when path.Contains("/data/wow/item-appearance/") => $$$"""{"id":{{{path.Split('/')[^1]}}},"media":{"id":{{{900 + int.Parse(path.Split('/')[^1])}}}}}""",
