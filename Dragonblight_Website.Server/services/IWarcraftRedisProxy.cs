@@ -11,6 +11,7 @@ public interface IWarcraftRedisProxy
     Task<CharacterEquipmentSummary?> GetForeverEquipment(string characterSlug, string region);
     Task<CharacterProfessionsSummary?> GetForeverProfessions(string characterSlug, string region);
     Task<ForeverPvpSummary?> GetForeverPvpSummary(string characterSlug, string region);
+    Task<ForeverCharacterStatistics?> GetForeverCharacterStats(string characterSlug, string region);
     Task<Recipe?> GetForeverRecipe(int recipeId, string region);
     Task<string?> GetForeverRecipeIcon(int recipeId, string region);
     Task<CharacterMediaSummary?> GetForeverMedia(string characterSlug, string region);

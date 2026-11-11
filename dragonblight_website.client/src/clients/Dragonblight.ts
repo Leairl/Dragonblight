@@ -696,6 +696,53 @@ export class ForeverCharacterClient {
         return Promise.resolve<ForeverPvpSummary>(null as any);
     }
 
+    getStats(region: string | undefined, characterSlug: string | undefined): Promise<ForeverCharacterStatistics> {
+        let url_ = this.baseUrl + "/api/ForeverCharacter/GetStats?";
+        if (region === null)
+            throw new globalThis.Error("The parameter 'region' cannot be null.");
+        else if (region !== undefined)
+            url_ += "region=" + encodeURIComponent("" + region) + "&";
+        if (characterSlug === null)
+            throw new globalThis.Error("The parameter 'characterSlug' cannot be null.");
+        else if (characterSlug !== undefined)
+            url_ += "characterSlug=" + encodeURIComponent("" + characterSlug) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetStats(_response);
+        });
+    }
+
+    protected processGetStats(response: Response): Promise<ForeverCharacterStatistics> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ForeverCharacterStatistics;
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            result404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ProblemDetails;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ForeverCharacterStatistics>(null as any);
+    }
+
     getRecipes(region: string | undefined, recipeIds: number[] | undefined): Promise<ForeverRecipeDetails[]> {
         let url_ = this.baseUrl + "/api/ForeverCharacter/GetRecipes?";
         if (region === null)
@@ -2717,6 +2764,65 @@ export interface PvpMatchStatistics {
     lost: number;
 }
 
+export interface ForeverCharacterStatistics {
+    health?: number | undefined;
+    power?: number | undefined;
+    power_type?: PowerTypeReference | undefined;
+    movement_speed?: number | undefined;
+    strength?: PrimaryStatistic | undefined;
+    agility?: PrimaryStatistic | undefined;
+    stamina?: PrimaryStatistic | undefined;
+    intellect?: PrimaryStatistic | undefined;
+    spirit?: PrimaryStatistic | undefined;
+    attack_power?: number | undefined;
+    main_hand_damage_min?: number | undefined;
+    main_hand_damage_max?: number | undefined;
+    main_hand_speed?: number | undefined;
+    main_hand_dps?: number | undefined;
+    melee_hit?: RatingStatistic | undefined;
+    melee_crit?: RatingStatistic | undefined;
+    ranged_attack_power?: number | undefined;
+    ranged_damage_min?: number | undefined;
+    ranged_damage_max?: number | undefined;
+    ranged_hit?: RatingStatistic | undefined;
+    ranged_crit?: RatingStatistic | undefined;
+    spell_power?: number | undefined;
+    spell_healing?: number | undefined;
+    spell_penetration?: number | undefined;
+    spell_hit?: RatingStatistic | undefined;
+    spell_crit?: RatingStatistic | undefined;
+    mana_regen?: number | undefined;
+    mana_regen_combat?: number | undefined;
+    armor?: PrimaryStatistic | undefined;
+    defense?: PrimaryStatistic | undefined;
+    dodge?: RatingStatistic | undefined;
+    parry?: RatingStatistic | undefined;
+    block?: RatingStatistic | undefined;
+    fire_resistance?: PrimaryStatistic | undefined;
+    frost_resistance?: PrimaryStatistic | undefined;
+    nature_resistance?: PrimaryStatistic | undefined;
+    shadow_resistance?: PrimaryStatistic | undefined;
+    arcane_resistance?: PrimaryStatistic | undefined;
+}
+
+export interface PowerTypeReference {
+    key?: Self | undefined;
+    name?: string | undefined;
+    id: number;
+}
+
+export interface PrimaryStatistic {
+    base: number;
+    effective: number;
+}
+
+export interface RatingStatistic {
+    rating: number;
+    rating_normalized?: number | undefined;
+    rating_bonus: number;
+    value: number;
+}
+
 export interface ForeverRecipeDetails {
     id: number;
     recipe?: Recipe | undefined;
@@ -3101,28 +3207,10 @@ export interface CharacterStatisticsSummary {
     corruption?: CorruptionStatistics | undefined;
 }
 
-export interface PowerTypeReference {
-    key?: Self | undefined;
-    name?: string | undefined;
-    id: number;
-}
-
 export interface RatingStatisticWithoutValue {
     rating: number;
     rating_normalized?: number | undefined;
     rating_bonus: number;
-}
-
-export interface PrimaryStatistic {
-    base: number;
-    effective: number;
-}
-
-export interface RatingStatistic {
-    rating: number;
-    rating_normalized?: number | undefined;
-    rating_bonus: number;
-    value: number;
 }
 
 export interface CorruptionStatistics {

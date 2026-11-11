@@ -62,6 +62,15 @@ public partial class WarcraftClient
         return await GetAsync<ForeverPvpSummary>($"{host}/profile/wow/character/{ForeverSlug(characterSlug)}/pvp-summary?namespace={@namespace}&locale={locale}");
     }
 
+    /// <summary>
+    /// Gets a WoW: Forever character's reported character-sheet statistics.
+    /// </summary>
+    public async Task<RequestResult<ForeverCharacterStatistics>> GetForeverCharacterStatisticsAsync(string characterSlug, string @namespace, Region region, Locale locale)
+    {
+        string host = GetHost(region);
+        return await GetAsync<ForeverCharacterStatistics>($"{host}/profile/wow/character/{ForeverSlug(characterSlug)}/statistics?namespace={@namespace}&locale={locale}");
+    }
+
     //names can carry accented letters, so the slug is escaped after lowercasing
     private static string ForeverSlug(string characterSlug)
     {

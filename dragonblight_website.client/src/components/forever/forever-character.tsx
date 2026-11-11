@@ -8,6 +8,7 @@ import { findSlotItem, getEnchant, getEnchantName, itemTooltipParams } from "../
 import { wowheadUrl } from "../../helpers/game-flavor";
 import ForeverProfessions from "./forever-professions/forever-professions";
 import ForeverPvp from "./forever-pvp/forever-pvp";
+import ForeverCharacterStats from "./forever-character-stats/forever-character-stats";
 import "../profile/profile.css";
 import "../profile/profile-equipment/profile-equipment.css";
 declare const $WowheadPower: { refreshLinks: () => void } | undefined;
@@ -496,6 +497,7 @@ function ForeverCharacter() {
             </div>
           </div>
         </div>
+        {tab === "gear" && <ForeverCharacterStats key={requestKey} />}
       </div>
     </div>
   );

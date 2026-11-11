@@ -143,7 +143,35 @@ Check((await controller.GetPvpSummary("us", "retry-player")).Result is OkObjectR
 var emptyPvp = JsonSerializer.Deserialize<ForeverPvpSummary>("{}");
 Check(emptyPvp?.HonorableKills == null && emptyPvp?.PvpRank == null && emptyPvp?.PvpMapStatistics == null, "Missing PvP fields must not become zero");
 Check(typeof(ProfileController).GetMethod("GetPvpSummary") == null, "Retail/MoP must not expose Forever PvP");
-Console.WriteLine($"Passed {checks} Forever professions and PvP checks.");
+var stats = await proxy.GetForeverCharacterStats("judgement-judy", "eu");
+Check(stats?.Health == 919 && stats.Power == 1028 && stats.PowerType?.Name == "Mana", "Stats must preserve health and resource type");
+Check(stats!.Spirit?.Effective == 75 && stats.Defense?.Effective == 136, "Stats must preserve Classic-specific spirit and defense");
+Check(stats.FireResistance?.Effective == 0 && stats.SpellHealing == 11, "Stats must preserve resistances and healing");
+Check(stats.MeleeHit?.Value == 0 && stats.MeleeCrit?.Value > 6, "Stats must preserve reported hit bonus and fractional crit");
+Check(handler.Paths.Last().Contains("/character/judgement-judy/statistics?namespace=profile-forever-eu"), "Stats must use the realmless Forever endpoint");
+calls = handler.Paths.Count;
+await proxy.GetForeverCharacterStats("judgement-judy", "eu");
+Check(handler.Paths.Count == calls, "Stats must be cached");
+await proxy.GetForeverCharacterStats("judgement-judy", "us");
+Check(handler.Paths.Last().StartsWith("https://us.api.blizzard.com/") && handler.Paths.Last().Contains("namespace=profile-forever-us"), "Stats caches must isolate regions");
+await proxy.GetForeverCharacterStats("élise-example", "eu");
+Check(handler.Paths.Last().Contains("%C3%A9lise-example"), "Stats must escape accented slugs");
+Check((await controller.GetStats("EU", "JUDGEMENT-JUDY")).Result is OkObjectResult { Value: ForeverCharacterStatistics }, "Stats controller must normalize input");
+calls = handler.Paths.Count;
+Check((await controller.GetStats("invalid", "example-player")).Result is BadRequestObjectResult, "Stats must validate regions");
+Check((await controller.GetStats("us", "../example")).Result is BadRequestObjectResult, "Stats must validate slugs");
+Check((await controller.GetStats("us", new string('a', 65) + "-player")).Result is BadRequestObjectResult, "Stats must bound slug length");
+Check(handler.Paths.Count == calls, "Invalid stats requests must not call Blizzard");
+handler.Status = HttpStatusCode.NotFound;
+Check((await controller.GetStats("us", "missing-player")).Result is NotFoundObjectResult { Value: ProblemDetails { Status: 404 } }, "Missing stats must return structured 404");
+handler.Status = HttpStatusCode.InternalServerError;
+Check((await controller.GetStats("us", "retry-player")).Result is StatusCodeResult { StatusCode: 500 }, "Stats failures must not return an empty success");
+handler.Status = HttpStatusCode.OK;
+Check((await controller.GetStats("us", "retry-player")).Result is OkObjectResult, "Stats failures must not poison the cache");
+var emptyStats = JsonSerializer.Deserialize<ForeverCharacterStatistics>("{}");
+Check(emptyStats?.Health == null && emptyStats?.SpellHealing == null && emptyStats?.Defense == null, "Omitted stats must not become zero");
+Check(typeof(ProfileController).GetMethod("GetStats") == null, "The Forever stats endpoint must stay separate from Retail/MoP");
+Console.WriteLine($"Passed {checks} Forever professions, PvP and stats checks.");
 
 public class Stub : DispatchProxy
 {
@@ -166,8 +194,14 @@ class BlizzardHandler : HttpMessageHandler
     {
         if (request.RequestUri!.AbsolutePath.EndsWith("/token"))
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""{"access_token":"test-token","expires_in":3600,"token_type":"bearer"}""") });
-        var path = request.RequestUri.ToString();
+        var path = request.RequestUri.AbsoluteUri;
         Paths.Add(path);
+        if (request.RequestUri.AbsolutePath.EndsWith("/statistics"))
+        {
+            var body = Status != HttpStatusCode.OK ? $$"""{"code":{{(int)Status}},"detail":"Test error"}"""
+                : """{"health":919,"power":1028,"power_type":{"id":0,"name":"Mana"},"spirit":{"base":41,"effective":75},"defense":{"base":136,"effective":136},"fire_resistance":{"base":0,"effective":0},"spell_healing":11,"melee_hit":{"value":0},"melee_crit":{"value":6.32}}""";
+            return Task.FromResult(new HttpResponseMessage(Status) { Content = new StringContent(body) });
+        }
         if (request.RequestUri.AbsolutePath.EndsWith("/pvp-summary"))
         {
             var body = Status != HttpStatusCode.OK ? $$"""{"code":{{(int)Status}},"detail":"Test error"}"""
