@@ -196,6 +196,32 @@ partial class WarcraftRedisProxy
         return characters;
     }
 
+    //the sample's records for these characters, by slug; characters the crawl hasn't seen are left out
+    public async Task<Dictionary<string, ForeverStatsCharacter>> GetForeverStatsCharacters(IEnumerable<string> characterSlugs, string region)
+    {
+        var slugs = characterSlugs.Select(s => s.ToLowerInvariant()).Distinct().ToArray();
+        var found = new Dictionary<string, ForeverStatsCharacter>();
+        if (slugs.Length == 0)
+        {
+            return found;
+        }
+        var fields = slugs.Select(s => (RedisValue)(region + ":" + s)).ToArray();
+        var values = await redis.GetDatabase().HashGetAsync(ForeverStatsCharactersKey, fields);
+        for (var i = 0; i < slugs.Length; i++)
+        {
+            if (values[i].IsNullOrEmpty)
+            {
+                continue;
+            }
+            var character = JsonSerializer.Deserialize<ForeverStatsCharacter>(values[i].ToString());
+            if (character != null)
+            {
+                found[slugs[i]] = character;
+            }
+        }
+        return found;
+    }
+
     //one character from the sample, or null when the crawl hasn't seen them in a roster
     public async Task<ForeverStatsCharacter?> GetForeverStatsCharacter(string characterSlug, string region)
     {

@@ -19,6 +19,7 @@ public interface IWarcraftRedisProxy
     Task SaveForeverStatsCharacters(IEnumerable<ForeverStatsCharacter> characters);
     Task<List<ForeverStatsCharacter>> GetForeverStatsCharacters();
     Task<ForeverStatsCharacter?> GetForeverStatsCharacter(string characterSlug, string region);
+    Task<Dictionary<string, ForeverStatsCharacter>> GetForeverStatsCharacters(IEnumerable<string> characterSlugs, string region);
     Task RemoveForeverStatsCharacters(IEnumerable<ForeverStatsCharacter> characters);
     Task SaveForeverStatsSummary(ForeverStatsSummary summary);
     Task<ForeverStatsSummary?> GetForeverStatsSummary();

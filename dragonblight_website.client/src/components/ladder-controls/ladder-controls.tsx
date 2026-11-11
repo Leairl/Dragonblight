@@ -80,14 +80,35 @@ interface LadderPaginationProps {
   navClassName: string;
   //shows which characters are on this page, next to the buttons
   showCount?: boolean;
+  //how many pages there are. Ladders always offer 100; a guild roster has as many as it fills
+  totalPages?: number;
+  //how many entries there are in all, which caps the count on the last page and is shown after it
+  totalItems?: number;
+  //what the count calls the entries, "Characters" unless given
+  itemLabel?: string;
 }
 
 export const LadderPagination: FC<LadderPaginationProps> = (props) => {
   const styles = paginationStyles[props.size];
+  let totalPages = 100;
+  if (props.totalPages !== undefined) {
+    totalPages = props.totalPages;
+  }
+  let itemLabel = "Characters";
+  if (props.itemLabel !== undefined) {
+    itemLabel = props.itemLabel;
+  }
+  const firstShown = props.page * 50 + 1;
+  let lastShown = (props.page + 1) * 50;
+  let ofTotal = "";
+  if (props.totalItems !== undefined) {
+    lastShown = Math.min(lastShown, props.totalItems);
+    ofTotal = ` of ${props.totalItems.toLocaleString()}`;
+  }
   return (
     <Pagination
       currentPage={props.page}
-      totalPages={100}
+      totalPages={totalPages}
       edgePageCount={1}
       middlePagesSiblingCount={1}
       setCurrentPage={props.onPageChange}
@@ -98,7 +119,7 @@ export const LadderPagination: FC<LadderPaginationProps> = (props) => {
       <nav className={props.navClassName}>
         {props.showCount && (
           <span className="font-bold flex flex-1 text-sm items-center">
-            Showing {props.page * 50 + 1} - {(props.page + 1) * 50} Characters
+            Showing {firstShown} - {lastShown}{ofTotal} {itemLabel}
           </span>
         )}
         <ul className="flex items-center">

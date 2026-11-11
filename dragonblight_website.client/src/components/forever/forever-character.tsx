@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import { Callout, Card, Flex, Heading, Skeleton } from "@radix-ui/themes";
 import { InfoCircledIcon } from "@radix-ui/react-icons";
 import { Dragonblight } from "../../clients/Dragonblight";
@@ -95,21 +95,71 @@ function SlotRow(props: { slot: number; right: boolean; equipment: Dragonblight.
   );
 }
 
-function SkeletonSlotRow(props: { right: boolean }) {
+// A slot while the character loads, drawn exactly as the retail and classic profile's
+// getSlotSkeleton draws it: the empty-slot icon behind a skeleton frame, then placeholder
+// lines for the item name and its enchant.
+function SkeletonSlotRow(props: { slot: number; right: boolean }) {
   let rowClass = "itemSlotRow";
+  let iconClass = "slot-icon-background";
+  let nameClass = "item-name";
+  let enchantClass = "item-enchant";
   if (props.right) {
     rowClass = "right-itemslot-row itemSlotRow";
+    iconClass = "aligned-right slot-icon-background";
+    nameClass = "align-right-name item-name";
+    enchantClass = "align-right-name item-enchant float-end";
   }
   return (
     <div className={rowClass}>
-      <Skeleton>
-        <div className="slot-icon-box"></div>
-      </Skeleton>
+      <a className={iconClass} style={{ backgroundImage: `url(${emptySlotIcons[props.slot]})` }}>
+        <Skeleton>
+          <div className="slot-icon-box">
+            <img className="slot-icon" src={"data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="} />
+          </div>
+        </Skeleton>
+      </a>
       <div className="item-details ">
-        <Skeleton width={"200px"} height={"15px"}></Skeleton>
+        <a className={nameClass}>
+          <Skeleton width={"200px"} height={"15px"}></Skeleton>
+        </a>
+        <a className={enchantClass}>
+          <Skeleton className="block mt-1" width={"100px"} height={"15px"}></Skeleton>
+        </a>
       </div>
     </div>
   );
+}
+
+// The header's icon placeholders, as the retail and classic profile draws them. Forever's header
+// has three icons (class, race, faction) where retail has a fourth for spec.
+function SkeletonIconCards() {
+  return (
+    <div className="flex flex-row shrink-0">
+      {[0, 1, 2].map((i) => (
+        <Skeleton key={"SkeletonIcon" + i}>
+          <Card className={"w-[34px] h-[34px] m-1"}></Card>
+        </Skeleton>
+      ))}
+    </div>
+  );
+}
+
+// The guild's slug, e.g. "olympus-iv". Profiles cached before guilds carried their slug don't
+// have it, but the guild's link always ends in it: .../data/wow/guild/olympus-iv?namespace=...
+function guildSlugOf(guild: Dragonblight.GuildReference | null | undefined): string {
+  // a character with no guild comes back as "guild": null, not without the field
+  if (guild === undefined || guild === null) {
+    return "";
+  }
+  if (guild.slug) {
+    return guild.slug;
+  }
+  const href = guild.key?.href;
+  if (!href) {
+    return "";
+  }
+  const path = new URL(href).pathname;
+  return decodeURIComponent(path.substring(path.lastIndexOf("/") + 1));
 }
 
 // "joe-gun" as "Joe Gun", for roster records saved before they kept the name and surname
@@ -142,8 +192,9 @@ function RosterOnlyCharacter(props: { character: Dragonblight.ForeverStatsCharac
           <div className="page-container">
             <div className="center-column">
               <Card className="mb-3 header-card border-card">
-                <div className="header-row flex items-center">
-                  <div className="header-main">
+                {/* one row when it fits; when it doesn't, the level block wraps under the name, on the left */}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <div className="flex-auto min-w-0">
                     <div className="flex flex-row px[1px]">
                       <img
                         className="m-1"
@@ -176,13 +227,17 @@ function RosterOnlyCharacter(props: { character: Dragonblight.ForeverStatsCharac
                           {fullName} - {c.rulesetName}
                         </Heading>
                         <Heading size="2" className="guild-text">
-                          {c.guildName !== "" && `<${c.guildName}>`}{" "}
+                          {c.guildName !== "" && (
+                            <Link to={`/guild/${c.region}/${encodeURIComponent(c.guildSlug)}`} className="hover:underline">
+                              {`<${c.guildName}>`}
+                            </Link>
+                          )}{" "}
                         </Heading>
                       </div>
                       <div className="flex-1"></div>
                     </div>
                   </div>
-                  <Flex direction="column" align="end" className="ml-auto pr-2 flex-none">
+                  <Flex direction="column" align="end" className="pr-2 flex-none">
                     <Heading size="3">{c.level}</Heading>
                     <Heading size="1" color="gray" weight="regular">Level</Heading>
                   </Flex>
@@ -285,6 +340,7 @@ function ForeverCharacter() {
   if (profile?.gender?.name === "Female") {
     gender = "-f";
   }
+  const guildSlug = guildSlugOf(profile?.guild);
   let renderClass = "character-render";
   if (profile?.race?.name === "Tauren") {
     renderClass = "character-render character-render-tauren";
@@ -300,9 +356,7 @@ function ForeverCharacter() {
                 {state === "loading" && (
                   <div className="header-row flex items-center">
                     <div className="header-main flex flex-row">
-                      <Skeleton className="m-1" width="34px" height="34px"></Skeleton>
-                      <Skeleton className="m-1" width="34px" height="34px"></Skeleton>
-                      <Skeleton className="m-1" width="34px" height="34px"></Skeleton>
+                      <SkeletonIconCards />
                       <div className="flex flex-col m-1 flex-1 min-w-0">
                         <Skeleton height="15px" width="250px" maxWidth="100%"></Skeleton>
                         <Skeleton className="mt-1.5" height="12px" width="125px" maxWidth="100%"></Skeleton>
@@ -311,8 +365,9 @@ function ForeverCharacter() {
                   </div>
                 )}
                 {state === "loaded" && profile && (
-                  <div className="header-row flex items-center">
-                    <div className="header-main">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                    {/* one row when it fits; when it doesn't, the level block wraps under the name, on the left */}
+                    <div className="flex-auto min-w-0">
                       <div className="flex flex-row px[1px]">
                         <img
                           className="m-1"
@@ -341,42 +396,70 @@ function ForeverCharacter() {
                             {profile.name} {profile.surname} - {profile.ruleset?.name}
                           </Heading>
                           <Heading size="2" className="guild-text">
-                            {profile.guild?.name && `<${profile.guild.name}>`}{" "}
+                            {profile.guild?.name && guildSlug !== "" && (
+                              <Link to={`/guild/${region}/${encodeURIComponent(guildSlug)}`} className="hover:underline">
+                                {`<${profile.guild.name}>`}
+                              </Link>
+                            )}{" "}
                           </Heading>
                         </div>
                         <div className="flex-1"></div>
                       </div>
                     </div>
-                    <Flex direction="column" align="end" className="ml-auto pr-2 flex-none">
-                      <Heading size="3">{profile.equipped_item_level}</Heading>
-                      <Heading size="1" color="gray" weight="regular">Item level</Heading>
+                    {/* level, then item level, each a number over its label */}
+                    <Flex gap="5" className="pr-2 flex-none">
+                      <Flex direction="column" align="end">
+                        <Heading size="3">{profile.level}</Heading>
+                        <Heading size="1" color="gray" weight="regular">Level</Heading>
+                      </Flex>
+                      <Flex direction="column" align="end">
+                        <Heading size="3">{profile.equipped_item_level}</Heading>
+                        <Heading size="1" color="gray" weight="regular">Item level</Heading>
+                      </Flex>
                     </Flex>
                   </div>
                 )}
               </Card>
               <Card className="paperdoll-card overflow-visible border-card">
-                <div className="paperdoll pt-2">
-                  <div className="paperdoll-column">
-                    {leftSlots.map((slot) => {
-                      if (state === "loading") {
-                        return <SkeletonSlotRow key={slot} right={false} />;
-                      }
-                      return <SlotRow key={slot} slot={slot} right={false} equipment={equipment} />;
-                    })}
+                {/* while loading, the same layout the retail and classic profile shows */}
+                {state === "loading" && (
+                  <div>
+                    <Flex className="flex-row items-center">
+                      <div className="flex-1"></div>
+                    </Flex>
+                    <div className="paperdoll pt-2">
+                      <div className="paperdoll-column paperdoll-left">
+                        {leftSlots.map((slot) => (
+                          <SkeletonSlotRow key={slot} slot={slot} right={false} />
+                        ))}
+                      </div>
+                      <Skeleton width="0px"></Skeleton>
+                      <Skeleton className="model-skeleton mx-auto mt-1" width="350px" height="500px"></Skeleton>
+                      <div className="paperdoll-column paperdoll-right">
+                        {rightSlots.map((slot) => (
+                          <SkeletonSlotRow key={slot} slot={slot} right={true} />
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                  <div className="model3dx">
-                    {state === "loading" && <Skeleton className="model-skeleton mx-auto mt-1" width="350px" height="500px"></Skeleton>}
-                    {state === "loaded" && render && <img src={render} alt="" className={renderClass} />}
+                )}
+                {state === "loaded" && (
+                  <div className="paperdoll pt-2">
+                    <div className="paperdoll-column">
+                      {leftSlots.map((slot) => (
+                        <SlotRow key={slot} slot={slot} right={false} equipment={equipment} />
+                      ))}
+                    </div>
+                    <div className="model3dx">
+                      {render && <img src={render} alt="" className={renderClass} />}
+                    </div>
+                    <div className="paperdoll-column">
+                      {rightSlots.map((slot) => (
+                        <SlotRow key={slot} slot={slot} right={true} equipment={equipment} />
+                      ))}
+                    </div>
                   </div>
-                  <div className="paperdoll-column">
-                    {rightSlots.map((slot) => {
-                      if (state === "loading") {
-                        return <SkeletonSlotRow key={slot} right={true} />;
-                      }
-                      return <SlotRow key={slot} slot={slot} right={true} equipment={equipment} />;
-                    })}
-                  </div>
-                </div>
+                )}
               </Card>
             </div>
           </div>
