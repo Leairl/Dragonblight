@@ -11,6 +11,7 @@ import ForeverPvp from "./forever-pvp/forever-pvp";
 import ForeverCharacterStats from "./forever-character-stats/forever-character-stats";
 import ForeverReputations from "./forever-reputations/forever-reputations";
 import ForeverAchievements from "./forever-achievements/forever-achievements";
+import ForeverCollections from "./forever-collections/forever-collections";
 import { prefetchForeverTab } from "./forever-data";
 import "../profile/profile.css";
 import "../profile/profile-equipment/profile-equipment.css";
@@ -178,13 +179,13 @@ function nameFromSlug(slug: string): string {
 }
 
 // The tabs that load their own data, which starts as soon as the pointer or keyboard reaches the tab.
-const dataTabs = [["professions", "Professions"], ["pvp", "PvP"], ["reputations", "Reputations"], ["achievements", "Achievements"]] as const;
+const dataTabs = [["professions", "Professions"], ["pvp", "PvP"], ["reputations", "Reputations"], ["achievements", "Achievements"], ["collections", "Collections"]] as const;
 
 function CharacterTabs() {
   const { region, characterSlug, urlTab } = useParams();
   const navigate = useNavigate();
   const tabsRef = useRef<HTMLDivElement>(null);
-  const tab = urlTab === "professions" || urlTab === "pvp" || urlTab === "reputations" || urlTab === "achievements" ? urlTab : "gear";
+  const tab = urlTab === "professions" || urlTab === "pvp" || urlTab === "reputations" || urlTab === "achievements" || urlTab === "collections" ? urlTab : "gear";
   useEffect(() => {
     const root = tabsRef.current;
     if (!root) return;
@@ -293,7 +294,7 @@ function RosterOnlyCharacter(props: { character: Dragonblight.ForeverStatsCharac
                 </div>
               </Card>
               <Card className="talent-row border-card">
-                {urlTab === "professions" ? <ForeverProfessions key={`${c.region}/${c.slug}`} /> : urlTab === "pvp" ? <ForeverPvp key={`${c.region}/${c.slug}`} faction={c.faction} /> : urlTab === "reputations" ? <ForeverReputations key={`${c.region}/${c.slug}`} /> : urlTab === "achievements" ? <ForeverAchievements key={`${c.region}/${c.slug}`} /> : (
+                {urlTab === "professions" ? <ForeverProfessions key={`${c.region}/${c.slug}`} /> : urlTab === "pvp" ? <ForeverPvp key={`${c.region}/${c.slug}`} faction={c.faction} /> : urlTab === "reputations" ? <ForeverReputations key={`${c.region}/${c.slug}`} /> : urlTab === "achievements" ? <ForeverAchievements key={`${c.region}/${c.slug}`} /> : urlTab === "collections" ? <ForeverCollections key={`${c.region}/${c.slug}`} /> : (
                 <Callout.Root color="amber">
                   <Callout.Icon>
                     <InfoCircledIcon />
@@ -319,7 +320,7 @@ function RosterOnlyCharacter(props: { character: Dragonblight.ForeverStatsCharac
 // Route: /forever/character/:region/:characterSlug, where the slug is "name-surname".
 function ForeverCharacter() {
   const { region, characterSlug, urlTab } = useParams();
-  const tab = urlTab === "professions" || urlTab === "pvp" || urlTab === "reputations" || urlTab === "achievements" ? urlTab : "gear";
+  const tab = urlTab === "professions" || urlTab === "pvp" || urlTab === "reputations" || urlTab === "achievements" || urlTab === "collections" ? urlTab : "gear";
   const requestKey = `${region}/${characterSlug}`;
   const [result, setResult] = useState<LoadResult>();
 
@@ -487,6 +488,10 @@ function ForeverCharacter() {
               ) : tab === "achievements" ? (
                 <Card className="talent-row border-card">
                   <ForeverAchievements key={requestKey} />
+                </Card>
+              ) : tab === "collections" ? (
+                <Card className="talent-row border-card">
+                  <ForeverCollections key={requestKey} />
                 </Card>
               ) : <Card className="paperdoll-card overflow-visible border-card">
                 {/* while loading, the same layout the retail and classic profile shows */}

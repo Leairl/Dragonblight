@@ -286,6 +286,57 @@ handler.Status = HttpStatusCode.NotFound;
 Check(CacheControlOf(() => controller.GetAchievements("us", "missing-player")) == "", "Missing characters must not be browser-cached");
 handler.Status = HttpStatusCode.OK;
 Check(typeof(ProfileController).GetMethod("GetAchievements") == null, "The new achievements endpoint must remain Forever-only");
+
+//---- collections ----
+handler.Status = HttpStatusCode.OK;
+calls = handler.Paths.Count;
+var collections = ((await controller.GetCollections("EU", "KROM-NOBLUNGG")).Result as OkObjectResult)?.Value as ForeverCollectionsPage;
+Check(collections != null, "Collections controller must normalize input and return a page");
+Check(collections!.mounts.Select(m => m.Mount!.Name).SequenceEqual(["Striped Dawnsaber", "Swift Zebra"]), "Mounts must be sorted by name");
+Check(collections.mounts[0].IsUseable == false, "A mount the character can't use must stay marked");
+Check(collections.pets.Length == 2 && collections.pets.All(p => p.Species!.Id == 50) && collections.pets[0].Quality?.Type == "UNCOMMON", "Two pets of one species must both be kept, with quality");
+Check(collections.unlockedBattlePetSlots == 0, "A reported zero pet slots must be preserved");
+Check(collections.toys.Length == 0, "An omitted toy array must become an empty list");
+Check(collections.appearanceSlots.Length == 2 && collections.appearanceSlots[0] is { type: "HEAD", name: "Head", count: 2 } && collections.appearanceSlots[1].count == 0,
+    "Appearances must be counted per slot, with an omitted list counted as zero");
+Check(collections.totals is { mounts: 3, pets: 2, toys: 1 }, "Totals must count Forever's game data indexes");
+var collectionPaths = handler.Paths.Skip(calls).ToList();
+Check(collectionPaths.Count(path => path.Contains("/character/krom-noblungg/collections/") && path.Contains("namespace=profile-forever-eu")) == 4, "Collections must use the four realmless Forever endpoints");
+Check(collectionPaths.Count(path => path.Contains("/index?namespace=static-forever-eu")) == 3, "Totals must use Forever's static namespace");
+calls = handler.Paths.Count;
+await controller.GetCollections("eu", "krom-noblungg");
+Check(handler.Paths.Count == calls, "Collections and totals must be cached");
+Check(CacheControlOf(() => controller.GetCollections("eu", "krom-noblungg")) == "private, max-age=300", "The collections tab may be reused briefly by the browser");
+Check((await controller.GetCollections("invalid", "krom-noblungg")).Result is BadRequestObjectResult, "Collection regions must be validated");
+Check((await controller.GetCollections("us", "../example")).Result is BadRequestObjectResult, "Collection slugs must be validated");
+handler.Status = HttpStatusCode.NotFound;
+Check((await controller.GetCollections("us", "missing-collector")).Result is NotFoundObjectResult { Value: ProblemDetails { Status: 404 } }, "A character with no collections must return a structured 404");
+handler.Status = HttpStatusCode.InternalServerError;
+Check((await controller.GetCollections("us", "failed-collector")).Result is StatusCodeResult { StatusCode: 500 }, "Collection failures must not return an empty success");
+handler.Status = HttpStatusCode.OK;
+Check((await controller.GetCollections("us", "failed-collector")).Result is OkObjectResult, "Collection failures must not poison the cache");
+
+calls = handler.Paths.Count;
+var mountIcons = ((await controller.GetCollectionIcons("EU", "mount", [2995, 2995, 2])).Result as OkObjectResult)?.Value as ForeverCollectionIcon[];
+Check(mountIcons?.Length == 2, "Icon batches must deduplicate IDs");
+Check(mountIcons![0].icon == "https://example.com/creature-display-144509.jpg", "A mount's picture must be its creature display render");
+Check(mountIcons[1].icon == null, "A mount with no creature display has no picture");
+Check(handler.Paths.Count == calls + 3 && handler.Paths.Skip(calls).All(path => path.Contains("namespace=static-forever-eu")), "Mount pictures need the mount and its display media, in Forever's namespace");
+var petIcons = ((await controller.GetCollectionIcons("eu", "pet", [50])).Result as OkObjectResult)?.Value as ForeverCollectionIcon[];
+Check(petIcons?[0].icon == "https://example.com/pet-50.jpg", "A pet's icon comes from its species");
+var toyIcons = ((await controller.GetCollectionIcons("eu", "toy", [1754])).Result as OkObjectResult)?.Value as ForeverCollectionIcon[];
+Check(toyIcons?[0].icon == "https://example.com/item-276242.jpg", "A toy's icon comes from its item media");
+calls = handler.Paths.Count;
+await controller.GetCollectionIcons("eu", "mount", [2995, 2]);
+await controller.GetCollectionIcons("eu", "toy", [1754]);
+Check(handler.Paths.Count == calls, "Collection pictures must be cached");
+Check(CacheControlOf(() => controller.GetCollectionIcons("eu", "pet", [50])) == "public, max-age=86400", "Complete icon batches must be browser-cacheable");
+Check(CacheControlOf(() => controller.GetCollectionIcons("eu", "mount", [2])) == "", "Batches with a missing picture must not be browser-cached");
+Check((await controller.GetCollectionIcons("eu", "heirloom", [1])).Result is BadRequestObjectResult, "Unknown collection kinds must be rejected");
+Check((await controller.GetCollectionIcons("eu", "pet", [])).Result is BadRequestObjectResult, "Empty icon batches must be rejected");
+Check((await controller.GetCollectionIcons("eu", "pet", [0])).Result is BadRequestObjectResult, "Nonpositive icon IDs must be rejected");
+Check((await controller.GetCollectionIcons("eu", "pet", Enumerable.Range(1, ForeverCharacterController.MaxCollectionIconBatch + 1).ToArray())).Result is BadRequestObjectResult, "Icon batches must be bounded");
+Check(typeof(ProfileController).GetMethod("GetCollections") == null, "The collections endpoint must remain Forever-only");
 Console.WriteLine($"Passed {checks} Forever character checks.");
 
 public class Stub : DispatchProxy
@@ -302,6 +353,25 @@ public class Stub : DispatchProxy
 
 class BlizzardHandler : HttpMessageHandler
 {
+
+    //Collections, their game data indexes and the static data their pictures come from.
+    static string? Collection(string path) => path switch
+    {
+        _ when path.EndsWith("/collections/mounts") => """{"_links":{},"mounts":[{"mount":{"key":{"href":"x"},"name":"Swift Zebra","id":2},"is_useable":true},{"mount":{"name":"Striped Dawnsaber","id":2995},"is_useable":false}]}""",
+        _ when path.EndsWith("/collections/pets") => """{"pets":[{"species":{"name":"Green Wing Macaw","id":50},"level":1,"quality":{"type":"UNCOMMON","name":"Uncommon"},"stats":{"breed_id":0},"creature_display":{"id":5207},"id":1},{"species":{"name":"Green Wing Macaw","id":50},"level":3,"id":2}],"unlocked_battle_pet_slots":0}""",
+        _ when path.EndsWith("/collections/toys") => """{"_links":{}}""",
+        _ when path.EndsWith("/collections/transmogs") => """{"slots":[{"slot":{"type":"HEAD","name":"Head"},"appearances":[{"key":{"href":"x"},"id":29124},{"id":63427}]},{"slot":{"type":"CHEST","name":"Chest"}}]}""",
+        _ when path.EndsWith("/mount/index") => """{"mounts":[{"name":"a","id":1},{"name":"b","id":2},{"name":"c","id":2995}]}""",
+        _ when path.EndsWith("/pet/index") => """{"pets":[{"name":"a","id":1},{"name":"b","id":50}]}""",
+        _ when path.EndsWith("/toy/index") => """{"toys":[{"name":"a","id":1754}]}""",
+        _ when path.EndsWith("/data/wow/mount/2995") => """{"id":2995,"creature_displays":[{"id":144509}]}""",
+        _ when path.EndsWith("/data/wow/mount/2") => """{"id":2,"creature_displays":[]}""",
+        _ when path.Contains("/media/creature-display/") => $$"""{"assets":[{"key":"zoom","value":"https://example.com/creature-display-{{path.Split('/')[^1]}}.jpg"}]}""",
+        _ when path.Contains("/data/wow/pet/") => $$"""{"id":{{path.Split('/')[^1]}},"icon":"https://example.com/pet-{{path.Split('/')[^1]}}.jpg"}""",
+        _ when path.Contains("/data/wow/toy/") => """{"id":1754,"item":{"id":276242},"media":{"id":276242}}""",
+        _ when path.Contains("/media/item/") => $$"""{"id":276242,"assets":[{"key":"icon","value":"https://example.com/item-{{path.Split('/')[^1]}}.jpg","file_data_id":1}]}""",
+        _ => null,
+    };
     public List<string> Paths { get; } = [];
     public HttpStatusCode Status { get; set; } = HttpStatusCode.OK;
     public bool FlatSkills { get; set; } = true;
@@ -311,6 +381,12 @@ class BlizzardHandler : HttpMessageHandler
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""{"access_token":"test-token","expires_in":3600,"token_type":"bearer"}""") });
         var path = request.RequestUri.AbsoluteUri;
         lock (Paths) Paths.Add(path);
+        var collection = Collection(request.RequestUri.AbsolutePath);
+        if (collection != null)
+        {
+            var body = Status != HttpStatusCode.OK ? $$"""{"code":{{(int)Status}},"detail":"Test error"}""" : collection;
+            return Task.FromResult(new HttpResponseMessage(Status) { Content = new StringContent(body) });
+        }
         if (request.RequestUri.AbsolutePath.EndsWith("/achievements"))
         {
             var body = Status != HttpStatusCode.OK ? $$"""{"code":{{(int)Status}},"detail":"Test error"}"""

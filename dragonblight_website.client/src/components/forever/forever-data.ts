@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Dragonblight } from "../../clients/Dragonblight";
 import { DetailCache, RequestCache } from "./request-cache";
+import type { CollectionKind } from "./forever-collections/collection-helpers";
 
 const client = new Dragonblight.ForeverCharacterClient();
 
@@ -14,6 +15,7 @@ const tabLoaders = {
   stats: (region: string, slug: string) => client.getStats(region, slug),
   reputations: (region: string, slug: string) => client.getReputations(region, slug),
   achievements: (region: string, slug: string) => client.getAchievements(region, slug),
+  collections: (region: string, slug: string) => client.getCollections(region, slug),
 };
 
 export type ForeverTab = keyof typeof tabLoaders;
@@ -89,4 +91,16 @@ export const recipeDetails = new DetailCache<Dragonblight.ForeverRecipeDetails>(
 
 export function loadRecipeDetails(region: string, ids: number[]) {
   return recipeDetails.load(region, ids, (batch) => client.getRecipes(region, batch), recipeBatchSize);
+}
+
+// Mount, pet and toy pictures. Each kind finds its picture differently, so each has its own cache.
+export const collectionIconBatchSize = 50;
+export const collectionIcons: Record<CollectionKind, DetailCache<Dragonblight.ForeverCollectionIcon>> = {
+  mount: new DetailCache(500, (row) => row.icon != null),
+  pet: new DetailCache(500, (row) => row.icon != null),
+  toy: new DetailCache(200, (row) => row.icon != null),
+};
+
+export function loadCollectionIcons(kind: CollectionKind, region: string, ids: number[]) {
+  return collectionIcons[kind].load(region, ids, (batch) => client.getCollectionIcons(region, kind, batch), collectionIconBatchSize);
 }

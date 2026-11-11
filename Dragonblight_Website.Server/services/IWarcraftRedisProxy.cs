@@ -19,6 +19,14 @@ public interface IWarcraftRedisProxy
     Task<Recipe?> GetForeverRecipe(int recipeId, string region);
     Task<string?> GetForeverRecipeIcon(int recipeId, string region);
     Task<CharacterMediaSummary?> GetForeverMedia(string characterSlug, string region);
+    Task<ForeverMountsCollection?> GetForeverMounts(string characterSlug, string region);
+    Task<ForeverPetsCollection?> GetForeverPets(string characterSlug, string region);
+    Task<ForeverToysCollection?> GetForeverToys(string characterSlug, string region);
+    Task<ForeverTransmogsCollection?> GetForeverTransmogs(string characterSlug, string region);
+    Task<ForeverCollectionTotals?> GetForeverCollectionTotals(string region);
+    Task<string?> GetForeverMountImage(int mountId, string region);
+    Task<string?> GetForeverPetIcon(int petId, string region);
+    Task<string?> GetForeverToyIcon(int toyId, string region);
     Task<List<string>> ForeverCachedCharacters();
     Task InsertForeverCachedCharacter(string characterSlug, string region);
     Task<ForeverGuild?> GetForeverGuild(string guildSlug, string region);

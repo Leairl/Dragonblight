@@ -59,3 +59,11 @@ public class ForeverNameLists
     public Dictionary<int, string> Classes { get; set; } = [];
     public Dictionary<int, string> Races { get; set; } = [];
 }
+
+//How many mounts, pets and toys exist in Forever's game data, for a character's "collected of total".
+public class ForeverCollectionTotals
+{
+    public int mounts { get; set; }
+    public int pets { get; set; }
+    public int toys { get; set; }
+}

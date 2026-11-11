@@ -94,6 +94,76 @@ public partial class WarcraftClient
         return await GetAsync<ForeverAchievement>($"{host}/data/wow/achievement/{achievementId}?namespace={@namespace}&locale={locale}");
     }
 
+    /// <summary>Gets the mounts a Forever character has collected.</summary>
+    public async Task<RequestResult<ForeverMountsCollection>> GetForeverCharacterMountsAsync(string characterSlug, string @namespace, Region region, Locale locale)
+    {
+        string host = GetHost(region);
+        return await GetAsync<ForeverMountsCollection>($"{host}/profile/wow/character/{ForeverSlug(characterSlug)}/collections/mounts?namespace={@namespace}&locale={locale}");
+    }
+
+    /// <summary>Gets the pets a Forever character has collected.</summary>
+    public async Task<RequestResult<ForeverPetsCollection>> GetForeverCharacterPetsAsync(string characterSlug, string @namespace, Region region, Locale locale)
+    {
+        string host = GetHost(region);
+        return await GetAsync<ForeverPetsCollection>($"{host}/profile/wow/character/{ForeverSlug(characterSlug)}/collections/pets?namespace={@namespace}&locale={locale}");
+    }
+
+    /// <summary>Gets the toys a Forever character has collected.</summary>
+    public async Task<RequestResult<ForeverToysCollection>> GetForeverCharacterToysAsync(string characterSlug, string @namespace, Region region, Locale locale)
+    {
+        string host = GetHost(region);
+        return await GetAsync<ForeverToysCollection>($"{host}/profile/wow/character/{ForeverSlug(characterSlug)}/collections/toys?namespace={@namespace}&locale={locale}");
+    }
+
+    /// <summary>Gets the item appearances a Forever character has collected, by equipment slot.</summary>
+    public async Task<RequestResult<ForeverTransmogsCollection>> GetForeverCharacterTransmogsAsync(string characterSlug, string @namespace, Region region, Locale locale)
+    {
+        string host = GetHost(region);
+        return await GetAsync<ForeverTransmogsCollection>($"{host}/profile/wow/character/{ForeverSlug(characterSlug)}/collections/transmogs?namespace={@namespace}&locale={locale}");
+    }
+
+    /// <summary>Gets every mount in Forever's game data.</summary>
+    public async Task<RequestResult<ForeverMountsIndex>> GetForeverMountsIndexAsync(string @namespace, Region region, Locale locale)
+    {
+        string host = GetHost(region);
+        return await GetAsync<ForeverMountsIndex>($"{host}/data/wow/mount/index?namespace={@namespace}&locale={locale}");
+    }
+
+    /// <summary>Gets every pet species in Forever's game data.</summary>
+    public async Task<RequestResult<ForeverPetsIndex>> GetForeverPetsIndexAsync(string @namespace, Region region, Locale locale)
+    {
+        string host = GetHost(region);
+        return await GetAsync<ForeverPetsIndex>($"{host}/data/wow/pet/index?namespace={@namespace}&locale={locale}");
+    }
+
+    /// <summary>Gets every toy in Forever's game data.</summary>
+    public async Task<RequestResult<ForeverToysIndex>> GetForeverToysIndexAsync(string @namespace, Region region, Locale locale)
+    {
+        string host = GetHost(region);
+        return await GetAsync<ForeverToysIndex>($"{host}/data/wow/toy/index?namespace={@namespace}&locale={locale}");
+    }
+
+    /// <summary>Gets a Forever mount's creature displays.</summary>
+    public async Task<RequestResult<ForeverMount>> GetForeverMountAsync(int mountId, string @namespace, Region region, Locale locale)
+    {
+        string host = GetHost(region);
+        return await GetAsync<ForeverMount>($"{host}/data/wow/mount/{mountId}?namespace={@namespace}&locale={locale}");
+    }
+
+    /// <summary>Gets a Forever pet species, including its icon.</summary>
+    public async Task<RequestResult<ForeverPet>> GetForeverPetAsync(int petId, string @namespace, Region region, Locale locale)
+    {
+        string host = GetHost(region);
+        return await GetAsync<ForeverPet>($"{host}/data/wow/pet/{petId}?namespace={@namespace}&locale={locale}");
+    }
+
+    /// <summary>Gets a Forever toy and the item media its icon comes from.</summary>
+    public async Task<RequestResult<ForeverToy>> GetForeverToyAsync(int toyId, string @namespace, Region region, Locale locale)
+    {
+        string host = GetHost(region);
+        return await GetAsync<ForeverToy>($"{host}/data/wow/toy/{toyId}?namespace={@namespace}&locale={locale}");
+    }
+
     //names can carry accented letters, so the slug is escaped after lowercasing
     private static string ForeverSlug(string characterSlug)
     {

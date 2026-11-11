@@ -268,6 +268,87 @@ namespace Dragonblight_Website.Server.Controllers
             }
         }
 
+        //A character's mounts, pets, toys and appearances in one call, with Forever's totals for each.
+        //Appearances are counted per slot: there are hundreds and none has a name in the collection.
+        //404 when Blizzard has none of the four for the character.
+        [HttpGet("GetCollections")]
+        [ProducesResponseType(typeof(ForeverCollectionsPage), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<ForeverCollectionsPage>> GetCollections(string region, string characterSlug)
+        {
+            region = region.ToLowerInvariant();
+            if (region != "us" && region != "eu") return BadRequest("region must be us or eu");
+            characterSlug = characterSlug.ToLowerInvariant();
+            if (characterSlug.Length > 64 || !IsCharacterSlug(characterSlug)) return BadRequest("characterSlug must be name-surname");
+            try
+            {
+                var mountsTask = _warcraftCachedData.GetForeverMounts(characterSlug, region);
+                var petsTask = _warcraftCachedData.GetForeverPets(characterSlug, region);
+                var toysTask = _warcraftCachedData.GetForeverToys(characterSlug, region);
+                var transmogsTask = _warcraftCachedData.GetForeverTransmogs(characterSlug, region);
+                var totalsTask = _warcraftCachedData.GetForeverCollectionTotals(region);
+                await Task.WhenAll(mountsTask, petsTask, toysTask, transmogsTask, totalsTask);
+                var (mounts, pets, toys, transmogs) = (mountsTask.Result, petsTask.Result, toysTask.Result, transmogsTask.Result);
+                if (mounts == null && pets == null && toys == null && transmogs == null) return NotFound(new ProblemDetails
+                {
+                    Status = StatusCodes.Status404NotFound,
+                    Title = "Collection data is not available for this character."
+                });
+                CacheCharacterData();
+                return Ok(new ForeverCollectionsPage
+                {
+                    mounts = mounts?.Mounts?.Where(m => m.Mount != null).OrderBy(m => m.Mount!.Name).ToArray() ?? [],
+                    pets = pets?.Pets?.Where(p => p.Species != null).OrderBy(p => p.Species!.Name).ToArray() ?? [],
+                    toys = toys?.Toys?.Where(t => t.Toy != null).OrderBy(t => t.Toy!.Name).ToArray() ?? [],
+                    unlockedBattlePetSlots = pets?.UnlockedBattlePetSlots,
+                    appearanceSlots = transmogs?.Slots?.Select(slot => new ForeverAppearanceSlot
+                    {
+                        type = slot.Slot?.Type ?? "",
+                        name = slot.Slot?.Name ?? slot.Slot?.Type ?? "Unknown slot",
+                        count = slot.Appearances?.Length ?? 0,
+                    }).ToArray() ?? [],
+                    totals = totalsTask.Result,
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting Forever collections for {Slug} in {Region}.", characterSlug, region);
+                return StatusCode(500);
+            }
+        }
+
+        public const int MaxCollectionIconBatch = 50;
+
+        //Pictures for a page of collected mounts, pets or toys. Each kind finds its picture differently
+        //(a mount's creature render, a pet's own icon, a toy's item icon), so the kind is part of the request.
+        [HttpGet("GetCollectionIcons")]
+        public async Task<ActionResult<ForeverCollectionIcon[]>> GetCollectionIcons(string region, string kind, [FromQuery] int[] ids)
+        {
+            region = region.ToLowerInvariant();
+            if (region != "us" && region != "eu") return BadRequest("region must be us or eu");
+            Func<int, string, Task<string?>>? lookup = kind switch
+            {
+                "mount" => _warcraftCachedData.GetForeverMountImage,
+                "pet" => _warcraftCachedData.GetForeverPetIcon,
+                "toy" => _warcraftCachedData.GetForeverToyIcon,
+                _ => null,
+            };
+            if (lookup == null) return BadRequest("kind must be mount, pet or toy");
+            if (ids.Length == 0 || ids.Length > MaxCollectionIconBatch || ids.Any(id => id <= 0))
+                return BadRequest($"Provide between 1 and {MaxCollectionIconBatch} positive IDs.");
+            try
+            {
+                var rows = await Task.WhenAll(ids.Distinct().Select(async id => new ForeverCollectionIcon { id = id, icon = await lookup(id, region) }));
+                CacheStaticRows(rows.All(row => row.icon != null));
+                return Ok(rows);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting Forever {Kind} icons in {Region}.", kind, region);
+                return StatusCode(500);
+            }
+        }
+
         //Static definitions and icons for a character's whole achievement list. Forever characters report a few
         //dozen, so one request covers them. Cached lookups answer at once; Blizzard calls on a cold cache are
         //throttled process-wide in the proxy, not per request.
@@ -431,6 +512,32 @@ namespace Dragonblight_Website.Server.Controllers
         public int id { get; init; }
         //Keep the known recipe visible even when Blizzard has no static details or icon.
         public Recipe? recipe { get; init; }
+        public string? icon { get; init; }
+    }
+
+    public class ForeverCollectionsPage
+    {
+        //each list is sorted by name and empty, never null, when the character has none
+        public ForeverCollectedMount[] mounts { get; init; } = [];
+        public ForeverCollectedPet[] pets { get; init; } = [];
+        public ForeverCollectedToy[] toys { get; init; } = [];
+        public int? unlockedBattlePetSlots { get; init; }
+        public ForeverAppearanceSlot[] appearanceSlots { get; init; } = [];
+        //null when Forever's game data couldn't be read; the page shows counts without totals then
+        public ForeverCollectionTotals? totals { get; init; }
+    }
+
+    public class ForeverAppearanceSlot
+    {
+        public string type { get; init; } = "";
+        public string name { get; init; } = "";
+        public int count { get; init; }
+    }
+
+    public class ForeverCollectionIcon
+    {
+        public int id { get; init; }
+        //null when Blizzard has no picture for it, or the lookup failed and will be tried again
         public string? icon { get; init; }
     }
 

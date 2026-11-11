@@ -1,0 +1,128 @@
+.forever-collections-pane {
+  padding: 12px;
+  min-height: 260px;
+  min-width: 0;
+}
+
+.forever-collection-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.forever-collection-tile {
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-3);
+  background: var(--gray-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.forever-collection-sections {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.forever-collection-section {
+  min-width: 0;
+}
+
+.forever-collection-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.forever-collection-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 4px;
+  border-radius: var(--radius-2);
+}
+
+.forever-collection-row:hover {
+  background: var(--gray-a3);
+}
+
+.forever-collection-row.is-muted {
+  opacity: 0.6;
+}
+
+.forever-collection-icon {
+  display: block;
+  position: relative;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/* mount pictures are creature renders, not square icons, so they're cropped to fill */
+.forever-collection-icon img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.forever-collection-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.forever-collection-name {
+  overflow-wrap: anywhere;
+}
+
+.forever-appearance-slots {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px 16px;
+}
+
+.forever-appearance-slots li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--gray-a4);
+  font-variant-numeric: tabular-nums;
+}
+
+.forever-appearance-slots li.is-muted {
+  opacity: 0.55;
+}
+
+@media (max-width: 1000px) {
+  .forever-collection-sections {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .forever-appearance-slots {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .forever-collection-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .forever-appearance-slots {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
