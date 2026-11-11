@@ -48,6 +48,25 @@ public class ForeverStatsService(IWarcraftRedisProxy warcraftCachedData, ILogger
         logger.LogInformation("Forever stats: crawled {Guild} in {Region} after a lookup.", guildSlug, region);
     }
 
+    //Builds each class's talent trees when they aren't cached, so the talents tab's first visitor
+    //for a class doesn't wait on the few dozen Blizzard calls they take. Cached for a week, so most
+    //runs only read Redis.
+    private async Task WarmClassTalents(string region, ForeverNameLists names, CancellationToken cancellationToken)
+    {
+        foreach (var classId in names.Classes.Keys)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                await warcraftCachedData.GetForeverClassTalents(classId, region);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.LogWarning(ex, "Forever stats: couldn't build the talent trees of class {ClassId} in {Region}.", classId, region);
+            }
+        }
+    }
+
     private async Task CrawlRegion(string region, List<string> searchedSlugs, DateTimeOffset seen, CancellationToken cancellationToken)
     {
         var names = await warcraftCachedData.GetForeverNameLists(region);
@@ -56,6 +75,8 @@ public class ForeverStatsService(IWarcraftRedisProxy warcraftCachedData, ILogger
             logger.LogWarning("Forever stats: no class and race names for {Region}, skipping it this run.", region);
             return;
         }
+
+        await WarmClassTalents(region, names, cancellationToken);
 
         //each searched character's guild
         var guildSlugs = new ConcurrentDictionary<string, bool>();

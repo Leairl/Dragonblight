@@ -197,7 +197,8 @@ function CharacterTabs() {
         navigate(`/character/${region}/${encodeURIComponent(characterSlug ?? "")}${value === "gear" ? "" : `/${value}`}`, { replace: true });
       }}>
         <SegmentedControl.Item value="gear">Gear</SegmentedControl.Item>
-        <SegmentedControl.Item value="talents">Talents</SegmentedControl.Item>
+        <SegmentedControl.Item value="talents" onPointerEnter={() => prefetchForeverTab("talents", region, characterSlug)}
+          onFocus={() => prefetchForeverTab("talents", region, characterSlug)}>Talents</SegmentedControl.Item>
         {dataTabs.map(([value, label]) => (
           <SegmentedControl.Item key={value} value={value} onPointerEnter={() => prefetchForeverTab(value, region, characterSlug)}
             onFocus={() => prefetchForeverTab(value, region, characterSlug)}>{label}</SegmentedControl.Item>

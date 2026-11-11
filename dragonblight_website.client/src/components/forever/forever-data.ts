@@ -16,6 +16,7 @@ const tabLoaders = {
   reputations: (region: string, slug: string) => client.getReputations(region, slug),
   achievements: (region: string, slug: string) => client.getAchievements(region, slug),
   collections: (region: string, slug: string) => client.getCollections(region, slug),
+  talents: (region: string, slug: string) => client.getTalents(region, slug),
   // shown on the achievements tab, so it loads alongside it
   legacy: (region: string, slug: string) => client.getLegacyPoints(region, slug),
 };

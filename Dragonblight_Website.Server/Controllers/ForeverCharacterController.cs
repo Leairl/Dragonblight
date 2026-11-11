@@ -657,13 +657,15 @@ namespace Dragonblight_Website.Server.Controllers
             }
             try
             {
+                //the character's talents don't need the class, so they load alongside the profile
+                var specializationsTask = _warcraftCachedData.GetForeverSpecializations(characterSlug, region);
                 var profile = await _warcraftCachedData.GetForeverCharacter(characterSlug, region);
                 if (profile?.CharacterClass == null)
                 {
+                    await specializationsTask;
                     return NotFound();
                 }
                 var talentsTask = _warcraftCachedData.GetForeverClassTalents(profile.CharacterClass.Id, region);
-                var specializationsTask = _warcraftCachedData.GetForeverSpecializations(characterSlug, region);
                 await Task.WhenAll(talentsTask, specializationsTask);
 
                 var page = new ForeverTalentsPage();

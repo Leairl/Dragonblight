@@ -663,10 +663,21 @@ partial class WarcraftRedisProxy
         }, TimeSpan.FromHours(2));
     }
 
+    //The part of a tree the talents tab draws: four columns from the tree's leftmost talent, rows
+    //1 to 11 (shownNodes in forever-talents.tsx). Blizzard's data has a few talents outside it that
+    //the game never shows; they are kept, but without an icon, which saves a call each.
+    private const int ShownTreeColumns = 4;
+    private const int LastShownTreeRow = 11;
+    //icon calls at a time for each tree; the three trees are built together, so up to 24 at once,
+    //well inside Blizzard's limit of 100 a second
+    private const int ParallelIconCalls = 8;
+
     //A class's three talent trees as the game lays them out, with each talent's icon. Built from
     //the class (its specs, in the game's order), each spec (its tree's id), each tree (the talents
     //and their grid slots) and each talent's spell (its icon), so it is a few dozen calls the first
-    //time; talent trees only change with a patch, so it is kept for a week.
+    //time. The three trees are built at once, so a cold build costs about as long as one tree.
+    //Talent trees only change with a patch, so it is kept for a week; ForeverStatsService warms it
+    //for every class each run, so a visitor rarely meets a cold build.
     public async Task<ForeverClassTalents?> GetForeverClassTalents(int classId, string region)
     {
         var ns = GetStaticRegion(region, GameFlavor.Forever);
@@ -677,18 +688,33 @@ partial class WarcraftRedisProxy
             {
                 return null;
             }
-            var talents = new ForeverClassTalents { ClassId = classId };
-            foreach (var spec in playableClass.Value.Specializations ?? [])
+            var specs = playableClass.Value.Specializations ?? [];
+            //Task.WhenAll keeps the specs in the game's order
+            var trees = await Task.WhenAll(specs.Select(spec => GetForeverTalentTreeLayout(spec.Id, ns, region)));
+            if (trees.Any(tree => tree == null))
             {
-                var tree = await GetForeverTalentTreeLayout(spec.Id, ns, region);
-                if (tree == null)
-                {
-                    return null;
-                }
-                talents.Trees.Add(tree);
+                //nothing is cached then, so the next visit builds it again; the icons fetched so far
+                //are cached on their own, so that rebuild is cheaper
+                logger.LogWarning("Forever talents: Blizzard returned no tree for a spec of class {ClassId} in {Region}.", classId, region);
+                return null;
             }
-            return talents;
+            return new ForeverClassTalents { ClassId = classId, Trees = trees.Select(tree => tree!).ToList() };
         }, TimeSpan.FromDays(7));
+    }
+
+    //A spell's icon image, or "" when it has none. Kept for a month on its own, so a class's
+    //trees rebuilt after their week, or after a failed build, don't fetch every icon again.
+    private async Task<string?> GetForeverSpellIcon(int spellId, string ns, string region)
+    {
+        return await GetBlizzardDataCached<string?>("GetForeverSpellIcon" + spellId + ns, async () =>
+        {
+            var media = await warcraftClient.GetSpellMediaAsync(spellId, ns, GetRegion(region), GetLocale(region));
+            if (media == null || !media.Success)
+            {
+                return null;
+            }
+            return media.Value.Assets?.FirstOrDefault(a => a.Key == "icon")?.Value?.ToString() ?? "";
+        }, TimeSpan.FromDays(30));
     }
 
     private async Task<ForeverTalentTreeLayout?> GetForeverTalentTreeLayout(int specId, string ns, string region)
@@ -711,24 +737,25 @@ partial class WarcraftRedisProxy
         }
 
         var layout = new ForeverTalentTreeLayout { SpecId = specId, SpecName = spec.Value.Name ?? "" };
+        var talentNodes = (tree.Value.SpecializationTalentNodes ?? [])
+            .Where(node => node.Ranks?.FirstOrDefault()?.Tooltip?.Talent != null)
+            .ToList();
+        var onGrid = talentNodes.Where(node => node.DisplayRow >= 1 && node.DisplayRow <= LastShownTreeRow).ToList();
+        var firstColumn = onGrid.Count > 0 ? onGrid.Min(node => node.DisplayColumn) : 0;
+        bool IsShown(TalentNode node) =>
+            node.DisplayRow >= 1 && node.DisplayRow <= LastShownTreeRow
+            && node.DisplayColumn >= firstColumn && node.DisplayColumn < firstColumn + ShownTreeColumns;
+
         var nodes = new ConcurrentBag<ForeverTalentNode>();
-        var options = new ParallelOptions { MaxDegreeOfParallelism = 4 };
-        await Parallel.ForEachAsync(tree.Value.SpecializationTalentNodes ?? [], options, async (node, _) =>
+        var options = new ParallelOptions { MaxDegreeOfParallelism = ParallelIconCalls };
+        await Parallel.ForEachAsync(talentNodes, options, async (node, _) =>
         {
-            var firstRank = node.Ranks?.FirstOrDefault()?.Tooltip;
-            if (firstRank?.Talent == null)
-            {
-                return;
-            }
+            var firstRank = node.Ranks!.First().Tooltip!;
             var spellId = firstRank.SpellTooltip?.Spell?.Id ?? 0;
             var icon = "";
-            if (spellId != 0)
+            if (spellId != 0 && IsShown(node))
             {
-                var media = await warcraftClient.GetSpellMediaAsync(spellId, ns, GetRegion(region), GetLocale(region));
-                if (media != null && media.Success)
-                {
-                    icon = media.Value.Assets?.FirstOrDefault(a => a.Key == "icon")?.Value?.ToString() ?? "";
-                }
+                icon = await GetForeverSpellIcon(spellId, ns, region) ?? "";
             }
             nodes.Add(new ForeverTalentNode
             {
@@ -736,7 +763,7 @@ partial class WarcraftRedisProxy
                 Row = (int)node.DisplayRow,
                 Column = (int)node.DisplayColumn,
                 MaxRank = node.Ranks?.Length ?? 0,
-                TalentId = firstRank.Talent.Id,
+                TalentId = firstRank.Talent!.Id,
                 SpellId = spellId,
                 Name = firstRank.Talent.Name ?? "",
                 Icon = icon,
