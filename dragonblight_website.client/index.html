@@ -7,12 +7,13 @@
     // it loads, which is before the app mounts. Mirrors getFlavor() and wowheadPath() in
     // helpers/game-flavor.ts. Forever has its own Wowhead tooltips ("forever", Wowhead's
     // CLASSICPLUS data) but no model viewer build, so it gets the MoP Classic viewer.
+    // A URL naming no flavor is retail, as in getFlavor().
     var whSegment = window.location.pathname.split("/")[1];
-    var whFlavor = "classic";
-    var whDomain = "mop-classic";
-    if (whSegment === "retail") {
-      whFlavor = "retail";
-      whDomain = "www";
+    var whFlavor = "retail";
+    var whDomain = "www";
+    if (whSegment === "classic") {
+      whFlavor = "classic";
+      whDomain = "mop-classic";
     } else if (whSegment === "forever") {
       whFlavor = "forever";
       whDomain = "forever";

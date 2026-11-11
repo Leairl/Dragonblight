@@ -310,9 +310,10 @@ function RosterOnlyCharacter(props: { character: Dragonblight.ForeverStatsCharac
                       <div className="flex-1"></div>
                     </div>
                   </div>
-                  <Flex direction="column" align="end" className="pr-2 flex-none">
-                    <Heading size="3">{c.level}</Heading>
+                  {/* the label, then its number, on one line */}
+                  <Flex align="baseline" gap="2" className="pr-2 flex-none">
                     <Heading size="1" color="gray" weight="regular">Level</Heading>
+                    <Heading size="3">{c.level}</Heading>
                   </Flex>
                 </div>
               </Card>
@@ -485,15 +486,15 @@ function ForeverCharacter() {
                         <div className="flex-1"></div>
                       </div>
                     </div>
-                    {/* level, then item level, each a number over its label */}
+                    {/* level, then item level, each its label then its number on one line */}
                     <Flex gap="5" className="pr-2 flex-none">
-                      <Flex direction="column" align="end">
-                        <Heading size="3">{profile.level}</Heading>
+                      <Flex align="baseline" gap="2">
                         <Heading size="1" color="gray" weight="regular">Level</Heading>
+                        <Heading size="3">{profile.level}</Heading>
                       </Flex>
-                      <Flex direction="column" align="end">
-                        <Heading size="3">{profile.equipped_item_level}</Heading>
+                      <Flex align="baseline" gap="2">
                         <Heading size="1" color="gray" weight="regular">Item level</Heading>
+                        <Heading size="3">{profile.equipped_item_level}</Heading>
                       </Flex>
                     </Flex>
                   </div>

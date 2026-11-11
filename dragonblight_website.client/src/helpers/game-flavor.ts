@@ -9,16 +9,16 @@ export type GameFlavor = "classic" | "retail" | "forever";
 
 const HEADER = "X-Game-Flavor";
 
-// Retail and Forever are named; anything else, including a URL missing its flavor, is classic.
+// MoP Classic and Forever are named; anything else, including a URL missing its flavor, is retail.
 export function getFlavor(): GameFlavor {
   const segment = window.location.pathname.split("/")[1];
-  if (segment === "retail") {
-    return "retail";
+  if (segment === "classic") {
+    return "classic";
   }
   if (segment === "forever") {
     return "forever";
   }
-  return "classic";
+  return "retail";
 }
 
 // Prefixes a path for plain browser navigation. Links inside the router don't need this -
