@@ -25,6 +25,14 @@ public class ForeverEnhancement
     public double manaRestored { get; set; }
     //armor kits only go on items of at least this level
     public int minItemLevel { get; set; }
+    //an armor kit's icon, from Blizzard; kits don't use Wowhead's tooltip, which shows 0 for their values
+    public string? icon { get; set; }
+    //Wowhead's name for the kit's icon (e.g. "inv_misc_armorkit_15"), so it's drawn with Wowhead's own
+    //icon like the items beside it; empty when Wowhead didn't answer, and the Blizzard icon is used
+    public string wowheadIcon { get; set; } = "";
+    //Blizzard's quality type ("COMMON", "UNCOMMON") and item level, for the kit's tooltip
+    public string quality { get; set; } = "";
+    public int itemLevel { get; set; }
 }
 
 //Every enchant and consumable the Optimize tab can suggest. Game data, the same for every
@@ -40,6 +48,15 @@ public class ForeverSuggestion
     public int id { get; init; }
     //for an enchant, the live enchanting spell to show and link instead of the scroll; null otherwise
     public int? spellId { get; init; }
+    //An armor kit. Wowhead's Forever data has 0 for every armor kit's values ("Attack Power value by 0"),
+    //so the page shows its own tooltip from Blizzard's text instead of Wowhead's, with this icon.
+    public bool armorKit { get; init; }
+    public string? icon { get; init; }
+    //Wowhead's icon name for an armor kit; empty when unknown, and icon is used instead
+    public string wowheadIcon { get; init; } = "";
+    //for the armor kit tooltip, drawn like Wowhead's: the name's quality colour and the item level
+    public string quality { get; init; } = "";
+    public int itemLevel { get; init; }
     public string name { get; init; } = "";
     public string effect { get; init; } = "";
     public int requiredLevel { get; init; }

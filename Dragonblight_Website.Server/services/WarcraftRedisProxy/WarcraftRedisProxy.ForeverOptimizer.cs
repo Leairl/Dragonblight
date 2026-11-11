@@ -1,3 +1,4 @@
+using System.Text.Json;
 using ArgentPonyWarcraftClient;
 
 //The Optimize tab's catalog: Forever's potions, elixirs, flasks and permanent enhancements (enchants
@@ -15,10 +16,14 @@ partial class WarcraftRedisProxy
     //Alchemy, Enchanting, Leatherworking, Blacksmithing, Engineering
     private static readonly int[] OptimizerProfessions = [171, 333, 165, 164, 202];
 
+    //Raise when ForeverEnhancement gains a field, so a list cached by an older server (kept a week, and
+    //across restarts) is rebuilt instead of serving the new field empty.
+    private const int OptimizerCatalogVersion = 2;
+
     public async Task<ForeverOptimizerCatalog?> GetForeverOptimizerCatalog(string region)
     {
         var ns = GetStaticRegion(region, GameFlavor.Forever);
-        var key = VersionedKey("ForeverOptimizerCatalog" + ns);
+        var key = VersionedKey("ForeverOptimizerCatalog" + OptimizerCatalogVersion + ns);
         var cached = await GetRedisData<ForeverOptimizerCatalog>(key);
         if (cached != null)
         {
@@ -107,6 +112,12 @@ partial class WarcraftRedisProxy
             {
                 enhancement.recipeIds = entry.recipeIds;
                 enhancement.profession = entry.profession;
+                //armor kits are drawn without Wowhead, so they need their icon from Blizzard
+                if (enhancement.target == "kit")
+                {
+                    enhancement.icon = await ForeverItemIcon(entry.id, ns, region);
+                    enhancement.wowheadIcon = await WowheadIconName(entry.id);
+                }
             }
             return enhancement;
         }));
@@ -125,6 +136,63 @@ partial class WarcraftRedisProxy
         }
         await SaveToRedis(key, catalog, keepFor);
         return catalog;
+    }
+
+    //Wowhead's tooltip data for a Forever item (dataEnv 16) names its icon. Only armor kits ask, about
+    //15 items a week, one at a time. A failure just leaves the Blizzard icon in place.
+    private static readonly HttpClient WowheadTooltips = CreateWowheadClient();
+    private static readonly SemaphoreSlim WowheadTooltipFetches = new(1);
+
+    private static HttpClient CreateWowheadClient()
+    {
+        var client = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("Dragonblight/1.0");
+        return client;
+    }
+
+    private static async Task<string> WowheadIconName(int itemId)
+    {
+        await WowheadTooltipFetches.WaitAsync();
+        try
+        {
+            using var response = await WowheadTooltips.GetAsync($"https://nether.wowhead.com/tooltip/item/{itemId}?dataEnv=16&locale=0");
+            if (!response.IsSuccessStatusCode)
+            {
+                return "";
+            }
+            using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+            if (json.RootElement.TryGetProperty("icon", out var icon) && icon.ValueKind == JsonValueKind.String)
+            {
+                return icon.GetString() ?? "";
+            }
+            return "";
+        }
+        catch (Exception)
+        {
+            return "";
+        }
+        finally
+        {
+            WowheadTooltipFetches.Release();
+        }
+    }
+
+    private async Task<string?> ForeverItemIcon(int itemId, string ns, string region)
+    {
+        await ForeverStaticFetches.WaitAsync();
+        try
+        {
+            var media = await warcraftClient.GetItemMediaAsync(itemId, ns, GetRegion(region), GetLocale(region));
+            if (media?.Success != true)
+            {
+                return null;
+            }
+            return IconAsset(media.Value.Assets);
+        }
+        finally
+        {
+            ForeverStaticFetches.Release();
+        }
     }
 
     //null for an enhancement the tab can't place, like a shield spike or a fishing line
@@ -160,6 +228,8 @@ partial class WarcraftRedisProxy
             target = target,
             requiredLevel = item.RequiredLevel,
             spellId = spellId,
+            quality = item.Quality?.Type ?? "",
+            itemLevel = item.Level,
             effect = shown,
             stats = parsed.stats,
             healthRestored = parsed.healthRestored,

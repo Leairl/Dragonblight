@@ -506,7 +506,7 @@ var catalog = new ForeverOptimizerCatalog
         new() { id = 8, name = "Greater Healing Potion", kind = "potion", requiredLevel = 21, healthRestored = 520 },
         new() { id = 9, name = "Major Healing Potion", kind = "potion", requiredLevel = 45, healthRestored = 1400 },
         new() { id = 10, name = "Mana Potion", kind = "potion", requiredLevel = 22, manaRestored = 520 },
-        new() { id = 11, name = "Mystic Rugged Armor Kit", kind = "enchant", target = "kit", requiredLevel = 50, minItemLevel = 35, stats = new() { ["agi"] = 1 } },
+        new() { id = 11, name = "Mystic Rugged Armor Kit", kind = "enchant", target = "kit", requiredLevel = 50, minItemLevel = 35, stats = new() { ["agi"] = 1 }, icon = "https://example.com/kit.jpg" },
     ],
 };
 var gear = new CharacterEquipmentSummary
@@ -529,6 +529,8 @@ Check(mainHand.best[0].spellId == 20034 && feet.best[0].spellId == null, "An enc
 Check(rogue.elixirs.Select(s => s.id).SequenceEqual([7]), "Elixirs above the character's level must be left out");
 Check(rogue.healingPotion?.id == 8 && rogue.manaPotion == null, "The best usable healing potion, and no mana potion for a class without mana");
 Check(!rogue.slots.Any(slot => slot.best.Any(s => s.id == 11)), "Armor kits must wait for their required level");
+var kitAtSixty = ForeverOptimizerPlanner.Build(60, "Rogue", "Combat", gear, catalog, weightsFile, noRecipes, false).slots.First(slot => slot.slot == "FEET").best.First(s => s.id == 11);
+Check(kitAtSixty.armorKit && kitAtSixty.icon == "https://example.com/kit.jpg" && !feet.best[0].armorKit, "Armor kits must be marked, with their icon, so the page skips Wowhead's wrong tooltip");
 var fresh = ForeverOptimizerPlanner.Build(30, "Rogue", "", gear, catalog, weightsFile, noRecipes, false);
 Check(fresh.specName == "Combat" && fresh.specIsDefault && fresh.hasWeights, "A character with no talents gets the class's default spec");
 var mage = ForeverOptimizerPlanner.Build(60, "Mage", "Frost", gear, catalog, weightsFile, noRecipes, false);

@@ -679,6 +679,11 @@ public static class ForeverOptimizerPlanner
             requiredLevel = item.requiredLevel,
             requiredSkill = RequiredSkill(item, recipes),
             profession = item.profession,
+            armorKit = item.target == "kit",
+            icon = item.icon,
+            wowheadIcon = item.wowheadIcon,
+            quality = item.quality,
+            itemLevel = item.itemLevel,
             score = score,
         };
     }

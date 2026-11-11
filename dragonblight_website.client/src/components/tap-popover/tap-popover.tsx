@@ -11,6 +11,9 @@ interface TapPopoverProps {
   //sit over a neighbouring trigger and keep that one from opening, and it closes as soon as the
   //mouse leaves its trigger. Without it, the mouse can move into the popup, which a long list needs.
   passThrough?: boolean;
+  //What a click with a mouse or the keyboard does, like following a link. A tap on a touch screen
+  //still opens the popup, since touch has no hover to show it otherwise.
+  onActivate?: () => void;
 }
 
 //The popover open right now, as its close function. Only one is open at a time: opening another
@@ -19,7 +22,7 @@ let closeOpenPopover: (() => void) | null = null;
 
 //Radix tooltips and hover cards only open for a mouse, so tapping them on a phone does nothing.
 //This opens on hover for a mouse and on tap for touch, and a tap anywhere else closes it.
-const TapPopover = ({ trigger, children, side, triggerClassName, contentClassName, passThrough }: TapPopoverProps) => {
+const TapPopover = ({ trigger, children, side, triggerClassName, contentClassName, passThrough, onActivate }: TapPopoverProps) => {
   const [open, setOpen] = useState(false);
   //the kind of pointer that pressed the trigger, since a click event does not say
   const pointerType = useRef("");
@@ -103,6 +106,9 @@ const TapPopover = ({ trigger, children, side, triggerClassName, contentClassNam
           //hovering already opened it, so a mouse click should not toggle it shut again
           if (pointerType.current === "mouse") {
             e.preventDefault();
+          }
+          if (onActivate && pointerType.current !== "touch") {
+            onActivate();
           }
         }}
       >

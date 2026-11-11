@@ -45,9 +45,17 @@
   font-size: 12px;
 }
 
+/* an armor kit is a button opening our own tooltip; its colour comes from Wowhead's quality class,
+   like the item links beside it */
+.optimize-kit-trigger {
+  cursor: pointer;
+  text-align: left;
+}
+
 /* Wowhead's small icons, at 18px with a plain border, like the recipe tables */
 .optimize-item-link > .iconsmall,
 .optimize-gear-link > .iconsmall {
+  position: relative;
   flex: 0 0 18px;
   width: 18px;
   height: 18px;

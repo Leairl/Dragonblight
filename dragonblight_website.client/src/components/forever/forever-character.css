@@ -52,3 +52,15 @@
   background-color: var(--segmented-control-indicator-background-color);
   box-shadow: 0 0 0 1px var(--gray-a4);
 }
+
+/* an armor kit's enchant line opens our own tooltip rather than Wowhead's; keep the row's layout */
+.forever-kit-enchant {
+  display: block;
+  cursor: pointer;
+  max-width: 100%;
+}
+
+.align-right-name.forever-kit-enchant {
+  margin-left: auto;
+  text-align: right;
+}

@@ -6,9 +6,48 @@ import { Dragonblight } from "../../../clients/Dragonblight";
 import { wowheadUrl } from "../../../helpers/game-flavor";
 import { specDisplayName } from "../../../helpers/forever-names";
 import { useForeverTab } from "../forever-data";
+import TapPopover from "../../tap-popover/tap-popover";
+import WowheadStyleTooltip from "../wowhead-style-tooltip";
+import { openWowhead, wowheadIconUrl, wowheadQualityClass } from "../../../helpers/wowhead-style";
 import "./forever-optimize.css";
 
 declare const $WowheadPower: { refreshLinks: () => void } | undefined;
+
+// Wowhead's Forever data has 0 for every armor kit's values ("Attack Power value by 0"), so a kit
+// gets its own tooltip from Blizzard's text, and its icon from Blizzard, instead of Wowhead's.
+// Drawn the way Wowhead draws the item links beside it: its icon in Wowhead's small frame, and the
+// name in its quality colour.
+function ArmorKitName({ entry }: { entry: Dragonblight.ForeverSuggestion }) {
+  let smallIcon = entry.icon ?? "";
+  let mediumIcon = entry.icon ?? "";
+  if (entry.wowheadIcon) {
+    smallIcon = wowheadIconUrl(entry.wowheadIcon, "small");
+    mediumIcon = wowheadIconUrl(entry.wowheadIcon, "medium");
+  }
+  return (
+    <TapPopover
+      side="top"
+      passThrough
+      triggerClassName={`optimize-item-link optimize-kit-trigger ${wowheadQualityClass(entry.quality)}`}
+      contentClassName="wowhead-style-popover"
+      onActivate={() => openWowhead(wowheadUrl(`item=${entry.id}`, "forever"))}
+      trigger={
+        <>
+          {smallIcon !== "" && (
+            <span className="iconsmall">
+              <ins style={{ backgroundImage: `url("${smallIcon}")` }}></ins>
+              <del></del>
+            </span>
+          )}
+          {entry.name}
+        </>
+      }
+    >
+      <WowheadStyleTooltip name={entry.name} quality={entry.quality} itemLevel={entry.itemLevel}
+        requiredLevel={entry.requiredLevel} use={entry.effect} icon={mediumIcon} />
+    </TapPopover>
+  );
+}
 
 // An enchant or consumable, linked to Wowhead so it gets its icon and tooltip, with its effect under it.
 function Suggestion({ entry, rank, equipped }: { entry: Dragonblight.ForeverSuggestion; rank?: number; equipped?: boolean }) {
@@ -22,9 +61,12 @@ function Suggestion({ entry, rank, equipped }: { entry: Dragonblight.ForeverSugg
       <Flex align="center" gap="2" wrap="wrap">
         {rank === 0 && <Badge color="green" size="1">Best</Badge>}
         {equipped && <Badge color="blue" size="1">Equipped</Badge>}
-        <a className="optimize-item-link" data-wh-icon-size="small" href={wowheadUrl(target, "forever")} target="_blank" rel="noopener noreferrer">
-          {entry.name}
-        </a>
+        {entry.armorKit && <ArmorKitName entry={entry} />}
+        {!entry.armorKit && (
+          <a className="optimize-item-link" data-wh-icon-size="small" href={wowheadUrl(target, "forever")} target="_blank" rel="noopener noreferrer">
+            {entry.name}
+          </a>
+        )}
         {entry.requiredLevel > 1 && <Text size="1" color="gray">Level {entry.requiredLevel}</Text>}
         {entry.requiredSkill != null && entry.profession && (
           <Text size="1" color="gray">{entry.profession} {entry.requiredSkill}</Text>

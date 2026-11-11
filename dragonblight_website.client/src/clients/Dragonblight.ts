@@ -3497,6 +3497,11 @@ export interface ForeverOptimizedSlot {
 export interface ForeverSuggestion {
     id: number;
     spellId?: number | undefined;
+    armorKit: boolean;
+    icon?: string | undefined;
+    wowheadIcon: string;
+    quality: string;
+    itemLevel: number;
     name: string;
     effect: string;
     requiredLevel: number;
