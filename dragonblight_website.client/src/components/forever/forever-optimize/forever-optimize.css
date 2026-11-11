@@ -1,0 +1,85 @@
+.optimize-pane {
+  padding: 12px;
+  min-height: 260px;
+  min-width: 0;
+}
+
+.optimize-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.optimize-card {
+  min-width: 0;
+}
+
+.optimize-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.optimize-suggestion {
+  min-width: 0;
+}
+
+.optimize-effect {
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+.optimize-item-link,
+.optimize-gear-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.optimize-gear-link {
+  font-size: 12px;
+}
+
+/* an armor kit is a button opening our own tooltip; its colour comes from Wowhead's quality class,
+   like the item links beside it */
+.optimize-kit-trigger {
+  cursor: pointer;
+  text-align: left;
+}
+
+/* Wowhead's small icons, at 18px with a plain border, like the recipe tables */
+.optimize-item-link > .iconsmall,
+.optimize-gear-link > .iconsmall {
+  position: relative;
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+.optimize-item-link > .iconsmall > ins,
+.optimize-gear-link > .iconsmall > ins {
+  box-sizing: border-box;
+  left: 0;
+  top: 0;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--gray-a5);
+  border-radius: var(--radius-2);
+}
+
+.optimize-item-link > .iconsmall > del,
+.optimize-gear-link > .iconsmall > del {
+  display: none;
+}
+
+@media (max-width: 800px) {
+  .optimize-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

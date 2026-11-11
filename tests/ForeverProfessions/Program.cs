@@ -175,6 +175,20 @@ Check(handler.Paths.Last().Contains("/profession/197/skill-tier/2948?namespace=s
 calls = handler.Paths.Count;
 await controller.GetSkillTierRecipes("us", 197, 2948);
 Check(handler.Paths.Count == calls, "Skill tier recipe lists must be cached");
+ForeverRecipes.data[2370] = new ForeverRecipeInfo { requiredSkill = 75, itemId = 5772, itemName = "Pattern: Test", itemIcon = "https://example.com/pattern.jpg", source = "Vendor: Qia (Winterspring)" };
+ForeverRecipes.data[2387] = new ForeverRecipeInfo { requiredSkill = 15, estimated = true, source = "Trainer" };
+var skilledRows = ((await controller.GetSkillTierRecipes("us", 197, 2948)).Result as OkObjectResult)?.Value as ForeverSkillTierRecipe[];
+Check(skilledRows?[1].requiredSkill == 75 && !skilledRows[1].requiredSkillEstimated, "Recipes must carry the required skill from the file");
+Check(skilledRows![2].requiredSkill == 15 && skilledRows[2].requiredSkillEstimated, "Estimated required skills must be marked as estimates");
+Check(skilledRows[0].requiredSkill == null && skilledRows[0].name == "Bolt of Linen Cloth", "A recipe missing from the file must have no required skill");
+Check(handler.Paths.Count == calls, "Required skills come from the file, not from more Blizzard calls");
+var taughtRows = ((await controller.GetRecipes("us", [2370, 2387])).Result as OkObjectResult)?.Value as ForeverRecipeDetails[];
+Check(taughtRows?[0].taughtBy?.id == 5772 && taughtRows[0].taughtBy!.icon == "https://example.com/pattern.jpg", "Recipe details must name the pattern that teaches the recipe, with its icon");
+Check(taughtRows![0].source == "Vendor: Qia (Winterspring)", "Recipe details must say where the pattern comes from");
+Check(taughtRows[1].taughtBy == null && taughtRows[1].source == "Trainer", "Trainer recipes have no pattern and say Trainer");
+ForeverRecipes.data.Clear();
+var plainRows = ((await controller.GetRecipes("us", [2370])).Result as OkObjectResult)?.Value as ForeverRecipeDetails[];
+Check(plainRows?[0].taughtBy == null && plainRows[0].source == null, "Without the file, recipes have no pattern or source");
 Check((await controller.GetSkillTierRecipes("us", 197, 9999)).Result is NotFoundObjectResult, "A tier Blizzard doesn't have must be a 404");
 calls = handler.Paths.Count;
 Check((await controller.GetSkillTierRecipes("xx", 197, 2948)).Result is BadRequestObjectResult, "Skill tier recipes must validate the region");
@@ -437,6 +451,127 @@ BlizzardHandler.AchievementIndex = """{"achievements":[{"id":61997,"name":"a"},{
 Check((await controller.GetLegacyPoints("us", "judgement-judy")).Result is StatusCodeResult { StatusCode: 500 }, "An unreadable definition must fail, not undercount");
 BlizzardHandler.AchievementIndex = """{"achievements":[{"id":61997,"name":"a"}]}""";
 Check(((await controller.GetLegacyPoints("us", "judgement-judy")).Result as OkObjectResult)?.Value is ForeverLegacyPoints { earned: 1, total: 1 }, "A failed Legacy reward list must not be cached");
+//Optimize tab: effect text as Blizzard words it, read into stats
+double StatOf(string text, string stat) => ForeverEffectParser.Parse(text).stats.GetValueOrDefault(stat);
+Check(StatOf("Use: Permanently enchant a pair of boots so they increase the wearer's Agility by 3.", "agi") == 3, "\"Agility by 3\" must be read");
+Check(StatOf("Use: Permanently enchant gloves to grant +7 Agility.", "agi") == 7, "\"+7 Agility\" must be read");
+var wisdom = ForeverEffectParser.Parse("Use: Permanently enchant an Off-Hand to add 6 to intellect and 5 to spirit.");
+Check(wisdom.stats.GetValueOrDefault("int") == 6 && wisdom.stats.GetValueOrDefault("spi") == 5, "\"add 6 to intellect and 5 to spirit\" must give each its own number");
+var cunning = ForeverEffectParser.Parse("Use: Drink to gain 25 Agility and Intellect. Lasts for 30 min. (3 Sec Cooldown)");
+Check(cunning.stats.GetValueOrDefault("agi") == 25 && cunning.stats.GetValueOrDefault("int") == 25, "\"25 Agility and Intellect\" must give both 25");
+var mongoose = ForeverEffectParser.Parse("Use: Increases Agility by 25 and chance to get a critical hit by 2%. Lasts for 30 min. (3 Sec Cooldown)");
+Check(mongoose.stats.GetValueOrDefault("agi") == 25 && mongoose.stats.GetValueOrDefault("crit") == 2, "Mongoose must give agility and 2% crit");
+Check(StatOf("Use: Permanently enchant a necklace to increase spell damage and healing by up to 6.", "sp") == 6, "Spell power must be read");
+Check(StatOf("Use: Increases Spell Damage by 7 for 30 sec. (2 Min Cooldown)", "spdmg") == 7, "Spell damage only must be its own stat");
+Check(StatOf("Use: Permanently enchant gloves to increase fire damage by up to 20.", "fire") == 20, "One school's damage must be its own stat");
+Check(StatOf("Use: Permanently enchant a two-handed melee weapon to do +7 damage.", "wdmg") == 7, "Weapon damage must be read");
+Check(StatOf("Use: Permanently enchant bracers so that the defense skill of the wearer is increased by 3.", "def") == 3, "Defense must be read across its wording");
+Check(ForeverEffectParser.Parse("Use: Permanently enchant a melee weapon so that often when attacking in melee it heals for 75 to 125 and increases Strength by 100 for 15 sec.").stats.Count == 0, "A proc must not be read as steady stats");
+var accuracy = ForeverEffectParser.Parse("Use: Increases your Stamina by 30. While in Mount Hyjal, Hyjal Summit, and the Barrow Deeps, you also gain 2% Hit Chance.\r\n\r\nLasts for 2 hrs.");
+Check(accuracy.stats.GetValueOrDefault("sta") == 30 && !accuracy.stats.ContainsKey("hit"), "A zone-only bonus must be left out");
+Check(ForeverEffectParser.Parse("Use: Restores 455 to 585 health. (2 Min Cooldown)").healthRestored == 520, "A healing potion restores the middle of its range");
+Check(ForeverEffectParser.Parse("Use: Restores 455 to 585 mana. (2 Min Cooldown)").manaRestored == 520, "A mana potion restores the middle of its range");
+var kit = ForeverEffectParser.Parse("Use: Permanently increase the Spell Power value by 6 and armor value by 40 of an item worn on the chest, legs, hands, or feet. Only usable on items level 35 and above.");
+Check(kit.stats.GetValueOrDefault("sp") == 6 && kit.stats.GetValueOrDefault("armor") == 40 && kit.minItemLevel == 35, "Armor kits must give their stats and item level floor");
+Check(ForeverEffectParser.Parse("Use: Restores 1,350 to 2,250 mana. (2 Min Cooldown)").manaRestored == 1800, "Thousands separators must not split numbers");
+Check(ForeverEffectParser.Parse("Use: Absorbs 975 to 1,625 fire damage.  Lasts 2 min.").stats.Count == 0, "Protection potions must not count as spell damage");
+Check(ForeverEffectParser.Parse("Use: Unleash a belch of dragonfire, dealing 280 Fire damage instantly in a narrow cone in front of you.").stats.Count == 0, "Damage dealt to enemies is not a stat");
+Check(ForeverEffectParser.Parse("Use: Restores 600 to 680 health instantly; however you also suffer 75% of that amount over time.").healthRestored == 640, "Forever's Discolored healing potions still heal");
+Check(ForeverEffectParser.Parse("Use: Increases Intellect by 2% for 1 hour. This effect stacks up to 5 times.").stats.Count == 0, "A percentage of a flat stat can't be compared and must be left out");
+Check(ForeverEffectParser.Parse("Use: Restores 980 to 1,260 health. This item may only be used in PvP Battlegrounds.").healthRestored == 0, "Battleground-only draughts must be left out");
+Check(StatOf("Use: Permanently enchant a Melee Weapon to do 3 additional points of damage.", "wdmg") == 3 && StatOf("Use: Permanently enchant a cloak to give 30 additional armor.", "armor") == 30, "\"N additional ...\" must be read");
+Check(StatOf("Use: Drink to increase nature spell damage by up to 40. Lasts for 30 min.", "nature") == 40, "\"nature spell damage\" is nature damage");
+Check(ForeverEffectParser.Target("Enchant 2H Weapon - Greater Impact", "") == "2h" && ForeverEffectParser.Target("Mystic Rugged Armor Kit", "chest, legs, hands, or feet") == "kit"
+    && ForeverEffectParser.Target("Iron Shield Spike", "") == "", "Enchant targets must come from the name");
+
+//Optimize tab: ranking for a character
+var weightsFile = new ForeverStatWeights
+{
+    specs = new() { ["Rogue/Combat"] = new() { ["agi"] = 2, ["str"] = 1 }, ["Mage/Frost"] = new() { ["int"] = 1 } },
+    defaultSpec = new() { ["Rogue"] = "Combat" },
+    overrides = new() { ["Enchant Weapon - Crusader"] = new() { ["str"] = 35 } },
+    manaUsers = ["Mage"],
+};
+var catalog = new ForeverOptimizerCatalog
+{
+    items =
+    [
+        new() { id = 1, name = "Enchant Boots - Minor Agility", kind = "enchant", target = "feet", stats = new() { ["agi"] = 3 } },
+        new() { id = 2, name = "Enchant Boots - Agility", kind = "enchant", target = "feet", stats = new() { ["agi"] = 5 } },
+        new() { id = 3, name = "Enchant Boots - Spirit", kind = "enchant", target = "feet", stats = new() { ["spi"] = 5 } },
+        new() { id = 4, name = "Enchant Weapon - Crusader", kind = "enchant", target = "weapon", spellId = 20034 },
+        new() { id = 5, name = "Enchant 2H Weapon - Agility", kind = "enchant", target = "2h", stats = new() { ["agi"] = 25 } },
+        new() { id = 6, name = "Elixir of the Mongoose", kind = "elixir", requiredLevel = 46, stats = new() { ["agi"] = 25 } },
+        new() { id = 7, name = "Elixir of Lesser Agility", kind = "elixir", requiredLevel = 18, stats = new() { ["agi"] = 8 } },
+        new() { id = 8, name = "Greater Healing Potion", kind = "potion", requiredLevel = 21, healthRestored = 520 },
+        new() { id = 9, name = "Major Healing Potion", kind = "potion", requiredLevel = 45, healthRestored = 1400 },
+        new() { id = 10, name = "Mana Potion", kind = "potion", requiredLevel = 22, manaRestored = 520 },
+        new() { id = 11, name = "Mystic Rugged Armor Kit", kind = "enchant", target = "kit", requiredLevel = 50, minItemLevel = 35, stats = new() { ["agi"] = 1 }, icon = "https://example.com/kit.jpg" },
+    ],
+};
+var gear = new CharacterEquipmentSummary
+{
+    EquippedItems =
+    [
+        new EquippedItem { Slot = new EnumType { Type = "FEET", Name = "Feet" }, Name = "Boots", InventoryType = new EnumType { Type = "FEET" }, Level = new DescribedValue { Value = 40 },
+            Enchantments = [new Enchantment { DisplayString = "Enchanted: +3 Agility", SourceItem = new ItemReference { Id = 1 }, EnchantmentSlot = new EnchantmentSlot { Type = "PERMANENT" } }] },
+        new EquippedItem { Slot = new EnumType { Type = "MAIN_HAND", Name = "Main Hand" }, Name = "Sword", InventoryType = new EnumType { Type = "WEAPON" }, Level = new DescribedValue { Value = 40 } },
+    ],
+};
+var noRecipes = new Dictionary<int, ForeverRecipeInfo>();
+var rogue = ForeverOptimizerPlanner.Build(30, "Rogue", "Combat", gear, catalog, weightsFile, noRecipes, false);
+var feet = rogue.slots.First(slot => slot.slot == "FEET");
+Check(feet.best.Select(s => s.id).SequenceEqual([2, 1]), "Boots enchants must be ranked by the spec's weights, leaving out ones that don't help");
+Check(feet.currentEnchant == "Enchanted: +3 Agility" && feet.currentEnchantItemId == 1, "The current enchant must be shown, with the item it came from");
+var mainHand = rogue.slots.First(slot => slot.slot == "MAIN_HAND");
+Check(mainHand.best.Count == 1 && mainHand.best[0].id == 4 && mainHand.best[0].score == 35, "A proc enchant must be scored from its override, and 2H enchants kept off a one-hander");
+Check(mainHand.best[0].spellId == 20034 && feet.best[0].spellId == null, "An enchant must carry its live enchanting spell, since its scroll is PTR only");
+Check(rogue.elixirs.Select(s => s.id).SequenceEqual([7]), "Elixirs above the character's level must be left out");
+Check(rogue.healingPotion?.id == 8 && rogue.manaPotion == null, "The best usable healing potion, and no mana potion for a class without mana");
+Check(!rogue.slots.Any(slot => slot.best.Any(s => s.id == 11)), "Armor kits must wait for their required level");
+var kitAtSixty = ForeverOptimizerPlanner.Build(60, "Rogue", "Combat", gear, catalog, weightsFile, noRecipes, false).slots.First(slot => slot.slot == "FEET").best.First(s => s.id == 11);
+Check(kitAtSixty.armorKit && kitAtSixty.icon == "https://example.com/kit.jpg" && !feet.best[0].armorKit, "Armor kits must be marked, with their icon, so the page skips Wowhead's wrong tooltip");
+var fresh = ForeverOptimizerPlanner.Build(30, "Rogue", "", gear, catalog, weightsFile, noRecipes, false);
+Check(fresh.specName == "Combat" && fresh.specIsDefault && fresh.hasWeights, "A character with no talents gets the class's default spec");
+var mage = ForeverOptimizerPlanner.Build(60, "Mage", "Frost", gear, catalog, weightsFile, noRecipes, false);
+Check(mage.manaPotion?.id == 10 && mage.healingPotion?.id == 9, "Mana users get a mana potion; higher levels get the bigger healing potion");
+Check(!ForeverOptimizerPlanner.Build(30, "Druid", "Balance", gear, catalog, weightsFile, noRecipes, false).hasWeights, "A class with no weights must say so rather than rank");
+
+//Optimize tab: what a crafter of the character's level could make, and phases that aren't out yet
+var skillCatalog = new ForeverOptimizerCatalog
+{
+    items =
+    [
+        new() { id = 20, name = "Enchant Weapon - Crusader", kind = "enchant", target = "weapon", recipeIds = [900], profession = "Enchanting", stats = new() { ["agi"] = 50 } },
+        new() { id = 21, name = "Enchant Weapon - Lesser Striking", kind = "enchant", target = "weapon", recipeIds = [901], stats = new() { ["agi"] = 2 } },
+        new() { id = 22, name = "Enchant Weapon - Grand Crusader", kind = "enchant", target = "weapon", recipeIds = [902], stats = new() { ["agi"] = 90 } },
+        new() { id = 23, name = "Enchant Weapon - Mystery", kind = "enchant", target = "weapon", stats = new() { ["agi"] = 1 } },
+        new() { id = 24, name = "Enchant Weapon - Hyjal Edge", kind = "enchant", target = "weapon", recipeIds = [903], stats = new() { ["agi"] = 80 } },
+    ],
+};
+var skillRecipes = new Dictionary<int, ForeverRecipeInfo>
+{
+    [900] = new() { requiredSkill = 300 },
+    [901] = new() { requiredSkill = 140 },
+    [902] = new() { requiredSkill = 300 },
+    [903] = new() { requiredSkill = 100, source = "Drop: Ancient Guardian (Mount Hyjal)" },
+};
+var phased = new ForeverStatWeights
+{
+    specs = weightsFile.specs,
+    currentPhase = 1,
+    laterPhases = new() { ["2"] = new ForeverPhaseContent { zones = ["Mount Hyjal"], items = ["Enchant Weapon - Grand Crusader"] } },
+};
+List<int> WeaponIds(ForeverOptimizePage page) => page.slots.First(slot => slot.slot == "MAIN_HAND").best.Select(s => s.id).ToList();
+var level29 = ForeverOptimizerPlanner.Build(29, "Rogue", "Combat", gear, skillCatalog, phased, skillRecipes, false);
+Check(WeaponIds(level29).SequenceEqual([21, 23]), "A level 29 must only get what a skill 145 crafter makes, plus recipes of unknown skill");
+Check(level29.skillCap == 145 && !level29.showingAll, "The page must say what skill it limited to");
+var shownAll = ForeverOptimizerPlanner.Build(29, "Rogue", "Combat", gear, skillCatalog, phased, skillRecipes, true);
+Check(WeaponIds(shownAll).SequenceEqual([20, 21, 23]), "Show everything lifts the skill limit but never shows a later phase");
+Check(shownAll.slots.First(slot => slot.slot == "MAIN_HAND").best[0] is { requiredSkill: 300, profession: "Enchanting" }, "Suggestions must say the skill and profession they need");
+phased.currentPhase = 2;
+Check(WeaponIds(ForeverOptimizerPlanner.Build(60, "Rogue", "Combat", gear, skillCatalog, phased, skillRecipes, false)).SequenceEqual([22, 24, 20]), "Raising the current phase must unlock its zones and items");
+
 Console.WriteLine($"Passed {checks} Forever character checks.");
 
 public class Stub : DispatchProxy

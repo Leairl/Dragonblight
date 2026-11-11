@@ -7,6 +7,7 @@ import { ClassColor } from "../../helpers/classColorHelper";
 import { findSlotItem, getEnchant, getEnchantName, itemTooltipParams } from "../../helpers/equipmentHelper";
 import { wowheadUrl } from "../../helpers/game-flavor";
 import ForeverProfessions from "./forever-professions/forever-professions";
+import ForeverOptimize from "./forever-optimize/forever-optimize";
 import ForeverPvp from "./forever-pvp/forever-pvp";
 import ForeverCharacterStats from "./forever-character-stats/forever-character-stats";
 import ForeverReputations from "./forever-reputations/forever-reputations";
@@ -14,6 +15,9 @@ import ForeverAchievements from "./forever-achievements/forever-achievements";
 import ForeverCollections from "./forever-collections/forever-collections";
 import { prefetchForeverTab } from "./forever-data";
 import "../profile/profile.css";
+import { openWowhead } from "../../helpers/wowhead-style";
+import WowheadStyleTooltip from "./wowhead-style-tooltip";
+import TapPopover from "../tap-popover/tap-popover";
 import ForeverTalents from "./forever-talents";
 import "../profile/profile-equipment/profile-equipment.css";
 import "./forever-character.css";
@@ -64,6 +68,37 @@ function mainRender(page: Dragonblight.ForeverCharacterPage | undefined): string
   return asset?.value;
 }
 
+// The enchant under an item, linked to Wowhead. An armor kit isn't: Wowhead's Forever data has 0
+// for every kit's values ("Attack Power value by 0"), so it opens a tooltip with Blizzard's own
+// line for the enchant ("Attack Power +4 and Armor +16") instead.
+function EnchantLine(props: { item: Dragonblight.EquippedItem; className: string }) {
+  const enchant = getEnchant(props.item);
+  const sourceName = enchant?.source_item?.name ?? "";
+  if (enchant && sourceName.endsWith("Armor Kit")) {
+    let shown = enchant.display_string ?? "";
+    if (shown.startsWith("Enchanted: ")) {
+      shown = shown.substring("Enchanted: ".length);
+    }
+    return (
+      <TapPopover
+        side="top"
+        passThrough
+        triggerClassName={`${props.className} forever-kit-enchant`}
+        contentClassName="wowhead-style-popover"
+        onActivate={() => openWowhead(wowheadUrl(`item=${enchant.source_item?.id}`))}
+        trigger={<div className="green_text"> {getEnchantName(props.item)} </div>}
+      >
+        <WowheadStyleTooltip name={sourceName} effect={shown} />
+      </TapPopover>
+    );
+  }
+  return (
+    <a className={props.className} href={wowheadUrl(`item=${enchant?.source_item?.id}`)}>
+      <div className="green_text"> {getEnchantName(props.item)} </div>
+    </a>
+  );
+}
+
 // One paperdoll slot, drawn like the retail and classic profile's: the icon on the outer
 // edge, the item name beside it and its enchant in green underneath (armor kits and
 // patches show up here too). Wowhead fills in the icon and colors the name.
@@ -96,9 +131,7 @@ function SlotRow(props: { slot: number; right: boolean; equipment: Dragonblight.
         <a className={nameClass} href={wowheadUrl(`item=${item.item?.id}`)} data-wowhead={itemTooltipParams(item)}>
           {item.name}
         </a>
-        <a className={enchantClass} href={wowheadUrl(`item=${getEnchant(item)?.source_item?.id}`)}>
-          <div className="green_text"> {getEnchantName(item)} </div>
-        </a>
+        <EnchantLine item={item} className={enchantClass} />
       </div>
     </div>
   );
@@ -180,7 +213,7 @@ function nameFromSlug(slug: string): string {
 }
 
 // The tabs that load their own data, which starts as soon as the pointer or keyboard reaches the tab.
-const dataTabs = [["professions", "Professions"], ["pvp", "PvP"], ["reputations", "Reputations"], ["achievements", "Achievements"], ["collections", "Collections"]] as const;
+const dataTabs = [["optimize", "Optimize"], ["professions", "Professions"], ["pvp", "PvP"], ["reputations", "Reputations"], ["achievements", "Achievements"], ["collections", "Collections"]] as const;
 
 // The tab in the URL, or gear when there is none or it isn't one of the tabs.
 function foreverTab(urlTab: string | undefined) {
@@ -469,6 +502,10 @@ function ForeverCharacter() {
               {tab === "professions" ? (
                 <Card className="talent-row border-card">
                   <ForeverProfessions key={requestKey} />
+                </Card>
+              ) : tab === "optimize" ? (
+                <Card className="talent-row border-card">
+                  <ForeverOptimize key={requestKey} />
                 </Card>
               ) : tab === "pvp" ? (
                 <Card className="talent-row border-card">

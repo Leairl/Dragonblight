@@ -1186,6 +1186,57 @@ export class ForeverCharacterClient {
         }
         return Promise.resolve<ForeverTalentsPage>(null as any);
     }
+
+    getOptimization(region: string | undefined, characterSlug: string | undefined, showAll: boolean | undefined): Promise<ForeverOptimizePage> {
+        let url_ = this.baseUrl + "/api/ForeverCharacter/GetOptimization?";
+        if (region === null)
+            throw new globalThis.Error("The parameter 'region' cannot be null.");
+        else if (region !== undefined)
+            url_ += "region=" + encodeURIComponent("" + region) + "&";
+        if (characterSlug === null)
+            throw new globalThis.Error("The parameter 'characterSlug' cannot be null.");
+        else if (characterSlug !== undefined)
+            url_ += "characterSlug=" + encodeURIComponent("" + characterSlug) + "&";
+        if (showAll === null)
+            throw new globalThis.Error("The parameter 'showAll' cannot be null.");
+        else if (showAll !== undefined)
+            url_ += "showAll=" + encodeURIComponent("" + showAll) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetOptimization(_response);
+        });
+    }
+
+    protected processGetOptimization(response: Response): Promise<ForeverOptimizePage> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ForeverOptimizePage;
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            result404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ProblemDetails;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ForeverOptimizePage>(null as any);
+    }
 }
 
 export class ForeverGuildClient {
@@ -3330,6 +3381,8 @@ export interface ForeverRecipeDetails {
     id: number;
     recipe?: Recipe | undefined;
     icon?: string | undefined;
+    taughtBy?: ForeverRecipeItem | undefined;
+    source?: string | undefined;
 }
 
 export interface Recipe {
@@ -3372,10 +3425,18 @@ export interface ModifiedCraftingReagentSlotTypeReferenceWithoutName {
     id: number;
 }
 
+export interface ForeverRecipeItem {
+    id: number;
+    name: string;
+    icon?: string | undefined;
+}
+
 export interface ForeverSkillTierRecipe {
     id: number;
     name: string;
     category: string;
+    requiredSkill?: number | undefined;
+    requiredSkillEstimated: boolean;
 }
 
 export interface ForeverTalentsPage {
@@ -3405,6 +3466,48 @@ export interface ForeverTalentNode {
 export interface ForeverTalentGroup {
     isActive: boolean;
     ranks: { [key: string]: number; };
+}
+
+export interface ForeverOptimizePage {
+    level: number;
+    className: string;
+    specName: string;
+    specIsDefault: boolean;
+    hasWeights: boolean;
+    skillCap: number;
+    showingAll: boolean;
+    slots: ForeverOptimizedSlot[];
+    elixirs: ForeverSuggestion[];
+    flasks: ForeverSuggestion[];
+    potions: ForeverSuggestion[];
+    healingPotion?: ForeverSuggestion | undefined;
+    manaPotion?: ForeverSuggestion | undefined;
+}
+
+export interface ForeverOptimizedSlot {
+    slot: string;
+    slotName: string;
+    itemId: number;
+    itemName: string;
+    currentEnchant?: string | undefined;
+    currentEnchantItemId?: number | undefined;
+    best: ForeverSuggestion[];
+}
+
+export interface ForeverSuggestion {
+    id: number;
+    spellId?: number | undefined;
+    armorKit: boolean;
+    icon?: string | undefined;
+    wowheadIcon: string;
+    quality: string;
+    itemLevel: number;
+    name: string;
+    effect: string;
+    requiredLevel: number;
+    requiredSkill?: number | undefined;
+    profession: string;
+    score: number;
 }
 
 export interface ForeverGuildPage {

@@ -132,17 +132,6 @@
   display: none;
 }
 
-.recipe-wowhead-link {
-  white-space: nowrap;
-}
-
-.recipe-wowhead-link > .iconlarge,
-.recipe-wowhead-link > .iconmedium,
-.recipe-wowhead-link > .iconsmall,
-.recipe-wowhead-link > .icontiny {
-  display: none;
-}
-
 .recipe-name {
   min-width: 140px;
 }
