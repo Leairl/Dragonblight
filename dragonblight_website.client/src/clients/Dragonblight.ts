@@ -3346,6 +3346,7 @@ export interface ForeverCollectionTotals {
 export interface ForeverCollectionIcon {
     id: number;
     icon?: string | undefined;
+    itemId?: number | undefined;
 }
 
 export interface ForeverLegacyPoints {

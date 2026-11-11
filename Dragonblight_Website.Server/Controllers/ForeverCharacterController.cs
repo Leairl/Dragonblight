@@ -384,7 +384,16 @@ namespace Dragonblight_Website.Server.Controllers
                     var names = await _warcraftCachedData.GetForeverAppearanceNames(ids, region);
                     lookup = (id, r) => _warcraftCachedData.GetForeverAppearanceIcon(id, names.GetValueOrDefault(id)?.mediaId, r);
                 }
-                var rows = await Task.WhenAll(ids.Distinct().Select(async id => new ForeverCollectionIcon { id = id, icon = await lookup(id, region) }));
+                var rows = await Task.WhenAll(ids.Distinct().Select(async id =>
+                {
+                    var icon = lookup(id, region);
+                    int? itemId = null;
+                    if (kind == "toy")
+                    {
+                        itemId = await _warcraftCachedData.GetForeverToyItemId(id, region);
+                    }
+                    return new ForeverCollectionIcon { id = id, icon = await icon, itemId = itemId };
+                }));
                 CacheStaticRows(rows.All(row => row.icon != null));
                 return Ok(rows);
             }
@@ -729,6 +738,8 @@ namespace Dragonblight_Website.Server.Controllers
         public int id { get; init; }
         //null when Blizzard has no picture for it, or the lookup failed and will be tried again
         public string? icon { get; init; }
+        //a toy's item, for its Wowhead tooltip; null for the other kinds
+        public int? itemId { get; init; }
     }
 
     public class ForeverLegacyPoints

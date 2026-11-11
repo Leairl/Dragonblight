@@ -127,6 +127,9 @@ public record ForeverToy
     public int Id { get; init; }
     [JsonPropertyName("media")]
     public ForeverIdReference? Media { get; init; }
+    //the toy's item, for its Wowhead tooltip
+    [JsonPropertyName("item")]
+    public ForeverIdReference? Item { get; init; }
 }
 
 //A page of Forever's item search, used to map appearances to the items that have them. Search

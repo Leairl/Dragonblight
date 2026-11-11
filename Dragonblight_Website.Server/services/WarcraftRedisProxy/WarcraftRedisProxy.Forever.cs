@@ -357,7 +357,77 @@ partial class WarcraftRedisProxy
         {
             return null;
         }
-        return await GetForeverItemMediaIcon(mediaId, ns, region);
+        var icon = await GetForeverItemMediaIcon(mediaId, ns, region);
+        if (icon == null)
+        {
+            return null;
+        }
+        //a toy's item media is its item, so the media id is the item id Wowhead knows it by
+        return await ReachableIcon(icon, mediaId, ns);
+    }
+
+    //The item a toy is, for its Wowhead tooltip; null when Blizzard doesn't say.
+    public async Task<int?> GetForeverToyItemId(int toyId, string region)
+    {
+        var ns = GetStaticRegion(region, GameFlavor.Forever);
+        var itemId = await GetForeverStaticCached<ForeverToy, int>("ForeverToyItemLookup" + toyId + ns,
+            () => warcraftClient.GetForeverToyAsync(toyId, ns, GetRegion(region), GetLocale(region)), toy => toy.Item?.Id ?? 0);
+        if (itemId <= 0)
+        {
+            return null;
+        }
+        return itemId;
+    }
+
+    //Blizzard's API names icons its render server doesn't have: Forever's new ones (Pouch of Violet Dust's
+    //5931149) answer 403. Such an icon is swapped for Wowhead's copy of the item's icon. Each answer is kept
+    //a week, so the render server and Wowhead are asked once per icon; only toys check, and Forever has few.
+    private static readonly HttpClient IconChecks = CreateIconCheckClient();
+
+    private static HttpClient CreateIconCheckClient()
+    {
+        var client = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("Dragonblight/1.0");
+        return client;
+    }
+
+    private async Task<string> ReachableIcon(string icon, int itemId, string ns)
+    {
+        var key = VersionedKey("ForeverReachableIcon" + itemId + ns);
+        var cached = await GetRedisData<string>(key);
+        if (cached != null)
+        {
+            return cached;
+        }
+        var reachable = icon;
+        bool known = true;
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Head, icon);
+            using var response = await IconChecks.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
+            {
+                var name = await WowheadIconName(itemId);
+                if (name != "")
+                {
+                    reachable = "https://wow.zamimg.com/images/wow/icons/large/" + name + ".jpg";
+                }
+                else
+                {
+                    //Wowhead didn't answer either; ask both again next time
+                    known = false;
+                }
+            }
+        }
+        catch (Exception)
+        {
+            known = false;
+        }
+        if (known)
+        {
+            await SaveToRedis(key, reachable, TimeSpan.FromDays(7));
+        }
+        return reachable;
     }
 
     //Icons are shared by many items and appearances, so they are cached by item media id.
