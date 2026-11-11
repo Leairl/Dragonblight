@@ -314,7 +314,9 @@ namespace Dragonblight_Website.Server.Controllers
 
         //Blizzard splits some slots that share a name (chest and robe, both "Chest"), so slots are merged
         //by name, in Blizzard's order, listing each appearance once. Names come from Forever's item
-        //catalog; when that can't be read the page still gets every appearance, just unnamed.
+        //catalog. Appearances with no item in it, and the game's "Hidden Helm"-style items that hide a
+        //slot, aren't anything a player collected, so they are left out of the lists and the counts.
+        //When the catalog can't be read the page still gets every appearance, just unnamed.
         private async Task<ForeverAppearanceSlot[]> AppearanceSlots(ForeverTransmogsCollection? transmogs, string region)
         {
             var groups = (transmogs?.Slots ?? [])
@@ -322,7 +324,7 @@ namespace Dragonblight_Website.Server.Controllers
                 .Select(group => (type: group.First().Slot?.Type ?? "", name: group.Key,
                     ids: group.SelectMany(slot => slot.Appearances ?? []).Select(a => a.Id).Distinct().ToArray()))
                 .ToArray();
-            var names = new Dictionary<int, ForeverAppearanceName>();
+            Dictionary<int, ForeverAppearanceName>? names = null;
             try
             {
                 names = await _warcraftCachedData.GetForeverAppearanceNames(groups.SelectMany(g => g.ids).ToArray(), region);
@@ -331,7 +333,16 @@ namespace Dragonblight_Website.Server.Controllers
             {
                 _logger.LogWarning(ex, "Forever appearance catalog unavailable in {Region}; appearances are sent unnamed.", region);
             }
-            return groups.Select(group => new ForeverAppearanceSlot
+            bool Shown(int id)
+            {
+                if (names == null)
+                {
+                    return true;
+                }
+                var name = names.GetValueOrDefault(id)?.name;
+                return !string.IsNullOrEmpty(name) && !name.StartsWith("Hidden ", StringComparison.OrdinalIgnoreCase);
+            }
+            return groups.Select(group => (group.type, group.name, ids: group.ids.Where(Shown).ToArray())).Select(group => new ForeverAppearanceSlot
             {
                 type = group.type,
                 name = group.name,
@@ -339,8 +350,8 @@ namespace Dragonblight_Website.Server.Controllers
                 appearances = group.ids.Select(id => new ForeverAppearance
                 {
                     id = id,
-                    name = names.GetValueOrDefault(id)?.name,
-                    quality = names.GetValueOrDefault(id)?.quality,
+                    name = names?.GetValueOrDefault(id)?.name,
+                    quality = names?.GetValueOrDefault(id)?.quality,
                 }).ToArray(),
             }).ToArray();
         }
