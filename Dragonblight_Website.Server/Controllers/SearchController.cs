@@ -16,7 +16,8 @@ namespace Dragonblight_Website.Server.Controllers
         private readonly ILogger<SearchController> _logger;
         private readonly IWarcraftRedisProxy _warcraftCachedData; //underscore is syntax to global variable
 
-        static string RemoveDiacritics(string text)
+        //also used by ForeverCharacterController's search
+        public static string RemoveDiacritics(string text)
         {
             var normalizedString = text.Normalize(NormalizationForm.FormD);
             var stringBuilder = new StringBuilder(capacity: normalizedString.Length);

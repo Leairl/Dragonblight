@@ -27,6 +27,12 @@ const tabs: NavTab[] = [
   { label: "Comp Score", to: "/composition-score", match: "/composition-score", isNew: true, retailOnly: true },
 ];
 
+//Forever has no ladders, so it gets its own short list: home and the ruleset stats page
+const foreverTabs: NavTab[] = [
+  { label: "Home", to: "/", match: "/" },
+  { label: "Stats", to: "/stats", match: "/stats", isNew: true },
+];
+
 function isActive(tab: NavTab, pathname: string): boolean {
   if (tab.match === "/") {
     return pathname === "/";
@@ -44,7 +50,7 @@ function NavBar() {
   const isForever = getFlavor() === "forever";
   let shownTabs = tabs.filter((tab) => isRetail || !tab.retailOnly);
   if (isForever) {
-    shownTabs = tabs.filter((tab) => tab.to === "/");
+    shownTabs = foreverTabs;
   }
   return (
     <Theme radius="none">
@@ -139,6 +145,22 @@ function NavBar() {
             </a>
             </div>
           </NavigationMenu.Item>
+          {isForever && (
+            <NavigationMenu.Item>
+              <div className="px-3 py-2 w-full">
+              <a onClick={() => { window.location.href = flavorHref("/stats") }}>
+              {/* acts as a button */}
+                <NavigationMenu.Trigger className=" h-12  w-full group flex select-none items-center gap-[2px] rounded-[4px] text-[15px] font-medium leading-none outline-hidden">
+                  <div className="mobile-nav-frame">
+                    <div className="mobile-nav-inner">
+                      <span className="nav-text text-white">Stats</span>
+                    </div>
+                  </div>
+                </NavigationMenu.Trigger>
+              </a>
+              </div>
+            </NavigationMenu.Item>
+          )}
           {/* the ladder pages have no Forever data yet */}
           {!isForever && (<>
           <NavigationMenu.Item>
