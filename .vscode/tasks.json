@@ -89,10 +89,8 @@
       "dependsOn": "Local: Docker Compose",
       "isBackground": true,
       "problemMatcher": {
-        "pattern": {
-          "regexp": "^\\s*(.*)$",
-          "file": 1
-        },
+        //Only compiler diagnostics belong in Problems, not application startup logs.
+        "base": "$msCompile",
         "background": {
           "activeOnStart": true,
           "beginsPattern": "^.*Building\\.\\.\\..*$",
@@ -112,10 +110,8 @@
       },
       "isBackground": true,
       "problemMatcher": {
-        "pattern": {
-          "regexp": "^\\s*(.*)$",
-          "file": 1
-        },
+        //Vite's banner, URLs and help text are not TypeScript diagnostics.
+        "base": "$tsc",
         "background": {
           "activeOnStart": true,
           "beginsPattern": "^.*VITE.*$",
@@ -138,7 +134,14 @@
       "type": "npm",
       "script": "dev",
       "path": "dragonblight_website.client",
-      "problemMatcher": "$tsc",
+      "problemMatcher": {
+        "base": "$tsc",
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^.*VITE.*$",
+          "endsPattern": "^.*ready in.*$"
+        }
+      },
       "isBackground": true
     }
   ]
