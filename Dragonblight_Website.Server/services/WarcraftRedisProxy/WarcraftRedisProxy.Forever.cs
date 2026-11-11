@@ -634,20 +634,27 @@ partial class WarcraftRedisProxy
                 }
                 return null;
             }
-            var active = result.Value.SpecializationGroups?.FirstOrDefault(g => g.IsActive);
-            var bestName = "";
-            var bestPoints = 0;
-            foreach (var tree in active?.Specializations ?? [])
-            {
-                var points = (tree.Talents ?? []).Sum(t => t.TalentRank);
-                if (points > bestPoints)
-                {
-                    bestPoints = points;
-                    bestName = tree.Specialization?.Name ?? "";
-                }
-            }
-            return bestName;
+            return MostPointsTree(result.Value);
         }, TimeSpan.FromDays(3));
+    }
+
+    //The tree of the active talent group with the most points spent, as Blizzard names it
+    //("Feral Combat"); empty when no points are spent.
+    public static string MostPointsTree(ForeverSpecializations specializations)
+    {
+        var active = specializations.SpecializationGroups?.FirstOrDefault(g => g.IsActive);
+        var bestName = "";
+        var bestPoints = 0;
+        foreach (var tree in active?.Specializations ?? [])
+        {
+            var points = (tree.Talents ?? []).Sum(t => t.TalentRank);
+            if (points > bestPoints)
+            {
+                bestPoints = points;
+                bestName = tree.Specialization?.Name ?? "";
+            }
+        }
+        return bestName;
     }
 
     //Forever's class and race names by id. Forever has races of its own (the Skyborne), so

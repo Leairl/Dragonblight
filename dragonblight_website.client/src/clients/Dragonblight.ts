@@ -2865,6 +2865,7 @@ export interface ForeverCharacterPage {
     rosterCharacter?: ForeverStatsCharacter | undefined;
     equipment?: CharacterEquipmentSummary | undefined;
     media?: CharacterMediaSummary | undefined;
+    specName?: string | undefined;
 }
 
 export interface ForeverCharacterProfile extends CharacterProfileSummary {
