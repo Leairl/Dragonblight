@@ -213,11 +213,16 @@ function nameFromSlug(slug: string): string {
 }
 
 // The tabs that load their own data, which starts as soon as the pointer or keyboard reaches the tab.
-const dataTabs = [["optimize", "Optimize"], ["professions", "Professions"], ["pvp", "PvP"], ["reputations", "Reputations"], ["achievements", "Achievements"], ["collections", "Collections"]] as const;
+// PvP and talents aren't tabs: they sit under the gear on the Profile tab.
+const dataTabs = [["optimize", "Optimize"], ["professions", "Professions"], ["reputations", "Reputations"], ["achievements", "Achievements"], ["collections", "Collections"]] as const;
 
-// The tab in the URL, or gear when there is none or it isn't one of the tabs.
+// The tab in the URL, or gear (the Profile tab) when there is none or it isn't one of the tabs, which
+// includes old /pvp and /talents links.
 function foreverTab(urlTab: string | undefined) {
-  return urlTab === "talents" || dataTabs.some(([value]) => value === urlTab) ? urlTab! : "gear";
+  if (dataTabs.some(([value]) => value === urlTab)) {
+    return urlTab!;
+  }
+  return "gear";
 }
 
 function CharacterTabs() {
@@ -229,9 +234,7 @@ function CharacterTabs() {
       <SegmentedControl.Root className="forever-character-tabs" value={tab} onValueChange={(value) => {
         navigate(`/character/${region}/${encodeURIComponent(characterSlug ?? "")}${value === "gear" ? "" : `/${value}`}`, { replace: true });
       }}>
-        <SegmentedControl.Item value="gear">Gear</SegmentedControl.Item>
-        <SegmentedControl.Item value="talents" onPointerEnter={() => prefetchForeverTab("talents", region, characterSlug)}
-          onFocus={() => prefetchForeverTab("talents", region, characterSlug)}>Talents</SegmentedControl.Item>
+        <SegmentedControl.Item value="gear">Profile</SegmentedControl.Item>
         {dataTabs.map(([value, label]) => (
           <SegmentedControl.Item key={value} value={value} onPointerEnter={() => prefetchForeverTab(value, region, characterSlug)}
             onFocus={() => prefetchForeverTab(value, region, characterSlug)}>{label}</SegmentedControl.Item>
@@ -318,7 +321,7 @@ function RosterOnlyCharacter(props: { character: Dragonblight.ForeverStatsCharac
                 </div>
               </Card>
               <Card className="talent-row border-card">
-                {urlTab === "professions" ? <ForeverProfessions key={`${c.region}/${c.slug}`} /> : urlTab === "pvp" ? <ForeverPvp key={`${c.region}/${c.slug}`} faction={c.faction} /> : urlTab === "reputations" ? <ForeverReputations key={`${c.region}/${c.slug}`} /> : urlTab === "achievements" ? <ForeverAchievements key={`${c.region}/${c.slug}`} /> : urlTab === "collections" ? <ForeverCollections key={`${c.region}/${c.slug}`} /> : (
+                {urlTab === "professions" ? <ForeverProfessions key={`${c.region}/${c.slug}`} /> : urlTab === "reputations" ? <ForeverReputations key={`${c.region}/${c.slug}`} /> : urlTab === "achievements" ? <ForeverAchievements key={`${c.region}/${c.slug}`} /> : urlTab === "collections" ? <ForeverCollections key={`${c.region}/${c.slug}`} /> : (
                 <Callout.Root color="amber">
                   <Callout.Icon>
                     <InfoCircledIcon />
@@ -331,6 +334,11 @@ function RosterOnlyCharacter(props: { character: Dragonblight.ForeverStatsCharac
                   </Callout.Text>
                 </Callout.Root>)}
               </Card>
+              {foreverTab(urlTab) === "gear" && (
+                <Card className="talent-row border-card mt-3">
+                  <ForeverPvp key={`${c.region}/${c.slug}`} faction={c.faction} />
+                </Card>
+              )}
             </div>
           </div>
         </div>
@@ -508,10 +516,6 @@ function ForeverCharacter() {
                 <Card className="talent-row border-card">
                   <ForeverOptimize key={requestKey} />
                 </Card>
-              ) : tab === "pvp" ? (
-                <Card className="talent-row border-card">
-                  <ForeverPvp key={requestKey} faction={profile?.faction?.type} />
-                </Card>
               ) : tab === "reputations" ? (
                 <Card className="talent-row border-card">
                   <ForeverReputations key={requestKey} />
@@ -520,18 +524,12 @@ function ForeverCharacter() {
                 <Card className="talent-row border-card">
                   <ForeverAchievements key={requestKey} />
                 </Card>
-              ) : tab === "talents" ? (
-                <Card className="talent-row border-card">
-                  {state === "loading" && <Skeleton height="420px"></Skeleton>}
-                  {state === "loaded" && profile && (
-                    <ForeverTalents region={region ?? ""} characterSlug={characterSlug ?? ""} className={className} />
-                  )}
-                </Card>
               ) : tab === "collections" ? (
                 <Card className="talent-row border-card">
                   <ForeverCollections key={requestKey} />
                 </Card>
-              ) : <Card className="paperdoll-card overflow-visible border-card">
+              ) : <>
+              <Card className="paperdoll-card overflow-visible border-card">
                 {/* while loading, the same layout the retail and classic profile shows */}
                 {state === "loading" && (
                   <div>
@@ -571,7 +569,18 @@ function ForeverCharacter() {
                     </div>
                   </div>
                 )}
-              </Card>}
+              </Card>
+              {/* the Profile tab: gear, then PvP, then talents */}
+              <Card className="talent-row border-card mt-3">
+                <ForeverPvp key={requestKey} faction={profile?.faction?.type} />
+              </Card>
+              <Card className="talent-row border-card mt-3">
+                {state === "loading" && <Skeleton height="420px"></Skeleton>}
+                {state === "loaded" && profile && (
+                  <ForeverTalents region={region ?? ""} characterSlug={characterSlug ?? ""} className={className} />
+                )}
+              </Card>
+              </>}
             </div>
           </div>
         </div>
