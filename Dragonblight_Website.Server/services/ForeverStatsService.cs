@@ -90,11 +90,13 @@ public class ForeverStatsService(IWarcraftRedisProxy warcraftCachedData, ILogger
         {
             return;
         }
+        //only members level 10 and up, and only those with a slug, which is needed to fetch their spec
         var members = roster.Members
             .Select(m => m.Character)
             .Where(c => c != null && c.Level >= MinimumLevel && !string.IsNullOrEmpty(c.Slug))
             .ToList();
 
+        //stores sample's characters by region and slug
         var known = (await warcraftCachedData.GetForeverStatsCharacters())
             .Where(c => c.Region == region)
             .ToDictionary(c => c.Slug);
@@ -106,11 +108,13 @@ public class ForeverStatsService(IWarcraftRedisProxy warcraftCachedData, ILogger
             var slug = member.Slug.ToLowerInvariant();
             var specName = "";
             var specChecked = false;
+            //if we've seen this character before, keep its spec until step 2 replaces it
             if (known.TryGetValue(slug, out var previous))
             {
                 specName = previous.SpecName;
                 specChecked = previous.SpecChecked;
             }
+            //each roster
             records.Add(new ForeverStatsCharacter
             {
                 Region = region,
@@ -158,7 +162,7 @@ public class ForeverStatsService(IWarcraftRedisProxy warcraftCachedData, ILogger
         var expired = characters.Where(c => now - c.SeenAt > KeepFor).ToList();
         await warcraftCachedData.RemoveForeverStatsCharacters(expired);
         var current = characters.Where(c => now - c.SeenAt <= KeepFor).ToList();
-
+        //the page shows the number of characters, guilds and specs pending, and a list of groups
         var groups = current
             .GroupBy(c => (c.Region, c.RulesetId, c.RulesetName, c.Faction, c.ClassName, c.SpecName, c.RaceName))
             .Select(g => new ForeverStatsGroup

@@ -6,6 +6,7 @@ import { ClassColor } from "../../helpers/classColorHelper";
 import { RegionFlag } from "../ladder-controls/ladder-controls";
 import StatCard, { StatRow } from "../stat-card/stat-card";
 import "../class-leaderboard-analytics/class-leaderboard-analytic.css";
+import { raceIcon, specDisplayName, specIcon } from "../../helpers/forever-names";
 
 interface Ruleset {
   id: number;
@@ -31,33 +32,6 @@ const raceBarColor = "#4dc4fd";
 interface FactionCounts {
   alliance: number;
   horde: number;
-}
-
-// Blizzard's names for some Forever talent trees, shortened to the names players use. The
-// short name is also what the spec icons are named after (elemental_shaman.png, feral_druid.png).
-const specDisplayNames: Record<string, string> = {
-  "Elemental Combat": "Elemental",
-  "Shadow Magic": "Shadow",
-  "Feral Combat": "Feral",
-};
-
-function specDisplayName(specName: string): string {
-  const shown = specDisplayNames[specName];
-  if (shown !== undefined) {
-    return shown;
-  }
-  return specName;
-}
-
-// The spec icon file, from the spec's display name, e.g. /Specs/shadow_priest.png
-function specIcon(specName: string, className: string): string {
-  return `/Specs/${specName.toLowerCase()}_${className.toLowerCase()}.png`;
-}
-
-// The race icon file: the race name lowercased with every space removed, so "High Order
-// Skyborne" is highorderskyborne-m.png
-function raceIcon(raceName: string): string {
-  return `/RaceIcons/${raceName.toLowerCase().split(" ").join("")}-m.png`;
 }
 
 // Totals each key's counts across the groups, highest first.
