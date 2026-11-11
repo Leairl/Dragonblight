@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { Callout, Card, Flex, Heading, SegmentedControl, Skeleton } from "@radix-ui/themes";
 import { InfoCircledIcon } from "@radix-ui/react-icons";
@@ -184,28 +184,10 @@ const dataTabs = [["professions", "Professions"], ["pvp", "PvP"], ["reputations"
 function CharacterTabs() {
   const { region, characterSlug, urlTab } = useParams();
   const navigate = useNavigate();
-  const tabsRef = useRef<HTMLDivElement>(null);
   const tab = urlTab === "professions" || urlTab === "pvp" || urlTab === "reputations" || urlTab === "achievements" || urlTab === "collections" ? urlTab : "gear";
-  useEffect(() => {
-    const root = tabsRef.current;
-    if (!root) return;
-    //Only scroll the tab strip, not the page, when the active label is offscreen.
-    const revealSelected = () => {
-      const selected = root.querySelector('[aria-checked="true"]');
-      if (!selected) return;
-      const bounds = root.getBoundingClientRect();
-      const item = selected.getBoundingClientRect();
-      if (item.right > bounds.right) root.scrollLeft += item.right - bounds.right;
-      else if (item.left < bounds.left) root.scrollLeft += item.left - bounds.left;
-    };
-    revealSelected();
-    const observer = new ResizeObserver(revealSelected);
-    observer.observe(root);
-    return () => observer.disconnect();
-  }, [tab]);
   return (
     <div className="button-row">
-      <SegmentedControl.Root ref={tabsRef} className="forever-character-tabs" value={tab} onValueChange={(value) => {
+      <SegmentedControl.Root className="forever-character-tabs" value={tab} onValueChange={(value) => {
         navigate(`/character/${region}/${encodeURIComponent(characterSlug ?? "")}${value === "gear" ? "" : `/${value}`}`, { replace: true });
       }}>
         <SegmentedControl.Item value="gear">Gear</SegmentedControl.Item>
